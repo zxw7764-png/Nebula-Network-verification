@@ -26,6 +26,7 @@ if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST') {
     exit('系统已安装，如需重装请先删除 install/install.lock');
 }
 
+
 // ------------------------------------------------------------------
 // 处理提交
 // ------------------------------------------------------------------
@@ -319,30 +320,6 @@ if ($installed && $step !== '3') {
 }
 
 $result = $_SESSION['install_result'] ?? null;
-
-// 安装成功后自动删除 install 目录：先删资源文件，install.lock 与本脚本最后删
-// （若本脚本删除失败——个别 SAPI 会锁句柄——lock 仍可能保留，"已安装保护"继续生效，不会出现可重装漏洞）
-$nbDelFail = 0;
-$nbSelfGone = false;
-if ($step === '3' && $result) {
-    $nbSelf = __FILE__;
-    $nbLock = __DIR__ . '/install.lock';
-    try {
-        $nbIt = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator(__DIR__, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST
-        );
-        foreach ($nbIt as $nbF) {
-            if ($nbF->getPathname() === $nbSelf || $nbF->getPathname() === $nbLock) continue;
-            if ($nbF->isDir()) { @rmdir($nbF->getPathname()) || $nbDelFail++; }
-            else { @unlink($nbF->getPathname()) || $nbDelFail++; }
-        }
-    } catch (Throwable $e) { $nbDelFail++; }
-    @unlink($nbLock);
-    @unlink($nbSelf);
-    @rmdir(__DIR__);
-    $nbSelfGone = !is_file($nbSelf);
-}
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -620,8 +597,7 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
             <div class="alert ok">🎉 安装完成！以下账号信息仅显示这一次，请立即复制保存。</div>
 
             <div class="alert warn" style="margin-bottom:16px">
-                通信密钥（AES_KEY / SIGN_SALT）已按软件独立生成并保存在后台，
-                不再明文展示 —— 进入管理后台 <b>「软件管理」</b> 可查看每个软件的
+                 进入管理后台 <b>「软件管理」</b> 可查看每个软件的
                 app_key 与密钥，新增软件、重置密钥也都在那里操作。
             </div>
 
@@ -672,16 +648,10 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
                 代理商后台：<code><?= htmlspecialchars($base) ?>/agent/</code>（默认关闭，需在后台「系统设置 → 代理商设置」开启）
             </div>
 
-            <?php if ($nbSelfGone): ?>
-            <div class="alert ok" style="margin-top:20px">
-                ✅ <code>install</code> 目录已自动删除，无需手动操作。本页为最后一次显示，请立即复制保存上方账号信息。
-            </div>
-            <?php else: ?>
             <div class="alert err" style="margin-top:20px">
-                ⚠ install 目录自动删除未完全成功（残留 <?= $nbDelFail ?> 项），请立即手动删除整个 <code>install</code> 目录，否则存在被重装风险！<br>
-                ⚠ 若 nginx 独立配置（vhost）中引用了 <code>/admin/</code> 路由规则，请手动同步改为 <code>/<?= htmlspecialchars($result['admin_path']) ?>/</code> 后重载 nginx。
+                ⚠ 安装完成后，请立即手动删除整个 <code>install</code> 目录，否则存在被重装风险！<br>
+                若 nginx 独立配置（vhost）中引用了 <code>/admin/</code> 路由规则，请手动同步改为 <code>/<?= htmlspecialchars($result['admin_path']) ?>/</code> 后重载 nginx。
             </div>
-            <?php endif; ?>
 
         <?php else: ?>
             <div class="alert warn">
