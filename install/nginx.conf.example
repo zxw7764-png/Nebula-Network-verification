@@ -1,0 +1,159 @@
+# ============================================================
+# Nebula 网络验证 - Nginx 配置示例
+#
+# 使用方法：
+#   1. 复制本文件到 Nginx 配置目录，例如:
+#      /etc/nginx/conf.d/nebula.conf   (CentOS/RHEL)
+#      /etc/nginx/sites-available/nebula  (Ubuntu/Debian)
+#   2. 修改 server_name 与 root 为你的实际值
+#   3. nginx -t && nginx -s reload
+# ============================================================
+
+server {
+    listen       80;
+    server_name  your-domain.com;
+
+    # 项目根目录（改成你的实际路径）
+    root   /www/nebula;
+    index  index.php index.html;
+
+    charset utf-8;
+    client_max_body_size 8m;
+
+    # ------------------------------------------------------------
+    # 安全响应头
+    # ------------------------------------------------------------
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # ------------------------------------------------------------
+    # 禁止访问敏感目录
+    #   注意：这里【不包含 install】—— 安装向导 /install/install.php
+    #   必须能被浏览器访问，否则客户拿到空白包打不开安装页。
+    #   install/ 下的危险脚本改由下面单独的规则拒绝：
+    #     · migrate_*.php 会反复重跑迁移
+    #     · clear_logs.php 可清空审计日志
+    #   脚本层还有 install/_cli_guard.php 做服务器无关的兜底拦截。
+    # ------------------------------------------------------------
+    location ~ ^/(config|lib|logs|data)/ {
+        deny all;
+        return 404;
+    }
+
+    # 禁止 uploads 目录执行 PHP（防止上传 WebShell）
+    location ~ ^/uploads/.*\.php$ {
+        deny all;
+        return 404;
+    }
+
+    # install/ 下的安装向导放行，其余一律拒绝
+    location = /install/install.php { }
+    location ~ ^/install/.*\.php$ {
+        deny all;
+        return 404;
+    }
+
+    # 禁止直接访问后台/代理的 handlers 目录
+    #   —— 这些 PHP 依赖 index.php 注入的 $input/$admin/$agent 变量，
+    #      单独访问无意义且可能泄露信息（Apache 侧由 .htaccess 兜底）
+    location ~ ^/(admin|agent)/handlers/ {
+        deny all;
+        return 404;
+    }
+
+    # 禁止访问敏感文件
+    location ~* \.(sql|log|md|lock|ini|sh|bak|old|swp)$ {
+        deny all;
+        return 404;
+    }
+
+    # ------------------------------------------------------------
+    # 客户端 API 美化路由
+    #   /api/login  ->  /api/index.php?action=login
+    # ------------------------------------------------------------
+    location ~ ^/api/([a-z_]+)/?$ {
+        rewrite ^/api/([a-z_]+)/?$ /api/index.php?action=$1 last;
+    }
+
+    # ------------------------------------------------------------
+    # 管理 API 美化路由
+    #   /admin/login  ->  /admin/index.php?action=login
+    # 注意：只匹配纯小写字母下划线的短路径，避免误伤 assets/ 静态资源
+    # ------------------------------------------------------------
+    location ~ ^/admin/([a-z_]{2,32})/?$ {
+        rewrite ^/admin/([a-z_]{2,32})/?$ /admin/index.php?action=$1 last;
+    }
+
+    # 管理后台页面入口
+    # 访问 /admin/ 时渲染页面（home.php），API 走 index.php
+    # 必须用 rewrite ... last，不能用 try_files：
+    # try_files 会把 home.php 当作静态文件直接返回，导致 PHP 源码被下载，
+    # 泄露数据库账号密码等敏感配置。rewrite ... last 会让请求重新匹配
+    # 到下面的 PHP location，由 fastcgi 正常执行。
+    location = /admin/ {
+        rewrite ^ /admin/home.php last;
+    }
+    location = /admin {
+        return 301 /admin/;
+    }
+
+    # 前端静态资源直出（不经过 PHP）
+    location ^~ /admin/assets/ {
+        expires 7d;
+        add_header Cache-Control "public";
+    }
+
+    # ------------------------------------------------------------
+    # PHP 处理
+    # ------------------------------------------------------------
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_pass   127.0.0.1:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        fastcgi_param  PATH_INFO        $fastcgi_path_info;
+        include        fastcgi_params;
+        fastcgi_read_timeout 30s;
+    }
+
+    # ------------------------------------------------------------
+    # 静态资源缓存
+    # ------------------------------------------------------------
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+
+# ============================================================
+# HTTPS 版本（推荐生产使用）
+# 用 certbot 申请证书后取消注释，并把 80 端口改为跳转
+# ============================================================
+# server {
+#     listen 80;
+#     server_name your-domain.com;
+#     return 301 https://$server_name$request_uri;
+# }
+#
+# server {
+#     listen 443 ssl http2;
+#     server_name your-domain.com;
+#     root /www/nebula;
+#     index index.php index.html;
+#
+#     ssl_certificate     /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+#     ssl_protocols       TLSv1.2 TLSv1.3;
+#     ssl_ciphers         HIGH:!aNULL:!MD5;
+#     ssl_session_cache   shared:SSL:10m;
+#     ssl_session_timeout 10m;
+#     add_header Strict-Transport-Security "max-age=31536000" always;
+#
+#     # ... 其余 location 配置同上 ...
+# }
