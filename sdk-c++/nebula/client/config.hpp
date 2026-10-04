@@ -99,15 +99,10 @@ inline const std::string kRespSignPubKey = NEBULA_STR(
  */
 inline const std::string kTlsCertSha256 = NEBULA_STR("f31dc7cd4dbed7b9b6034bae7577452a6e50102ff3121775e64698b76f08b80d");
 
-/**
- * 疑似环境处置策略（false = 宽松[默认]，true = 严格）。
- *
- * 影响 setProtectAction() 对「疑似环境」类命中（hook / 虚拟机 / 沙箱）的处置：
- *   · 宽松：只记录与上报，不拦截 —— 避免误伤挂加速器、跑在云电脑/VPS 的正常用户；
- *   · 严格：这些命中也会按 action 弹窗退出 —— 能拦下"隐身虚拟机"，但会误伤 VM 用户。
- * 注意：真实调试铁证（debugged）无论开关都按 action 处置，不受此开关影响。
- */
-inline const bool kProtectStrictPolicy = false;
+// 【已移除】kProtectStrictPolicy（疑似环境处置策略编译期开关）：
+// 该策略自 2.65.23 起完全由服务端策略下发（runtime_protection.strict，
+// = 严重动作是否为吊销会话），init / heartbeat 每次都会覆盖本地值，
+// 编译期常量不再有任何生效场景（默认宽松 = 未收到策略时的兜底，一致）。
 
 } // namespace cfg
 } // namespace nebula

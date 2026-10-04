@@ -1,4 +1,4 @@
-# Nebula SDK 客户端加固指南（壳标记 · 代码混淆 · 反调试 · 反虚拟机）
+# Nebula SDK 客户端加固指南（壳标记 · 代码混淆 · 运行时防护 · 分层扫描）
 
 > 📚 本文属 Nebula 文档中心，主索引见 [../README.md](../README.md)；
 > 配套文档：[C++ SDK 接入文档](SDK.md) · [API 接口](../docs/API.md)
@@ -13,11 +13,38 @@
 
 ## 0. 30 秒上手
 
+### 0.0 敏感数据内存保护（feature_key / 核心数据）
+
+功能密钥与解密出的核心数据是破解者最想 dump 的东西（拿到 key 即可离线解密数据包）。
+SDK 提供三层缩小明文驻留窗口的 API：
+
+```cpp
+// 1) login 后解开核心数据 → SecureBuffer（用后自动擦除 + 可锁页防交换）
+nebula::SecureBuffer core(true);                       // true = VirtualLock 锁页
+std::string err;
+if (nebula::feature::openSecure(pack, lr.feature_key, core, err)) {
+    use(core.data(), core.size());                     // 直接在缓冲上用
+    core.wipe();                                       // 用完尽早擦（出作用域也会自动擦）
+}
+
+// 2) 密钥本身用完立刻擦（volatile 写，编译器不会优化掉）
+lr.wipeFeatureKey();
+
+// 3) 其他敏感串擦除工具
+nebula::secureZero(p, n);      // 任意内存
+nebula::secureWipe(str);       // std::string（含 capacity 部分）
+```
+
+要点：
+- `openSecure` 是 `open` 的内存保护升级版：明文进 SecureBuffer，解密临时副本在返回前立即擦除；
+- **大数据场景请把核心数据拆成多个小数据包**，按需逐包解密（NF1 为整包 CBC，包越大明文驻留窗口越大）；
+- 旧接口 `feature::open` 仍然可用（兼容），但明文生命周期由调用方自理。
+
 ### 0.1 开关一览
 
 | 开关宏 | 默认 | 作用 | 对应文件能力 |
 | --- | --- | --- | --- |
-| `NEBULA_PROTECT_LEVEL` | `0` | 运行时防护等级：`1` 基础 / `2` 标准 / `3` 严格 | 反调试、反虚拟机/沙箱、API 劫持、代码补丁自检 |
+| `NEBULA_PROTECT_LEVEL` | `0` | 运行时防护等级：`1` 基础 / `2` 标准 / `3` 严格 | 反调试、反虚拟机/沙箱、API 劫持、代码补丁自检、模块守卫、内存守卫、进程守卫 |
 | `NEBULA_OBF_STRINGS` | `0` | 核心代码混淆 | 字符串编译期加密、间接调用、不透明谓词 |
 | `NEBULA_SHELL_ENABLE` | `0` | 壳标记（VMProtect / Themida · WinLicense / 自定义） | 在核心函数里插入壳的标记，让加壳工具保护这段代码 |
 | `NEBULA_RUNTIME_DIVERSE` | `0` | 运行时多样性 | `SecureString` 每次启动随机密钥、不透明谓词每次启动随机形态（`=0` 时退化为固定密钥 + 固定谓词，零开销） |
@@ -29,6 +56,10 @@
 | `NEBULA_HARDEN` | `0` | **一键全开**：等于 `LEVEL=3` + 混淆 + 壳标记 + 运行时多样性 |
 | `NEBULA_PROTECT_ACTION` | `1` | 命中后的动作：`0` 只记录 / `1` 回调上报 / `2` 降级 / `3` 弹窗退出 |
 | `NEBULA_TIMING_THRESHOLD_MS` | `50.0` | 时序异常阈值（毫秒） |
+| `NEBULA_RUNTIME_WATCHDOG_INTERVAL` | `5000` | 后台巡检间隔（毫秒） |
+| `NEBULA_MODULE_GUARD_ENABLE` | 随 `LEVEL` | 模块守卫开关（`LEVEL>=2` 时默认启用） |
+| `NEBULA_MEMORY_GUARD_ENABLE` | 随 `LEVEL` | 内存守卫开关（`LEVEL>=2` 时默认启用） |
+| `NEBULA_PROCESS_GUARD_ENABLE` | 随 `LEVEL` | 进程守卫开关（`LEVEL>=3` 时默认启用） |
 | `NEBULA_QUIET` | — | 定义后关闭"加固未启用"的编译期提醒 |
 | `NEBULA_SHELL_NO_AUTOLINK` | — | 定义后不自动链接壳的 .lib（自己手动加） |
 
@@ -343,9 +374,60 @@ if (!NEBULA_OPAQUE_TRUE() && NEBULA_OPAQUE_TRUE()) {
 
 ---
 
-## 3. ③ 运行时防护（反调试 / 反虚拟机沙箱 / 自检）
+## 3. ③ 运行时防护（分层扫描体系）
 
-### 3.1 三个等级各查什么
+### 3.0 架构总览
+
+运行时防护已从旧版单一 `runtime.hpp` 拆分为**模块化分层架构**，每个子模块职责单一、可独立阅读：
+
+| 文件 | 职责 | 对应设计文档 |
+| --- | --- | --- |
+| `violation.hpp` | **基础类型层**：`Level`、`Flag`（64-bit）、`Report`、`Severity`（5 级）、`ErrorCode`（NBL-RT-xxxx）、`ViolationEvent`、`ExtendedReport`、风险聚合器 `aggregateSeverity`、决策器 `decideAction`、弹窗文案 | §5 / §32~§38 / §63 |
+| `code_integrity.hpp` | **代码完整性**：`registerCriticalCode` / `registerCriticalFunction` 登记核心代码区域，双级 Hash（FNV-1a 快速 → SHA-256 确认）校验，Patch 指令模式检测 | §10~§15 |
+| `module_guard.hpp` | **模块守卫**：启动时建立模块基线（枚举全部已加载 DLL + 核心 DLL 哈希），运行时检测新增/删除/篡改模块，已知注入框架黑名单 | §16~§19 |
+| `memory_guard.hpp` | **内存守卫**：扫描 `MEM_PRIVATE + 可执行` 内存区域，Manual Map 风险评分（PE 头校验 + Loader 验证 + 区域大小），异常可执行内存快速检查 | §20~§22 |
+| `process_guard.hpp` | **进程守卫**：检测 DebugObject、远程线程注入（`CreateRemoteThread` 线索），外部进程访问风险评分 | §25~§26 |
+| `runtime.hpp` | **集成中心**：`scan()` 分层调用各子模块汇总为 `Report`，`enforce()` 按策略处置，Watchdog 后台巡检 | §1~§9 / §34~§40 |
+| `runtime_policy.hpp` | **服务端策略**：`RuntimePolicy` 结构体，`parseRuntimePolicy` 从 init/heartbeat 响应解析，`applyRuntimePolicy` 安全应用（不超编译期上限、状态冗余防篡改） | §47~§49 |
+| `shell.hpp` | 壳标记（见 §1） | — |
+| `obfuscate.hpp` | 代码混淆（见 §2） | — |
+
+**依赖关系（无循环）**：
+
+```
+violation.hpp  ←  code_integrity.hpp
+               ←  module_guard.hpp
+               ←  memory_guard.hpp
+               ←  process_guard.hpp
+               ←  runtime_policy.hpp
+               ←  runtime.hpp  ←  client.hpp
+```
+
+`violation.hpp` 是所有子模块的公共基础头文件，定义了全部类型和常量，不依赖任何其他 protect 子模块。
+各子模块只依赖 `violation.hpp`，互不依赖。`runtime.hpp` 依赖所有子模块进行集成。
+
+### 3.1 检测等级与子模块启用
+
+| 等级 | `NEBULA_PROTECT_LEVEL` | 启用的子模块（预设掩码） | 说明 |
+| --- | --- | --- | --- |
+| 关闭 | `0` | 无（掩码 0） | 所有检测代码不编译，零开销 |
+| 基础 | `1` | 反调试 + 反虚拟机/沙箱 + 代码完整性（`1\|2\|16`） | 误报极低，适合内测 |
+| 标准 | `2` | 基础 + API钩子 + 代码补丁 + **模块守卫** + **内存守卫**（`1\|2\|16\|4\|8\|32\|64`） | 新增 Manual Map 检测与模块基线 |
+| 严格 | `3` | 标准 + **进程守卫** + 时序检测 + 环境痕迹（全 10 位） | 全功能，适合正式发版 |
+
+**等级即策略（2.65.23 起）**：服务端在 `runtime_protection.modules` 里**按等级整档下发检测模块位掩码**，SDK 各检测模块按掩码门控运行；下发值与编译期能力（`modulePresetMask(NEBULA_PROTECT_LEVEL)`）取交，服务端不能提权。位定义（与 `lib/RuntimePolicy.php levelModuleMask()` 一致）：
+
+| 位 | 模块 | 位 | 模块 |
+| --- | --- | --- | --- |
+| 1 | 反调试 | 32 | 模块守卫 |
+| 2 | 反虚拟机/沙箱 | 64 | 内存守卫 |
+| 4 | API钩子检测 | 128 | 进程守卫 |
+| 8 | 代码补丁检测 | 256 | 时序检测 |
+| 16 | 代码完整性 | 512 | 环境痕迹 |
+
+各子模块也可通过 `NEBULA_MODULE_GUARD_ENABLE` / `NEBULA_MEMORY_GUARD_ENABLE` / `NEBULA_PROCESS_GUARD_ENABLE` 单独开关覆盖默认行为（编译期开关决定"能不能跑"，服务端掩码决定"跑不跑"）。
+
+### 3.2 三个等级各查什么
 
 | 检查项 | 等级 | 权重 | 误报风险 |
 | --- | --- | --- | --- |
@@ -362,7 +444,13 @@ if (!NEBULA_OPAQUE_TRUE() && NEBULA_OPAQUE_TRUE()) {
 | 关键代码执行时序异常 | 3 | 30 | 中（慢机器/降频会偏慢，故阈值给得很宽松） |
 | frida 等注入框架模块 | 2 | 70 | 无 |
 | 关键 API 首字节被改（inline hook） | 2 | 20 / 45（≥2 个） | 中（杀软/监控软件 hook 属正常） |
-| 受保护代码段被改写（`guardCode`） | 2 | 90 | 无 |
+| 受保护代码段被改写（`registerCriticalCode`） | 2 | 90~100 | 无 |
+| 模块基线不一致（核心 DLL 哈希变化） | 2 | 80 | 无 |
+| 新增模块（非核心） | 2 | 30 | 低 |
+| Manual Map（高置信度） | 2 | 90~105 | **极低**（需同时满足 PE 头 + 无 Loader + 足够大） |
+| 异常可执行私有内存 | 2 | 40~69 | 低（JIT/CRT 也会命中，只记录不拦截） |
+| 外部进程访问（DebugObject） | 3 | 50 | 低 |
+| 远程线程注入 | 3 | 30 | 低 |
 | `CPUID` hypervisor 位 | 1 | 30 | 高（**Hyper-V/WSL2/VBS/云电脑都会置位**，所以只计分不单独判定） |
 | 注册表虚拟机痕迹 | 1 | 35 | 无 |
 | BIOS/主板厂商字段 | 1 | 40 | 低（云主机也会命中，属于期望行为） |
@@ -380,9 +468,30 @@ if (!NEBULA_OPAQUE_TRUE() && NEBULA_OPAQUE_TRUE()) {
 - `virtualized`：虚拟机线索累计 ≥ 60 分（所以单独一个 CPUID 位不会误判）；
 - `sandboxed`：命中沙箱特征（Sandboxie / Cuckoo / WDAG）；
 - `hooked`：命中注入模块或 ≥2 个关键 API 被改写；
+- `code_tampered`：双级 Hash 确认代码段被修改（Critical）；
+- `module_tampered`：核心模块基线不一致；
+- `manual_mapped`：Manual Map 风险评分 ≥ 40（LOW 以上才标记）；
+- `external_access_suspected`：进程守卫检测到外部访问线索；
 - `clean`：以上全部没命中。
 
-### 3.2 怎么用
+### 3.3 分层扫描流程
+
+`scan()` 按以下顺序执行各子模块扫描，所有命中事件汇总为 `ExtendedReport`：
+
+```
+scan()
+ ├─ detail::runChecks()           ← 旧版检测（反调试/反VM/反沙箱/API Hook）
+ ├─ scanModules()                 ← 模块守卫：基线比对 + 注入框架检测
+ ├─ scanMemory()                  ← 内存守卫：Manual Map 评分 + 异常可执行内存
+ ├─ scanProcessAccess()           ← 进程守卫：外部访问 + 远程线程
+ └─ verifyCodeIntegrity()         ← 代码完整性：双级 Hash + 函数入口 Patch 检测
+      ↓
+ 汇总为 ExtendedReport → 回写 Report → setLastReport()
+```
+
+每个子模块返回 `vector<ViolationEvent>`，集成层累加 `score` 和 `flags`。
+
+### 3.4 怎么用
 
 **方式 A：SDK 自动（推荐）**
 
@@ -397,7 +506,6 @@ c->setProtectAction(2);                    // 命中即"降级"（拒绝后续 i
 c->setProtectCallback([](const nebula::protect::Report& r) {
     OutputDebugStringA(r.summary().c_str());
     // sendToMyServer(r.score, r.detail());   // ← 上报服务端，便于运营侧观察
-    // 也可以直接去看 nebula.protect.Report 的字段自行处理
 });
 auto r = c->enableProtection(0 /*沿用编译期等级*/, 5000 /*每 5 秒后台巡检*/);
 if (!r.clean) { /* 按 r.debugged / r.virtualized / r.sandboxed / r.hooked 自行处理 */ }
@@ -415,19 +523,48 @@ if (!r.clean) {
 }
 ```
 
-### 3.3 `Report` 字段
+### 3.5 `Report` 字段
 
 | 字段 | 说明 |
 | --- | --- |
 | `clean` | 是否一切正常 |
 | `debugged` / `virtualized` / `sandboxed` / `hooked` | 四个分类结论 |
 | `score` | 累计风险分（建议直接上报服务端，用于观察趋势） |
-| `flags` | 命中位掩码（`F_*` 常量，可精确判断命中了哪一项） |
+| `flags` | 命中位掩码（64-bit `Flag` 枚举，可精确判断命中了哪一项） |
 | `reasons` | 命中的具体项（中文，可直接打日志/上报） |
 | `summary()` / `detail()` | 一行摘要 / 明细字符串 |
 | `at` | 检测时间（Unix 秒） |
 
-### 3.4 动作策略（`NEBULA_PROTECT_ACTION`）
+### 3.6 严重级别与错误代码
+
+检测事件按风险分映射到 5 级 `Severity`，`enforce()` 据此决策处置动作：
+
+| Severity | 风险分范围 | `decideAction` 返回值 | 行为 |
+| --- | --- | --- | --- |
+| `Critical` | 代码篡改（确定性） | `3`（无条件） | 弹窗 + `ExitProcess` |
+| `High` | ≥ 90（Manual Map）/ ≥ 70（硬件断点）/ ≥ 65（API Hook）/ 调试铁证 | `action`（如 action≥2 则拦截） | 按配置处置 |
+| `Medium` | ≥ 40 | `1` | 回调上报，不拦截 |
+| `Low` | > 0 | `0` | 仅记录 |
+| `Info` | 0 | `0` | 正常 |
+
+**弹窗错误代码**（不暴露内部检测细节，只显示 `NBL-RT-xxxx`）：
+
+| 错误代码 | 含义 | 触发条件 |
+| --- | --- | --- |
+| `NBL-RT-1001` | 检测到调试器 | `IsDebuggerPresent` / `PEB.BeingDebugged` / `NtQueryInformationProcess` |
+| `NBL-RT-1002` | 硬件断点 | 线程 `Dr0-Dr7` 寄存器非零 |
+| `NBL-RT-2001` | API 劫持 | 关键 API 被 inline hook（≥2 个） |
+| `NBL-RT-2002` | 代码篡改 | 受保护代码段双级 Hash 不匹配 |
+| `NBL-RT-2003` | 模块篡改 | 核心 DLL 基线哈希不一致 |
+| `NBL-RT-2004` | 手动映射（Manual Map） | 高置信度 Manual Map（score ≥ 90） |
+| `NBL-RT-2005` | 异常可执行内存 | `MEM_PRIVATE + RWX` 且无 Loader（仅记录） |
+| `NBL-RT-3001` | 沙箱环境 | Sandboxie / Cuckoo / WDAG |
+| `NBL-RT-3002` | 虚拟机 | 虚拟机线索累计 ≥ 60 分 |
+| `NBL-RT-4001` | 外部进程访问 | DebugObject / 远程线程线索 |
+
+> §37 弹窗文案统一为："检测到当前程序运行环境异常，程序无法继续运行。请关闭调试、分析或注入类工具后重新启动。错误代码：NBL-RT-xxxx"
+
+### 3.7 动作策略（`NEBULA_PROTECT_ACTION`）
 
 | 值 | 行为 | 建议 |
 | --- | --- | --- |
@@ -439,7 +576,7 @@ if (!r.clean) {
 > **强烈建议不要一上来就用 3。** 云电脑、虚拟机里的真实付费用户、杀软的 hook 都会造成误伤。
 > 先用 `1` 收集一段时间，看命中的都是谁，再决定要不要收紧。
 
-### 3.4.1 setProtectAction 会「隐式启用检测」（重要）
+### 3.7.1 setProtectAction 会「隐式启用检测」（重要）
 
 `Client::setProtectAction(act)` 只要传入 `act>0`，就会同时把检测等级提到编译期上限
 并打开 `enabled` 开关。**不要只调它而不调其它**——它本身就是"开启检测 + 设处置"一行到位：
@@ -450,19 +587,26 @@ c->setProtectAction(3);   // 等级提到 NEBULA_PROTECT_LEVEL 上限 + 启用�
 
 （老版本只 `setAction`，会让扫描被 `enabled()=false` 短路、检测根本没执行——已修复。）
 
-### 3.4.2 宽松 / 严格策略（防误伤：加速器 / 隐身 VM）
+### 3.7.2 宽松 / 严格策略（防误伤：加速器 / 隐身 VM）
 
 默认**宽松策略**，避免把"挂加速器产生的 hook、跑在 VM/沙箱"的正常用户误拦：
 
 - 只有**真实调试铁证（`debugged`）**才按 `action>=2` 处置；
 - `hook / VM / 沙箱` 等**疑似环境**只回调记录、不退出、不降级。
 
+> **策略控制权归服务端（2.65.23 起）**：疑似环境策略由后台「防护配置」下发
+> （`runtime_protection.strict` 字段），SDK 每次收到 init / heartbeat 都会自动应用。
+> 编译期开关 `kProtectStrictPolicy` 已**移除**——不再有"宽松/严格"的编译期默认值；
+> SDK 未收到策略时按宽松兜底（`strict = false`）。宿主手动调用
+> `setSuspiciousPolicy()` 会在下一次 init / heartbeat 时被服务端下发值覆盖，
+> 想长期切严格请在后台调整防护策略。
+
 ```cpp
-// 想恢复旧行为（任何异常都按 action 处置，含 VM 拦截）：
+// 临时切换（仅到下一次 init / heartbeat 前）：
 nebula::protect::setSuspiciousPolicy(true);
 ```
 
-### 3.4.3 虚拟机识别的兜底检测（抓"隐身 VM"）
+### 3.7.3 虚拟机识别的兜底检测（抓"隐身 VM"）
 
 针对 `SMBIOS.reflectHost`（反射厂商/型号/序列号后仍伪装成真机）的 VMware：
 
@@ -475,20 +619,154 @@ if (nebula::protect::setSuspiciousPolicy(true)) // 严格模式：让隐身 VM �
     c->setProtectAction(3);
 ```
 
-### 3.5 代码补丁自检（`guardCode`）
+### 3.8 代码完整性检测（双级 Hash）
 
-把关键函数的地址与长度登记进去，之后每次 `scan()` 都会比对哈希：
+代码完整性检测使用 **FNV-1a 快速 + SHA-256 确认** 的双级 Hash 策略，平衡性能与准确性：
 
-```cpp
-// 程序启动时登记一次（长度填函数大概的字节数，宁可小一点）
-nebula::protect::guardCode((const void*)&MyApp::checkLicense, 256);
-
-// 之后 scan() 会自动带上 F_TAMPER 判定；
-// 也可以单独查：
-bool ok = nebula::protect::verifyGuardedCode();
+```
+每次 scan():
+  快速计算 FNV-1a（O(n) 级别，极快）
+    ↓ 不匹配？
+  SHA-256 再次确认（避免 FNV 碰撞误报）
+    ↓ 仍不匹配？
+  判定 CodeTamper（Critical，score=100）
 ```
 
-### 3.6 后台巡检
+**登记受保护代码**：
+
+```cpp
+// 方式 A：登记一段代码区域（推荐在程序启动时调用）
+nebula::protect::registerCriticalCode((const void*)&MyApp::checkLicense, 256, "checkLicense");
+
+// 方式 B：登记关键函数入口（保存前 N bytes 基线，检测 Patch 指令模式）
+nebula::protect::registerCriticalFunction((const void*)&MyApp::verifyToken, 32, "verifyToken");
+
+// 方式 C：旧 API（兼容，等价于 registerCriticalCode）
+nebula::protect::guardCode((const void*)&MyApp::checkLicense, 256);
+```
+
+**Patch 指令模式检测**：函数入口被修改时，检查是否为常见 Patch 指令（`JMP rel32` / `PUSH imm32` / `JMP [rip]` / `MOV rax, imm64` 等），是则判 `Critical`（score=100），否则判 `High`（score=80）。
+
+### 3.9 模块守卫
+
+`module_guard.hpp` 在 `NEBULA_MODULE_GUARD_ENABLE=1`（`LEVEL>=2` 默认启用）时工作：
+
+1. **建立基线**：`buildModuleBaseline()` 枚举当前所有已加载 DLL，计算核心模块（kernel32 / ntdll / user32 等）的代码段 FNV-1a 哈希
+2. **运行时检测**：`scanModules()` 比对当前模块列表与基线
+   - 核心模块被删除/篡改 → `High`（score=80，`ModuleTamper`）
+   - 已知注入框架（frida / scylla / x32dbg 等） → `High`（score=70）
+   - 普通新增模块 → `Low`（score=30，`ModuleAdded`）
+
+### 3.10 内存守卫（Manual Map 检测）
+
+`memory_guard.hpp` 在 `NEBULA_MEMORY_GUARD_ENABLE=1`（`LEVEL>=2` 默认启用）时工作。
+
+**Manual Map 风险评分**（严格版，避免误报）：
+
+真正的 Manual Map 需要同时满足多个条件，正常程序中的 `MEM_PRIVATE + 可执行` 内存（CRT 堆、JIT、异常处理表等）不会同时满足：
+
+| 条件 | 分数 | 说明 |
+| --- | --- | --- |
+| `MEM_PRIVATE + RWX` | +20 | 基础分（`PAGE_EXECUTE_READ` 的私有内存只 +5，正常程序太常见） |
+| 区域内有完整 PE 头（MZ + PE\0\0 + 合理 Section 数） | +40 | 最强特征，正常 JIT/堆不会有完整 PE 结构 |
+| `GetModuleHandleEx` 找不到对应模块 | +30 | 仅在 PE 头存在时才给分 |
+| 区域大小 ≥ 64KB | +15 | 真实 PE 模块通常至少几十 KB |
+| `MEM_PRIVATE + RWX` + 无 Loader + ≥ 64KB（无 PE 头） | +15 | 大块 RWX 私有内存，可疑但不确定 |
+
+**评分阈值与处置**：
+
+| 总分 | 级别 | 行为 |
+| --- | --- | --- |
+| < 40 | 不上报 | 正常程序的 JIT / CRT 堆等 |
+| 40-69 | `Low` | 仅记录（`AbnormalExecMemory`） |
+| 70-89 | `Medium` | 回调上报（`ManualMap`），**不拦截** |
+| ≥ 90 | `High` | 按策略处置（`ManualMap`），action≥2 才拦截 |
+
+> §71 生产要求：Critical false positive ≈ 0，宁可上报不要误杀。
+> 正常程序最高得分约 35 分（RWX + 无 Loader + ≥ 64KB 但无 PE 头），远低于 40 分阈值。
+
+### 3.11 进程守卫
+
+`process_guard.hpp` 在 `NEBULA_PROCESS_GUARD_ENABLE=1`（`LEVEL>=3` 默认启用）时工作：
+
+- **DebugObject 检测**：`NtQueryInformationProcess(ProcessDebugObjectHandle)` — 调试器附加时存在
+- **远程线程检测**：遍历本进程线程，检查 `StartAddress` 是否在已加载模块范围内（不在任何模块中 → 疑似 `CreateRemoteThread` 注入）
+
+### 3.12 服务端运行时策略下发
+
+服务端可通过 `init` / `heartbeat` 响应下发运行时策略，动态调整客户端检测行为：
+
+```json
+{
+  "runtime_protection": {
+    "enabled": true,
+    "level": 2,
+    "modules": 127,
+    "action": 4,
+    "medium_action": 1,
+    "high_action": 3,
+    "critical_action": 4,
+    "watchdog_ms": 3000,
+    "strict": false,
+    "policy_id": 1,
+    "policy_version": 3
+  }
+}
+```
+
+**字段说明**：
+
+| 字段 | 说明 |
+| --- | --- |
+| `enabled` / `level` | 总开关与检测等级（0-3）；**下发 `enabled:false` 或 `level:0` 时客户端真关闭**（停全部检测 + 停看门狗）；仅"从未收到策略"才回落编译期默认 |
+| `modules` | 检测模块位掩码（§3.1 位表），按防护等级整档下发；SDK 端与编译期能力取交防提权；缺省时按等级预设 |
+| `action` | 全局兜底处置（SDK 优先用下面三档） |
+| `medium_action` / `high_action` / `critical_action` | 按**事件严重级别**分别下发的处置：0记录 1回调上报 2降级 3弹窗退出 4吊销会话；-1 = 未下发（回落 `action`） |
+| `watchdog_ms` | 看门狗巡检间隔 |
+| `strict` | 严格策略：疑似环境（VM/Hook）也按行为拦截 |
+
+**处置执行（三档动作）**：SDK 检测命中后按**事件严重级别**选档执行——模块注入/模块基线不一致等守卫事件产生时即定级（注入=High、代码补丁/完整性=Critical），加上 flag/score 推导兜底（调试铁证=High、CodeTamper=Critical），两者**取更严重者**决定走 `medium_action` / `high_action` / `critical_action` 哪一档。后台「运行时安全 → 运行时策略」的中危/高危/严重动作下拉即对应这三个字段（2.65.23 修复：此前守卫事件分级在汇总时丢失，高危/严重动作可能不按选择执行）。
+
+**安全规则**（`runtime_policy.hpp`）：
+
+- **编译期能力为上限**：`effectiveLevel() = min(server_level, compile_level)`、`effectiveModules() = server_modules & compile_mask` — 服务端不能提权
+- **策略包含在 ES256 签名响应中**：防篡改
+- **状态冗余**：主副本 + 冗余副本，读取时比对不一致则视为被篡改 → 回落编译期默认值
+- **init 和 heartbeat 都可下发**：支持运行时动态调整
+
+**相关 API**：
+
+```cpp
+// 获取当前运行时策略
+nebula::protect::RuntimePolicy rp = client->runtimePolicy();
+
+// 手动应用策略（通常由 init/heartbeat 自动调用）
+nebula::protect::applyRuntimePolicy(rp);
+```
+
+### 3.13 安全遥测（心跳上报）
+
+心跳包携带运行时安全信息，供服务端做风控决策：
+
+```json
+{
+  "security": {
+    "level": 3,
+    "score": 45,
+    "flags": 8388608
+  }
+}
+```
+
+- `level`：当前检测等级（1-3）
+- `score`：累计风险分
+- `flags`：命中标记位掩码（64-bit `Flag` 枚举值）
+
+**安全事件上报过滤（2.65.24 / SDK 同步）**：只有**确定性威胁**（最终分级 ≥ High，即调试铁证/硬件断点、注入框架、模块篡改、高置信 Manual Map、≥2 API 被改、代码补丁/完整性、进程守卫高危命中）才生成 `runtime_security_event` 上报；纯弱线索（普通新加载 DLL、VM/沙箱环境痕迹、单 API 被改、调试工具进程、时序异常等）**不再生成事件**，避免后台事件列表被无处置价值的噪音刷屏。心跳遥测 `security.{level,score,flags}` 照常携带全部命中信息，服务端风控累计不受影响。上报的 `risk_level` 与客户端实际执行的处置档同源（`resolveSeverity`），服务端按策略三档记录 `action_taken`，所见即所执行。
+
+**事件详情携带模块名（2.65.24 / SDK 同步）**：命中事件里最高严重级、且带模块信息的检测（模块篡改/注入框架/新增模块等）会把模块名写入 `details.module_name`（服务端白名单字段，≤260 字符），后台「安全事件详情」的「模块名」列据此展示；纯调试器/环境类检测无模块归属时该字段为空。
+
+### 3.14 后台巡检
 
 `enableProtection(0, 5000)` 会起一个后台线程每 5 秒查一次（<1 秒会被钳到 1 秒）。
 它在进程退出前需要停止 —— `Client` 析构里已经自动调用 `stopWatchdog()`，
@@ -499,13 +777,14 @@ nebula::protect::startWatchdog(5000, myCallback);
 nebula::protect::stopWatchdog();
 ```
 
-### 3.7 误报怎么收场
+### 3.15 误报怎么收场
 
 | 现象 | 处理 |
 | --- | --- |
 | 虚拟机/VPS 用户体验受影响 | `setLevel(1)` 降级；或 `setAction(1)` 只收集不处置 |
-| 开机时间 / 低配检出错杀 | 用 `flags` 精确判断，忽略 `F_ENV_WEAK` 类命中 |
+| 开机时间 / 低配检出错杀 | 用 `flags` 精确判断，忽略 `WeakEnvironment` 类命中 |
 | 杀软 hook 被当成劫持 | 忽略"只有 1 个 API 被改"（权重 20，不构成 `hooked`） |
+| Manual Map 误报（NBL-RT-2004） | 确认 `NEBULA_PROTECT_LEVEL` 是否 ≥ 2；检查评分阈值是否正确（≥ 90 才拦截） |
 | 想临时全关 | `nebula::protect::setEnabled(false)` |
 
 ---
@@ -540,11 +819,12 @@ c->setProtectCallback([](const nebula::protect::Report& r) {
 | 不开启时有没有性能损耗？ | 没有。所有检测代码都在 `#if` 里，全关时几乎不编译进目标文件。 |
 | 需要什么编译环境？ | C++17（SDK 本来就要求），MSVC 2017+；**建议加 `/utf-8`**（本文件注释是中文）。 |
 | 需要额外头文件/库吗？ | 不开启加固时不需要。开启壳标记后需要壳自带的 SDK 头 + lib（会自动链接，可用 `NEBULA_SHELL_NO_AUTOLINK` 关掉自动链接）。 |
-| 加固代码放哪？ | 加固实现位于 `sdk/nebula/protect/`（`shell.hpp` / `obfuscate.hpp` / `runtime.hpp`），由 `nebula_sdk.hpp` 自动包含。整个 `nebula/` 目录需随伞头一起拷进工程。 |
+| 加固代码放哪？ | 加固实现位于 `sdk/nebula/protect/`（`shell.hpp` / `obfuscate.hpp` / `violation.hpp` / `code_integrity.hpp` / `module_guard.hpp` / `memory_guard.hpp` / `process_guard.hpp` / `runtime.hpp` / `runtime_policy.hpp`），由 `nebula_sdk.hpp` 自动包含。整个 `nebula/` 目录需随伞头一起拷进工程。 |
 | 只改一个文件行不行？ | 行。`NEBULA_HARDEN=1` 写在工程预处理器里，源码不用动。 |
-| 云端沙箱/VPS 用户怎么办？ | 见 3.7；建议对虚拟化类命中只上报不处置。 |
+| 云端沙箱/VPS 用户怎么办？ | 见 §3.15；建议对虚拟化类命中只上报不处置。 |
 | 加壳后登录一直失败？ | 90% 是壳保护了 IAT/导入表，或虚拟化了 `Client::post`。把范围收小、关掉导入表保护试试。 |
 | 加壳后提示"客户端被篡改"？ | 加壳改变了 exe 哈希 → 去后台「版本管理」重新登记哈希与大小。 |
+| 干净环境弹窗 NBL-RT-2004？ | Manual Map 误报。确认用的是最新版 `memory_guard.hpp`（评分阈值 ≥ 90 才拦截）。旧版评分逻辑过宽松，正常程序的 CRT/JIT 内存会达到 70+ 分。 |
 
 ---
 
@@ -552,11 +832,11 @@ c->setProtectCallback([](const nebula::protect::Report& r) {
 
 ```cpp
 // ============ 1. 工程预处理器定义（不改代码就能开） ============
-// NEBULA_HARDEN=1                 一键全开（等级3 + 混淆 + 壳标记）
+// NEBULA_HARDEN=1                 一键全开（等级3 + 混淆 + 壳标记 + 多样性）
 // NEBULA_PROTECT_LEVEL=1|2|3      只要运行时防护
 // NEBULA_OBF_STRINGS=1            只要字符串混淆
 // NEBULA_SHELL_ENABLE=1           只要壳标记
-// NEBULA_RUNTIME_DIVERSE=1        只要运行时多样性（SecureString 随机密钥 + 谓词随机形态）
+// NEBULA_RUNTIME_DIVERSE=1        只要运行时多样性
 // NEBULA_PROTECT_ACTION=0|1|2|3   命中后的动作（默认 1 = 只回调上报）
 
 // ============ 2. main() 里启动 ============
@@ -566,7 +846,7 @@ c->setProtectCallback([](const nebula::protect::Report& r){
     OutputDebugStringA((r.summary() + " | " + r.detail()).c_str());
 });
 c->enableProtection(0, 5000);                            // 自检 + 每 5 秒巡检
-nebula::protect::guardCode((const void*)&MyVerifier, 256); // 可选：补丁自检
+nebula::protect::registerCriticalCode((const void*)&MyVerifier, 256, "verify");  // 可选：补丁自检
 
 // ============ 3. 业务代码里打壳标记 ============
 NEBULA_MARK_VM_BEGIN();  /* 最关键的一段 */  NEBULA_MARK_VM_END();
@@ -575,3 +855,16 @@ auto s = NEBULA_STR("敏感字符串");           // 混淆后的字面量
 
 ---
 
+## 7. 模块化头文件速查
+
+| 头文件 | 关键 API | 说明 |
+| --- | --- | --- |
+| `violation.hpp` | `Flag` / `Report` / `Severity` / `ErrorCode` / `ViolationEvent` / `ExtendedReport` / `aggregateSeverity` / `decideAction` / `securityPopupMessage` | 基础类型层，不依赖其他 protect 子模块 |
+| `code_integrity.hpp` | `registerCriticalCode` / `registerCriticalFunction` / `verifyCodeIntegrity` / `verifyGuardedCode` / `guardCode` | 双级 Hash 代码完整性 |
+| `module_guard.hpp` | `buildModuleBaseline` / `scanModules` | 模块基线与注入检测 |
+| `memory_guard.hpp` | `scanMemory` / `hasAbnormalExecutableMemory` | Manual Map 评分与异常内存 |
+| `process_guard.hpp` | `scanProcessAccess` | 外部访问与远程线程 |
+| `runtime.hpp` | `scan` / `enforce` / `scanAndEnforce` / `setEnabled` / `setLevel` / `setAction` / `setCallback` / `startWatchdog` / `stopWatchdog` / `lastReport` / `degraded` | 集成中心 |
+| `runtime_policy.hpp` | `RuntimePolicy` / `runtimePolicy` / `applyRuntimePolicy` / `parseRuntimePolicy` | 服务端策略下发 |
+
+---

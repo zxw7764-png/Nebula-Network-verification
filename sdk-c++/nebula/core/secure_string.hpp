@@ -19,7 +19,111 @@
 
 #include "../config.hpp"
 
+#include <vector>
+
 namespace nebula {
+
+/**
+ * 安全擦除内存（volatile 语义写入，编译器不会优化掉）。
+ * 专治「明文虽已 free，但内容仍残留堆页可被 dump」。
+ */
+inline void secureZero(void* p, size_t n) noexcept {
+    volatile unsigned char* v = static_cast<volatile unsigned char*>(p);
+    while (n--) *v++ = 0;
+}
+
+/** 安全擦除 std::string 的内容（含已分配 capacity 的部分） */
+inline void secureWipe(std::string& s) noexcept {
+    if (!s.empty()) secureZero(&s[0], s.capacity());
+    s.clear();
+}
+
+/**
+ * 擦除型敏感字节缓冲（如 feature_key 解出的核心数据、会话密钥）。
+ *
+ * 与 SecureString 的区别：SecureString 保护「静态短敏感串」（混淆存储），
+ * SecureBuffer 保护「运行期解密出来的大块明文」：
+ *   · 析构 / wipe() 时 secureZero 擦除（内容不再残留堆页）；
+ *   · 可选 VirtualLock 锁页，防止敏感明文被交换到磁盘页面文件；
+ *   · 不可拷贝（明文只有一份），可移动。
+ *
+ * 用法：
+ *     nebula::SecureBuffer core(true);          // true = 锁页
+ *     if (nebula::feature::openSecure(pack, lr.feature_key, core, err)) {
+ *         use(core.data(), core.size());        // 核心数据就绪
+ *     }
+ *     // core 出作用域自动擦除；或尽早 core.wipe();
+ */
+class SecureBuffer {
+public:
+    explicit SecureBuffer(bool lockPages = false) noexcept
+        : locked_(false), wantLock_(lockPages) {}
+
+    ~SecureBuffer() { wipe(); }
+
+    SecureBuffer(const SecureBuffer&)            = delete;
+    SecureBuffer& operator=(const SecureBuffer&) = delete;
+
+    SecureBuffer(SecureBuffer&& other) noexcept
+        : locked_(false), wantLock_(other.wantLock_), buf_(std::move(other.buf_)) {
+        other.locked_ = false;
+        other.buf_.clear();
+    }
+    SecureBuffer& operator=(SecureBuffer&& other) noexcept {
+        if (this != &other) {
+            wipe();
+            wantLock_     = other.wantLock_;
+            buf_          = std::move(other.buf_);
+            other.buf_.clear();
+        }
+        return *this;
+    }
+
+    /** 用内容填充缓冲（覆盖旧内容并擦除）；填充后按需锁页 */
+    bool assign(const unsigned char* p, size_t n) {
+        wipe();
+        buf_.assign(p, p + n);
+        return lockIfWanted();
+    }
+
+    NEBULA_MUST_CHECK unsigned char*      data()        noexcept { return buf_.empty() ? nullptr : &buf_[0]; }
+    NEBULA_MUST_CHECK const unsigned char* data() const  noexcept { return buf_.empty() ? nullptr : &buf_[0]; }
+    NEBULA_MUST_CHECK size_t               size()  const noexcept { return buf_.size(); }
+    NEBULA_MUST_CHECK bool                 empty() const noexcept { return buf_.empty(); }
+
+    /** 锁页（防交换到磁盘）；失败不影响使用，只是保护降级 */
+    bool lockPages() {
+        if (locked_) return true;
+        if (buf_.empty()) return false;
+        if (!::VirtualLock(&buf_[0], buf_.size())) return false;
+        locked_ = true;
+        return true;
+    }
+
+    /** 手动擦除（析构自动调用） */
+    void wipe() noexcept {
+        unlock();
+        if (!buf_.empty()) secureZero(&buf_[0], buf_.size() * sizeof(unsigned char));
+        buf_.clear();
+    }
+
+private:
+    bool lockIfWanted() {
+        if (!wantLock_) return true;
+        wantLock_ = false;          // 只在 assign 时尝试一次
+        return lockPages();
+    }
+    void unlock() noexcept {
+        if (locked_ && !buf_.empty()) {
+            ::VirtualUnlock(&buf_[0], buf_.size());
+            locked_ = false;
+        }
+    }
+
+    bool                     locked_   = false;
+    bool                     wantLock_ = false;
+    std::vector<unsigned char> buf_;
+};
 
 /** 取 [lo, hi] 内的随机字节；lo >= hi 时返回 lo */
 inline unsigned char runtimeRandByte(unsigned char lo = 1, unsigned char hi = 255) {

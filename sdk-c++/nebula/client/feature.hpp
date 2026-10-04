@@ -22,6 +22,7 @@
 // ============================================================================
 
 #include "envelope.hpp"   // 复用 crypto 原语 / base64 / 恒定时间比较
+#include "../core/secure_string.hpp"   // SecureBuffer / secureWipe（openSecure 内存保护）
 
 namespace nebula {
 namespace feature {
@@ -86,6 +87,36 @@ NEBULA_MUST_CHECK inline bool open(const std::string& pack, const std::string& f
     // ② 解密（blob 自带前置 IV）
     out = crypto::aes256CbcDecrypt(deriveAesKey(featureKey), b64Decode(p1));
     if (out.empty()) { error = "数据包解密失败"; return false; }
+    return true;
+}
+
+/**
+ * 解开功能数据包到**擦除型缓冲**（推荐；open() 的内存保护升级版）。
+ * ----------------------------------------------------------------------------
+ * 与 open() 的区别：
+ *   · 明文进入 SecureBuffer：析构 / wipe() 时 secureZero 擦除，可锁页防交换；
+ *   · 解密过程的临时副本在返回前立即擦除（open() 的 std::string out 由调用方
+ *     自行负责生命周期，明文残留窗口不可控）。
+ *
+ * 建议用法（明文窗口最小化）：
+ *     nebula::SecureBuffer core(true);   // true = VirtualLock 锁页
+ *     if (nebula::feature::openSecure(pack, lr.feature_key, core, err)) {
+ *         // 直接在 core.data() 上使用核心数据；用完尽早 core.wipe();
+ *     }
+ *     lr.wipeFeatureKey();               // 用完立刻擦掉登录下发的功能密钥
+ *
+ * 大数据场景：NF1 为整包 CBC（无分段标记），包越大明文驻留窗口越大——
+ * 建议开发期把核心数据拆成多个小数据包，运行期按需逐包解密。
+ */
+NEBULA_MUST_CHECK inline bool openSecure(const std::string& pack, const std::string& featureKey,
+                                         SecureBuffer& out, std::string& error) {
+    // 复用 open() 的验签 + 解密逻辑，明文落临时串后立即转移并擦除
+    std::string plain;
+    const bool ok = open(pack, featureKey, plain, error);
+    if (!ok) { secureWipe(plain); return false; }
+    out.assign(reinterpret_cast<const unsigned char*>(plain.data()), plain.size());
+    secureWipe(plain);          // 擦除临时明文（含 capacity），窗口缩到本次调用内
+    error.clear();
     return true;
 }
 

@@ -7,6 +7,7 @@
 // ============================================================================
 
 #include "../core/error.hpp"
+#include "../core/secure_string.hpp"   // secureZero（LoginResult::wipeFeatureKey 内存擦除）
 
 namespace nebula {
 
@@ -132,8 +133,23 @@ struct LoginResult {
     std::vector<std::string> device_risk;  ///< 服务端设备指纹风险标记（仅记录不拦截）
     std::string grace_ticket;              ///< 离线宽限票据（原样缓存）
     int64_t grace_until = 0;
-    std::string feature_key;               ///< 功能密钥（后台「软件管理」配置；仅登录成功后下发，空=未启用。配合 nebula::feature::open 解密核心数据包）
+    std::string feature_key;               ///< 功能密钥（后台「软件管理」配置；仅登录成功后下发，空=未启用。配合 nebula::feature::openSecure 解密核心数据包）
     bool need_relogin = false;
+
+    /**
+     * 用完功能密钥后立即调用：安全擦除 feature_key（volatile 写，编译器不优化掉）。
+     * ----------------------------------------------------------------------------
+     * 密钥只在「解开核心数据包」那一刻需要；解开后长期驻留内存只会扩大
+     * dump 窗口。推荐时序：login → openSecure(包, feature_key, ...) → wipeFeatureKey()。
+     * 擦除后 feature_key 变为空串；再次调用安全（幂等）。
+     */
+    void wipeFeatureKey() noexcept {
+        if (!feature_key.empty()) {
+            nebula::secureZero(&feature_key[0], feature_key.capacity());
+            feature_key.clear();
+            feature_key.shrink_to_fit();
+        }
+    }
 };
 
 /** 离线宽限票据的本地校验结果 */

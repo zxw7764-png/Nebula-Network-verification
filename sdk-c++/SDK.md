@@ -388,7 +388,7 @@ Windows 不允许覆盖正在运行的 exe（映像被占用，无法解除）�
 
 ## 12. 编译与常见问题
 
-- **拷贝方式**：把 `nebula_sdk.hpp` + `nebula_protect.hpp` + `nebula/` 目录一起放进工程，`#include "nebula_sdk.hpp"` 即可，系统库自动链接（`winhttp` `bcrypt` `advapi32` `crypt32` `iphlpapi` `wbemuuid` `user32` `oleaut32`）
+- **拷贝方式**：把 `nebula_sdk.hpp` + `nebula/` 目录一起放进工程，`#include "nebula_sdk.hpp"` 即可，系统库自动链接（`winhttp` `bcrypt` `advapi32` `crypt32` `iphlpapi` `wbemuuid` `user32` `oleaut32`）
 - **中文乱码**：提示窗全部走宽字符 API；建议 MSVC 开 `/utf-8`
 - **URL 形式**：支持 `<base>?action=xx` 与 `<base>/index.php?action=xx` 两种入口写法
 - **超时设置**：`c.setTimeouts(连接毫秒, 接收毫秒)`，默认 8000 / 15000
@@ -397,13 +397,25 @@ Windows 不允许覆盖正在运行的 exe（映像被占用，无法解除）�
 
 ## 13. 客户端加固（可选 · 默认全部关闭）
 
-加固实现位于 **`sdk/nebula/protect/`**（`shell.hpp` / `obfuscate.hpp` / `runtime.hpp`），由伞头自动包含，提供三类加固能力：
+加固实现位于 **`sdk/nebula/protect/`**，已拆分为模块化分层架构，由伞头自动包含：
+
+| 文件 | 能力 | 开关宏 |
+| --- | --- | --- |
+| `shell.hpp` | 壳标记（VMProtect / Themida） | `NEBULA_SHELL_ENABLE 1` |
+| `obfuscate.hpp` | 代码混淆（字符串加密 / 间接调用 / 谓词） | `NEBULA_OBF_STRINGS 1` |
+| `violation.hpp` | 基础类型层（Flag / Report / Severity / ErrorCode / ViolationEvent） | — |
+| `code_integrity.hpp` | 代码完整性（双级 Hash：FNV-1a → SHA-256） | `NEBULA_PROTECT_LEVEL >= 1` |
+| `module_guard.hpp` | 模块守卫（基线比对 / 注入检测） | `NEBULA_PROTECT_LEVEL >= 2` |
+| `memory_guard.hpp` | 内存守卫（Manual Map 评分 / 异常内存） | `NEBULA_PROTECT_LEVEL >= 2` |
+| `process_guard.hpp` | 进程守卫（外部访问 / 远程线程） | `NEBULA_PROTECT_LEVEL >= 3` |
+| `runtime.hpp` | 集成中心（scan / enforce / Watchdog） | — |
+| `runtime_policy.hpp` | 服务端策略下发 | — |
 
 | 能力 | 开关宏（默认关闭） | 说明 |
 | --- | --- | --- |
-| 壳标记 | `NEBULA_SHELL_ENABLE 1` | 在 `post()` 的加密签名段、`checkOffline()` 的验签段插入 VMProtect / Themida 标记，加壳时直接虚化这些函数 |
+| 壳标记 | `NEBULA_SHELL_ENABLE 1` | 在 `post()` 的加密签名段、`loginAndGuard()` 的判定分支插入 VMProtect / Themida 标记 |
 | 核心代码混淆 | `NEBULA_OBF_STRINGS 1` | `NEBULA_STR("...")` 编译期字符串加密、间接调用、不透明谓词 |
-| 运行时防护 | `NEBULA_PROTECT_LEVEL 1|2|3` | 反调试（API/PEB/NT/硬件断点/窗口/时序）+ 反虚拟机沙箱 + API 劫持与代码补丁自检 |
+| 运行时防护 | `NEBULA_PROTECT_LEVEL 1|2|3` | 反调试 + 反虚拟机沙箱 + API 劫持 + 代码完整性 + 模块守卫 + 内存守卫（Manual Map）+ 进程守卫 |
 
 **不定义任何宏 → 完全等价于不加固版本（零开销、零风险）**；一键全开：
 
@@ -423,8 +435,43 @@ c->enableProtection(0, 5000);                  // 启动自检 + 每 5 秒后台
 开启 `NEBULA_PROTECT_LEVEL>=1` 后，`Client::init()` 会自动先自检再连服务端；
 默认策略是**只回调上报，不打断正常用户**。
 
-> 完整操作手册（各等级查什么、权重与误报风险、加壳步骤与坑、误报收场办法）
+> 完整操作手册（模块化架构、分层扫描流程、Manual Map 评分规则、错误代码表、服务端策略下发、安全遥测、加壳步骤与坑、误报收场办法）
 > 见 **[SDK_PROTECTION.md](SDK_PROTECTION.md)**。
+
+#### 13.0.1 新增 API（模块化防护）
+
+```cpp
+// 代码完整性：登记受保护代码区域（双级 Hash 校验）
+c->registerCriticalCode((const void*)&MyApp::checkLicense, 256, "checkLicense");
+nebula::protect::registerCriticalFunction((const void*)&MyApp::verifyToken, 32, "verifyToken");
+
+// 服务端运行时策略
+nebula::protect::RuntimePolicy rp = c->runtimePolicy();
+// init / heartbeat 响应中包含 runtime_protection.{...} 时自动应用
+
+// 安全遥测：心跳包自动携带 security.{level, score, flags}
+// 无需接入方代码，SDK 在 heartbeat() 中自动组装
+
+// 获取最近一次检测报告
+nebula::protect::Report rpt = c->protectReport();
+```
+
+#### 13.0.2 错误代码
+
+弹窗只显示 `NBL-RT-xxxx` 错误代码，不暴露内部检测细节：
+
+| 代码 | 含义 |
+| --- | --- |
+| `NBL-RT-1001` | 检测到调试器 |
+| `NBL-RT-1002` | 硬件断点 |
+| `NBL-RT-2001` | API 劫持 |
+| `NBL-RT-2002` | 代码篡改 |
+| `NBL-RT-2003` | 模块篡改 |
+| `NBL-RT-2004` | 手动映射（Manual Map） |
+| `NBL-RT-2005` | 异常可执行内存 |
+| `NBL-RT-3001` | 沙箱环境 |
+| `NBL-RT-3002` | 虚拟机 |
+| `NBL-RT-4001` | 外部进程访问 |
 
 ### 13.1 授权门卫（可选）：内置登录判定保护
 
@@ -454,16 +501,22 @@ c.loginAndGuard(account, secret,
 std::string pack = nebula::feature::seal(coreData, "后台设置的那串密钥");
 //    ★ 发布后源码中不再保留密钥明文，只有 pack
 
-// ③ 运行期：登录成功后用服务端下发的密钥打开
+// ③ 运行期：登录成功后用服务端下发的密钥打开（推荐 openSecure：擦除型缓冲 + 锁页，
+//    明文用完自动/手动擦除，缩小内存 dump 窗口）
 nebula::Client::LoginResult lr = c.login(account, secret);
 if (lr.ok && !lr.feature_key.empty()) {
-    std::string data, err;
-    if (nebula::feature::open(pack, lr.feature_key, data, err)) {
-        StartMain(data);        // data = 核心数据明文
+    nebula::SecureBuffer core(true);        // true = VirtualLock 锁页防交换
+    std::string err;
+    if (nebula::feature::openSecure(pack, lr.feature_key, core, err)) {
+        StartMain(core.data(), core.size());  // 核心数据明文（用完 core.wipe() 或出作用域自动擦）
     } else {
         // err：数据被篡改或密钥不对 —— 按破解处理
     }
+    lr.wipeFeatureKey();                  // 密钥用完立即擦（幂等）
 }
+//    兼容写法：nebula::feature::open(pack, lr.feature_key, data, err)（std::string 明文，
+//    生命周期自理）依然可用，但明文残留窗口不可控，新接入一律建议 openSecure。
+//    大数据场景：把核心数据拆成多个小数据包按需解密（NF1 为整包 CBC）。
 
 // ④ 服务器 PHP 侧制作数据包（与 SDK 格式互通，已对拍验证）：
 //    openssl_encrypt('aes-256-cbc') + hash_hmac('sha256')，格式见 docs/API.md 2.18

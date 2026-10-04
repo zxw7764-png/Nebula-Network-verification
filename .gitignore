@@ -57,11 +57,11 @@ sdk/build/out/
 # 例外：随 SDK 分发的加固工具静态库
 !sdk/vmp/*.lib
 
-# SDK 分发包不再入库（改为官网 zip 分发：demo-login.zip / sdk.zip / sdk-py.zip）
-/sdk/
-/sdk-py/
-/sdk-c#/
-/sdk-c++/
+# SDK 发行版随仓库发布（2026-10-04 起）
+# /sdk/        ← 已在 yanzheng 主仓库发布
+# /sdk-py/     ← Python SDK
+# /sdk-c#/     ← C# SDK  
+# /sdk-c++/    ← C++ SDK（header-only）
 
 # 响应签名私钥（2026-10-03 审计：绝不入库）
 config/resp_sign_keys.php

@@ -165,7 +165,8 @@ public:
     void setProtectAction(int act) {
         protect::setAction(act);
         if (act > 0) {
-            protect::setSuspiciousPolicy(cfg::kProtectStrictPolicy);
+            // 疑似环境策略（strict）由服务端下发（runtime_protection.strict），
+            // init / heartbeat 自动应用，这里不再写编译期默认值覆盖它。
             protect::setLevel((int)NEBULA_PROTECT_LEVEL);
             protect::setEnabled(true);
         }
