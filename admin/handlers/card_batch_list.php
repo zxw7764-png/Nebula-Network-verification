@@ -22,6 +22,7 @@ $list = array_map(function ($b) use ($groupNames) {
         'id'          => (int) $b['id'],
         'name'        => $b['name'],
         'prefix'      => $b['prefix'],
+        'code_format' => isset($b['code_format']) ? $b['code_format'] : null,
         'type'        => (int) $b['type'],
         // type=0 外部导入批次（发卡商品导入的外部卡密），不挂本系统卡规格
         'is_ext'      => (int) $b['type'] === 0 ? 1 : 0,

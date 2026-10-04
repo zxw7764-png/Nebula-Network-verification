@@ -28,6 +28,7 @@ async function render() {
             <td>${b.id}</td>
             <td><b>${esc(b.name || '-')}</b></td>
             <td>${b.prefix ? tag(b.prefix, 'purple') : '-'}</td>
+            <td class="mono" style="font-size:12px">${b.code_format ? esc(b.code_format) : '-'}</td>
             <td>${tag(b.type_text, b.is_ext ? 'yellow' : 'blue')}</td>
             <td>${esc(b.duration_text)}</td>
             <td>${b.max_devices || '-'}</td>
@@ -68,10 +69,10 @@ async function render() {
             <table>
                 <thead><tr>
                     ${checkAllBox()}
-                    <th>ID</th><th>批次名</th><th>前缀</th><th>类型</th><th>时长/点数</th>
+                    <th>ID</th><th>批次名</th><th>前缀</th><th>格式</th><th>类型</th><th>时长/点数</th>
                     <th>设备</th><th>激活分组</th><th>总数</th><th>已用</th><th>未用</th><th>生成时间</th><th>操作</th>
                 </tr></thead>
-                <tbody>${rows || `<tr><td colspan="13">${empty('<i class="bi bi-boxes"></i>', '暂无批次')}</td></tr>`}</tbody>
+                <tbody>${rows || `<tr><td colspan="14">${empty('<i class="bi bi-boxes"></i>', '暂无批次')}</td></tr>`}</tbody>
             </table>
         </div>
         ${pager(d.total, d.page, d.size)}

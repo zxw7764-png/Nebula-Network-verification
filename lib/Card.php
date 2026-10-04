@@ -40,6 +40,18 @@ class Card
                 'SELECT * FROM ' . Database::t('cards') . ' WHERE code = ? FOR UPDATE',
                 [$code]
             );
+            // 兜底：用户可能漏输/混用分隔符（如手输 ABCDEFGH 或 AB2C.DE3F-GH4J 代替 AB2C-DE3F-GH4J），
+            // 剥离所有非字母数字字符后再匹配一次（REPLACE 无法走索引，仅精确未命中时执行一次）
+            if (!$card) {
+                $flat = preg_replace('/[^A-Z0-9]/', '', $code);
+                if ($flat !== '') {
+                    $card = Database::one(
+                        "SELECT * FROM " . Database::t('cards')
+                            . " WHERE REPLACE(REPLACE(REPLACE(code,'-',''),'.',''),'_','') = ? FOR UPDATE",
+                        [$flat]
+                    );
+                }
+            }
 
             if (!$card) {
                 Database::rollback();
@@ -159,8 +171,8 @@ class Card
                 $updates['software_id'] = $cardSw;
             }
 
-            // 卡密快照：写进用户行，删卡后管理端仍能反查/找回账号
-            $updates['card_code'] = (string) $code;
+            // 卡密快照：写进用户行，删卡后管理端仍能反查/找回账号（用存储规范值）
+            $updates['card_code'] = (string) $card['code'];
 
             // 记录最近激活的点数/次数卡类型（决定扣点语义：次数卡=每次登录，点数卡=按配置模式）
             if (in_array((int) $card['type'], [self::TYPE_POINTS, self::TYPE_TIMES], true)) {
@@ -185,10 +197,10 @@ class Card
                 );
             }
 
-            // 审计
+            // 审计（code 用存储规范值，便于与卡密表对应）
             Database::insert('card_logs', [
                 'card_id'    => $card['id'],
-                'code'       => $code,
+                'code'       => $card['code'],
                 'user_id'    => $user['id'],
                 'action'     => 'activate',
                 'detail'     => $detail,
@@ -240,6 +252,11 @@ class Card
         $name       = mb_substr((string) Util::get($in, 'name', ''), 0, 120);
         $expireDays = (int) Util::get($in, 'expire_days', 0); // 卡密本身有效期天数，0=永久
         $remark     = mb_substr((string) Util::get($in, 'remark', ''), 0, 250);
+        // 卡密格式模板：X=字母数字（去易混淆） D=纯数字，其余字符原样（常用 -）
+        $format     = strtoupper((string) Util::get($in, 'format', 'XXXX-XXXX-XXXX-XXXX'));
+        if (($err = Util::validCardTemplate($format)) !== true) {
+            return ['ok' => false, 'code' => 1001, 'msg' => '卡密格式：' . $err, 'data' => null];
+        }
 
         if (!in_array($type, [1, 2, 3, 4], true)) {
             return ['ok' => false, 'code' => 1001, 'msg' => '卡密类型错误', 'data' => null];
@@ -259,6 +276,7 @@ class Card
             $batchId = Database::insert('card_batches', [
                 'name'        => $name ?: ('批次 ' . date('Ymd-His')),
                 'prefix'      => $prefix ?: null,
+                'code_format' => $format,
                 'software_id' => $softwareId,
                 'type'        => $type,
                 'duration'    => $duration,
@@ -281,7 +299,7 @@ class Card
 
             while (count($codes) < $count && $attempts < $maxAttempts) {
                 $attempts++;
-                $code = Util::cardCode($prefix, 4, 4);
+                $code = Util::cardCodeByTemplate($format, $prefix);
                 if (isset($seen[$code])) {
                     continue; // 本轮内重复
                 }

@@ -441,8 +441,25 @@ async function cardGenerate() {
         </div>
     </div>
     </div>
+    <div class="field">
+        <label>卡密格式 *</label>
+        <select id="gFmt">
+            <option value="XXXX-XXXX-XXXX-XXXX">经典 4×4（XXXX-XXXX-XXXX-XXXX）</option>
+            <option value="XXXX-XXXX-XXXX-XXXX-XXXX">长 5×4（20 位）</option>
+            <option value="XXXX-XXXX-XXXX">短 3×4（12 位）</option>
+            <option value="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">超长 6×4（24 位）</option>
+            <option value="DDDD-DDDD-DDDD-DDDD">16 位纯数字（DDDD-DDDD-DDDD-DDDD）</option>
+            <option value="__custom__">自定义模板…</option>
+        </select>
+        <div class="hint">示例：<b id="gFmtSample" class="mono"></b>　·　X=字母数字（不含 0/O/1/I），D=纯数字，其余字符（如 -）原样</div>
+    </div>
+    <div class="field" id="gFmtCustom" style="display:none">
+        <label>自定义模板</label>
+        <input id="gFmtTpl" value="XXXX-XXXX-XXXX-XXXX" maxlength="48" placeholder="仅支持 X / D 与 - . _ 分隔符">
+        <div class="hint">例：VIP-XXXX-XXXX-XXXX、XXXX.XXXX.XXXX、DDDDDDDD</div>
+    </div>
     <div class="row2">
-        <div class="field"><label>卡密前缀</label><input id="gPrefix" placeholder="如 VIP（仅字母数字）"></div>
+        <div class="field"><label>卡密前缀</label><input id="gPrefix" placeholder="如 VIP（仅字母数字，可选）"></div>
         <div class="field">
             <label>卡密自身有效期(天)</label>
             <input id="gExpire" type="number" value="0" placeholder="0=永久有效">
@@ -456,6 +473,33 @@ async function cardGenerate() {
         { text: '生成', cls: 'success', act: doGenerate },
     ]);
 
+    // 卡密格式：预设 + 自定义模板 + 实时示例
+    const fmtSample = tpl => {
+        const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        const NUM = '0123456789';
+        const buf = new Uint8Array(tpl.length * 2);
+        crypto.getRandomValues(buf);
+        let out = '', j = 0;
+        for (const ch of String(tpl).toUpperCase()) {
+            if (ch === 'X') out += ALPHA[buf[j++] % ALPHA.length];
+            else if (ch === 'D') out += NUM[buf[j++] % NUM.length];
+            else out += ch;
+        }
+        return out;
+    };
+    const gFmtSel = document.getElementById('gFmt');
+    const gFmtTpl = document.getElementById('gFmtTpl');
+    const gFmtCustom = document.getElementById('gFmtCustom');
+    const gFmtSample = document.getElementById('gFmtSample');
+    const upFmt = () => {
+        const isCustom = gFmtSel.value === '__custom__';
+        gFmtCustom.style.display = isCustom ? '' : 'none';
+        const tpl = (isCustom ? gFmtTpl.value : gFmtSel.value) || 'XXXX-XXXX-XXXX-XXXX';
+        gFmtSample.textContent = fmtSample(tpl);
+    };
+    gFmtSel.addEventListener('change', upFmt);
+    gFmtTpl.addEventListener('input', upFmt);
+    upFmt();
 
     const updateGoodsOptions = () => {
         const swId = parseInt(document.getElementById('gSw').value, 10) || 0;
@@ -600,6 +644,11 @@ async function doGenerate() {
     const unitSec = parseInt(document.getElementById('gDurUnit').value, 10) || 86400;
     const duration = type === 1 ? rawDur * unitSec : rawDur;
 
+    const gFmtSel = document.getElementById('gFmt');
+    const fmtTpl = (gFmtSel && gFmtSel.value === '__custom__'
+        ? (document.getElementById('gFmtTpl').value || 'XXXX-XXXX-XXXX-XXXX')
+        : (gFmtSel ? gFmtSel.value : 'XXXX-XXXX-XXXX-XXXX')).toUpperCase();
+
     const payload = {
         software_id: parseInt(document.getElementById('gSw').value, 10) || 1,
         count: parseInt(document.getElementById('gCount').value, 10) || 1,
@@ -608,6 +657,7 @@ async function doGenerate() {
         max_devices: parseInt(document.getElementById('gDev').value, 10) || 1,
         group_id: parseInt(document.getElementById('gGroup').value, 10) || 0,
         prefix: document.getElementById('gPrefix').value.trim(),
+        format: fmtTpl,
         expire_days: parseInt(document.getElementById('gExpire').value, 10) || 0,
         name: document.getElementById('gName').value.trim(),
         remark: document.getElementById('gRemark').value.trim(),

@@ -387,17 +387,67 @@ class Util
         return $pos === false ? '*' : substr($ip, 0, $pos) . '.*';
     }
 
-    /** 生成卡密，格式 XXXX-XXXX-XXXX-XXXX */
+    /**
+     * 生成卡密（兼容旧调用），格式 XXXX-XXXX-XXXX-XXXX
+     * @param int $segments 段数
+     * @param int $segLen   每段字符数
+     */
     public static function cardCode(string $prefix = '', int $segments = 4, int $segLen = 4): string
     {
-        $parts = [];
-        if ($prefix !== '') {
-            $parts[] = strtoupper($prefix);
+        return self::cardCodeByTemplate(
+            implode('-', array_fill(0, max(1, $segments), str_repeat('X', max(1, $segLen)))),
+            $prefix
+        );
+    }
+
+    /**
+     * 按模板生成卡密（多格式支持）。
+     * 模板语法：X = 大写字母数字（自动去除 O/I/0/1 易混淆字符），D = 纯数字，
+     *          其余字符原样保留（通常为 - 分隔符，也可使用空格、点等）。
+     * 例如：XXXX-XXXX-XXXX-XXXX、XXXX-XXXX-XXXX-XXXX-XXXX、DDDD-DDDD-DDDD-DDDD。
+     * 可选前缀作为第一段拼在模板前：VIP-XXXX-XXXX-XXXX-XXXX。
+     */
+    public static function cardCodeByTemplate(string $template, string $prefix = ''): string
+    {
+        $alpha = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $num   = '0123456789';
+        $out   = $prefix !== '' ? strtoupper($prefix) . '-' : '';
+        $len   = strlen($template);
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $template[$i];
+            if ($ch === 'X') {
+                $out .= $alpha[random_int(0, 31)];
+            } elseif ($ch === 'D') {
+                $out .= $num[random_int(0, 9)];
+            } else {
+                $out .= $ch;
+            }
         }
-        for ($i = 0; $i < $segments; $i++) {
-            $parts[] = self::random($segLen);
+        return $out;
+    }
+
+    /**
+     * 校验卡密格式模板是否合法。
+     * 规则：仅允许 X / D 与分隔符 - . _（大小写不敏感，自动转大写）；长度 1~48；
+     *      随机字符（X+D）至少 6 个，保证足够的熵与可去重空间。
+     * @return bool|string true=合法，字符串=不合法原因
+     */
+    public static function validCardTemplate(string $template)
+    {
+        $template = strtoupper((string) $template);
+        if ($template === '') {
+            return '格式模板不能为空';
         }
-        return implode('-', $parts);
+        if (strlen($template) > 48) {
+            return '格式模板过长（最多 48 字符）';
+        }
+        if (!preg_match('/^[XD._\-]+$/', $template)) {
+            return '格式模板仅支持 X（字母数字）、D（数字）与分隔符 - . _';
+        }
+        if (substr_count($template, 'X') + substr_count($template, 'D') < 6) {
+            return '格式模板中随机字符（X/D）至少 6 个';
+        }
+        return true;
     }
 
     /** 数组白名单过滤 */
