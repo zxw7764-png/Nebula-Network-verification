@@ -215,32 +215,7 @@ class Database
         $page = max(1, $page);
         $size = min(500, max(1, $size));
         $offset = ($page - 1) * $size;
-        // ORDER BY 白名单化（纵深防御）：即使调用点忘了白名单，这里也只放行
-        // 「反引号包裹的合法标识符 + 升/降序 + 逗号分隔」的安全子集，
-        // 从数据库层拒绝任何函数调用 / 子查询 / 拼接注入。
-        if ($orderBy !== '') {
-            if (!self::isSafeOrder($orderBy)) {
-                $orderBy = '';
-            }
-        }
         $sql = $baseSql . ($orderBy ? " ORDER BY $orderBy" : '') . " LIMIT $size OFFSET $offset";
         return [$total, self::all($sql, $params)];
-    }
-
-    /**
-     * ORDER BY 片段是否安全（纵深防御，供 paginate 使用）
-     * 允许形如：`id` DESC , `name` ASC , `created_at` DESC
-     * 严格限定：反引号标识符、ASC/DESC、逗号、空白。
-     * 拒绝：括号、引号、函数名、数字字面量后的注入等一切可逃脱内容。
-     */
-    private static function isSafeOrder(string $orderBy): bool
-    {
-        // 单项 = 可选「反引号表别名.」（如 `c`.`id`）或裸列名，后跟可选 ASC/DESC
-        $ident = '(?:`[A-Za-z_][A-Za-z0-9_]*`\.)?(?:`[A-Za-z_][A-Za-z0-9_]*`|\[[A-Za-z_][A-Za-z0-9_]*\]|[A-Za-z_][A-Za-z0-9_]*)';
-        $item  = $ident . '\s*(?:ASC|DESC)?\s*';
-        if (preg_match('/^' . $item . '(?:,\s*' . $item . ')*$/', $orderBy) === 1) {
-            return true;
-        }
-        return false;
     }
 }

@@ -17,38 +17,6 @@ let groupCache = [];
 
 register('user_list', render);
 
-/** 风险评分标签（≥80 高危 / ≥40 关注 / 其余低），点击查看明细 */
-function riskTag(score, id) {
-    const s = parseInt(score, 10) || 0;
-    const [text, color] = s >= 80 ? [s + ' 高危', 'red'] : s >= 40 ? [s + ' 关注', 'yellow'] : [s + ' 低', 'gray'];
-    return `<a href="javascript:void(0)" data-act="risk" data-id="${id}" style="text-decoration:none">${tag(text, color)}</a>`;
-}
-
-/** 风险评分明细弹窗 */
-async function userRisk(id) {
-    const res = await api('user_risk', { id, force: 1 });
-    if (res.code !== 0) return;
-    const r = res.data;
-    const rows = (r.breakdown || []).map(b => `
-        <tr>
-            <td style="width:90px"><b>${esc(b.dim)}</b></td>
-            <td style="width:70px">${tag('+' + b.score, 'yellow')}</td>
-            <td style="color:#6b7280">${esc(b.hit)}</td>
-        </tr>`).join('') || `<tr><td colspan="3" style="color:#6b7280">各维度均无异常命中</td></tr>`;
-    const body = `
-        <div style="margin-bottom:12px">
-            ${tag('当前评分 ' + r.score, r.level === 'danger' ? 'red' : r.level === 'warn' ? 'yellow' : 'green')}
-            ${tag('冻结阈值 ' + r.threshold, 'gray')}
-            ${r.status === 2 ? tag('已冻结', 'red') : ''}
-            <span style="color:#6b7280;font-size:12px;margin-left:8px">权重：IP +30 · 账号 +20 · 设备 +20 · 代理 +30（可在系统设置 security.risk_* 调整）</span>
-        </div>
-        <div class="table-wrap"><table>
-            <thead><tr><th>维度</th><th>加分</th><th>命中详情</th></tr></thead>
-            <tbody>${rows}</tbody>
-        </table></div>`;
-    openModal(`风险评估 · ${r.username}`, body, [{ text: '关闭', cls: 'btn', act: closeModal }], '');
-}
-
 async function render() {
     const st = pageState('user_list', DEFAULTS);
     const c = document.getElementById('content');
@@ -72,7 +40,6 @@ async function render() {
             <td>${u.status === 0 && u.ban_text
                 ? `<div>${tag('封禁', 'red')}</div><div style="font-size:11px;color:#9ca3af;margin-top:2px">${esc(u.ban_text)}</div>`
                 : statusTag(u.status, { 0: ['封禁', 'red'], 1: ['正常', 'green'], 2: ['冻结', 'yellow'] })}</td>
-            <td>${riskTag(u.risk_score, u.id)}</td>
             <td>${u.vip_text === '未激活' ? tag('未激活', 'gray')
                 : (u.vip_valid ? tag(u.vip_text, 'green') : tag(u.vip_text, 'red'))}</td>
             <td>${u.points}</td>
@@ -131,10 +98,10 @@ async function render() {
             <table>
                 <thead><tr>
                     ${checkAllBox()}
-                    <th>ID</th><th>用户名</th><th>归属软件</th><th>状态</th><th>风险</th><th>会员</th><th>点数</th>
+                    <th>ID</th><th>用户名</th><th>归属软件</th><th>状态</th><th>会员</th><th>点数</th>
                     <th>设备</th><th>最后登录IP</th><th>注册时间</th><th>操作</th>
                 </tr></thead>
-                <tbody>${rows || `<tr><td colspan="11">${empty('<i class="bi bi-people"></i>', '没有用户')}</td></tr>`}</tbody>
+                <tbody>${rows || `<tr><td colspan="10">${empty('<i class="bi bi-people"></i>', '没有用户')}</td></tr>`}</tbody>
             </table>
         </div>
         ${pager(d.total, d.page, d.size)}
@@ -160,7 +127,6 @@ async function render() {
             const id = parseInt(b.dataset.id, 10);
             if (b.dataset.act === 'detail') userDetail(id);
             else if (b.dataset.act === 'edit') userEdit(id);
-            else if (b.dataset.act === 'risk') userRisk(id);
             else if (b.dataset.act === 'del') userDelete(id, b.dataset.name);
         });
     });

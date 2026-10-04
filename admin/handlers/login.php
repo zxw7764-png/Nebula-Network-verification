@@ -45,12 +45,15 @@ $r = AdminAuth::login($username, $password, $totp);
 // 不写失败日志、也不计入 IP 爆破计数，否则正常登录会平白多一条失败记录。
 $isNeedTotp = (int) $r['code'] === 2006;
 
-// 2026-09-30 修复：admin_login 日志不在 handler 重复记录。
-// AdminAuth::login() 内部已统一写成功/失败日志（成功含 admin_id，
-// 失败细分「账号不存在/锁定/禁用」且对外话术保持防枚举），
-// 此处再写一次导致每次登录落库两条同秒记录（操作日志 659/660）。
-if (!$isNeedTotp && !$r['ok']) {
-    RateLimit::incr($failIp, $lockWindow);
+if (!$isNeedTotp) {
+    Logger::log('admin_login', $r['ok'] ? 1 : 0, $r['msg'], ['username' => $username]);
+}
+
+if (!$r['ok']) {
+    if (!$isNeedTotp) {
+        RateLimit::incr($failIp, $lockWindow);
+    }
+    Response::error($r['code'], $r['msg']);
 }
 
 // 登录成功：清掉该 IP 的失败计数，避免正常用户被同出口的历史失败拖累

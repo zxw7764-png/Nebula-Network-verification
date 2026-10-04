@@ -87,7 +87,6 @@ $list = array_map(function ($u) use ($now, $swName) {
         'last_login'     => Util::date((int) $u['last_login_time']),
         'created_at'     => Util::date((int) $u['created_at']),
         'remark'         => $u['remark'],
-        'risk_score'     => RiskScore::scoreOf($u),
     ];
 }, $rows);
 

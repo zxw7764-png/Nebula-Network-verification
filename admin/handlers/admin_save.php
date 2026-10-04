@@ -82,7 +82,7 @@ if ($op === 'reset_password') {
         Response::error(1004, '超级管理员密码请使用「修改密码」自助更换');
     }
     $newPass = (string) Util::get($input, 'new_password', '');
-    if (($issue = Util::passwordIssue($newPass)) !== null) {
+    if (($issue = Util::passwordIssue($newPass, true)) !== null) {
         Response::error(1001, $issue);
     }
     Database::exec("UPDATE {$table} SET password = ? WHERE id = ?",
@@ -164,7 +164,7 @@ if ($id > 0) {
         Response::ok(['id' => $id], '已保存');
     }
 
-    if ($password !== '' && ($issue = Util::passwordIssue($password)) !== null) {
+    if ($password !== '' && ($issue = Util::passwordIssue($password, true)) !== null) {
         Response::error(1001, $issue);
     }
 

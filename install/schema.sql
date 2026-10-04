@@ -150,6 +150,9 @@ CREATE TABLE IF NOT EXISTS `nb_devices` (
   `risk_flags`  VARCHAR(64)  DEFAULT NULL COMMENT '风险标记,逗号分隔',
   `ip`          VARCHAR(64)  DEFAULT NULL,
   `status`      TINYINT      NOT NULL DEFAULT 1 COMMENT '1正常 0已解绑',
+  `rt_risk_score` INT        NOT NULL DEFAULT 0 COMMENT '运行时风险分数',
+  `rt_risk_level` VARCHAR(16) NOT NULL DEFAULT 'LOW' COMMENT 'LOW/MEDIUM/HIGH/CRITICAL',
+  `rt_flags`    BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '累积安全标志',
   `bind_at`     INT UNSIGNED NOT NULL DEFAULT 0,
   `last_seen`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '最后一次心跳时间',
   `unbind_at`   INT UNSIGNED NOT NULL DEFAULT 0,
@@ -176,6 +179,11 @@ CREATE TABLE IF NOT EXISTS `nb_sessions` (
   `last_active` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '最后心跳时间',
   `expire_at`   INT UNSIGNED NOT NULL DEFAULT 0,
   `status`      TINYINT      NOT NULL DEFAULT 1 COMMENT '1在线 0已退出 2顶号 3被踢',
+  `rt_status`       VARCHAR(16)  NOT NULL DEFAULT 'UNKNOWN' COMMENT 'UNKNOWN/CLEAN/RISK/BLOCKED',
+  `rt_risk_score`   INT          NOT NULL DEFAULT 0,
+  `rt_risk_level`   VARCHAR(16)  NOT NULL DEFAULT 'LOW',
+  `rt_flags`        BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  `rt_policy_version` INT UNSIGNED NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_token` (`token`),
   KEY `idx_user` (`user_id`),
@@ -446,6 +454,12 @@ CREATE TABLE IF NOT EXISTS `nb_hsessions` (
   `sk_mac`      BINARY(32)   NOT NULL COMMENT 'HKDF 派生的请求 HMAC 密钥',
   `iv_prefix`   BINARY(4)    NOT NULL COMMENT 'GCM IV 前 4 字节随机前缀（后 8 字节 = seq 大端）',
   `seq`         BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '已使用的最大请求序号',
+  `rt_risk_score` INT        NOT NULL DEFAULT 0 COMMENT '运行时风险分数',
+  `rt_risk_level` VARCHAR(16) NOT NULL DEFAULT 'LOW' COMMENT 'LOW/MEDIUM/HIGH/CRITICAL',
+  `rt_flags`    BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '累积安全标志(64-bit bitmap)',
+  `rt_status`   VARCHAR(16)  NOT NULL DEFAULT 'UNKNOWN' COMMENT 'UNKNOWN/CLEAN/RISK/BLOCKED',
+  `rt_last_event_id` BIGINT UNSIGNED NULL DEFAULT NULL COMMENT '最近安全事件ID',
+  `rt_last_event_at` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '最近安全事件时间',
   `created_at`  INT UNSIGNED NOT NULL DEFAULT 0,
   `expire_at`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '空闲过期时间戳',
   PRIMARY KEY (`sid`),
@@ -856,6 +870,85 @@ CREATE TABLE IF NOT EXISTS `nb_game_scores` (
   KEY `idx_game_score` (`game`, `score`),
   KEY `idx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='官网小游戏排行榜';
+
+-- ------------------------------------------------------------
+-- 27. 运行时安全策略（RuntimeGuard 策略下发）
+--     设计文档 §5 §8 §60：多级别检测项 + 风险动作 + 看门狗
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `nb_runtime_policies` (
+  `id`                          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `software_id`                 INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '归属软件ID，0=全局默认策略',
+  `policy_name`                 VARCHAR(64)  NOT NULL DEFAULT 'default',
+  `sdk_version_min`             VARCHAR(32)  DEFAULT NULL COMMENT '适用SDK最小版本(含)，NULL=不限',
+  `sdk_version_max`             VARCHAR(32)  DEFAULT NULL COMMENT '适用SDK最大版本(含)，NULL=不限',
+  `enabled`                     TINYINT      NOT NULL DEFAULT 1,
+  `protection_level`            TINYINT UNSIGNED NOT NULL DEFAULT 2 COMMENT '0=off 1=basic 2=standard 3=strict',
+  `detect_code_integrity`       TINYINT      NOT NULL DEFAULT 1,
+  `detect_code_patch`           TINYINT      NOT NULL DEFAULT 1,
+  `detect_inline_hook`          TINYINT      NOT NULL DEFAULT 1,
+  `detect_module_injection`     TINYINT      NOT NULL DEFAULT 1,
+  `detect_manual_map`           TINYINT      NOT NULL DEFAULT 1,
+  `detect_debugger`             TINYINT      NOT NULL DEFAULT 1,
+  `detect_process_access_risk`  TINYINT      NOT NULL DEFAULT 1,
+  `popup_on_violation`          TINYINT      NOT NULL DEFAULT 1,
+  `terminate_on_violation`      TINYINT      NOT NULL DEFAULT 1,
+  `report_security_event`       TINYINT      NOT NULL DEFAULT 1,
+  `watchdog_enabled`            TINYINT      NOT NULL DEFAULT 1,
+  `watchdog_interval_ms`        INT UNSIGNED NOT NULL DEFAULT 3000,
+  `medium_action`               VARCHAR(32)  NOT NULL DEFAULT 'REPORT',
+  `high_action`                 VARCHAR(32)  NOT NULL DEFAULT 'TERMINATE',
+  `critical_action`             VARCHAR(32)  NOT NULL DEFAULT 'REVOKE_SESSION',
+  `policy_version`              INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '策略版本号(每次修改递增)',
+  `status`                      TINYINT      NOT NULL DEFAULT 1 COMMENT '0=draft 1=published 2=disabled',
+  `created_at`                  INT UNSIGNED NOT NULL DEFAULT 0,
+  `updated_at`                  INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_software` (`software_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='运行时安全策略';
+
+INSERT INTO `nb_runtime_policies` (`software_id`, `policy_name`, `enabled`, `protection_level`, `created_at`, `updated_at`)
+VALUES (0, 'Global Default', 1, 2, UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
+ON DUPLICATE KEY UPDATE `policy_name` = VALUES(`policy_name`);
+
+-- ------------------------------------------------------------
+-- 28. 运行时安全事件（客户端 RuntimeGuard 上报）
+--     设计文档 §12 §13 §14：事件类型 + 风险等级 + violation_flags bitmap
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `nb_security_events` (
+  `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `software_id`     INT UNSIGNED NOT NULL DEFAULT 0,
+  `user_id`         INT UNSIGNED NOT NULL DEFAULT 0,
+  `device_id`       BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  `session_id`      VARCHAR(128) NOT NULL DEFAULT '' COMMENT '业务会话token',
+  `hsid`            CHAR(32)     NOT NULL DEFAULT '' COMMENT '3.1 ECDH会话ID',
+  `seq`             BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '上报时session seq',
+  `sdk_version`     VARCHAR(32)  DEFAULT NULL,
+  `event_type`      VARCHAR(64)  NOT NULL COMMENT 'CODE_PATCH/INLINE_HOOK/MODULE_INJECTION/...',
+  `risk_level`      VARCHAR(16)  NOT NULL DEFAULT 'LOW' COMMENT 'LOW/MEDIUM/HIGH/CRITICAL',
+  `risk_score`      INT          NOT NULL DEFAULT 0,
+  `violation_flags` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '64-bit bitmap(§14)',
+  `process_id`      INT UNSIGNED DEFAULT NULL,
+  `module_name`     VARCHAR(260) DEFAULT NULL,
+  `module_path`     VARCHAR(1024) DEFAULT NULL,
+  `event_hash`      CHAR(64)     DEFAULT NULL COMMENT 'SHA-256(canonical_payload)',
+  `event_detail`    JSON         DEFAULT NULL COMMENT '结构化诊断信息(§48: 只允许预定义字段)',
+  `client_ip`       VARCHAR(64)  DEFAULT NULL,
+  `client_time`     INT UNSIGNED NOT NULL DEFAULT 0,
+  `server_time`     INT UNSIGNED NOT NULL DEFAULT 0,
+  `handled`         TINYINT      NOT NULL DEFAULT 0 COMMENT '0=未处理 1=已处理 2=误报',
+  `action_taken`    VARCHAR(32)  DEFAULT NULL COMMENT 'REPORT/TERMINATE/REVOKE_SESSION',
+  `sticky`          TINYINT      NOT NULL DEFAULT 0 COMMENT '1=风险不可自动衰减',
+  `created_at`      INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_session_time` (`session_id`, `created_at`),
+  KEY `idx_device_time` (`device_id`, `created_at`),
+  KEY `idx_user_time` (`user_id`, `created_at`),
+  KEY `idx_event_type` (`event_type`),
+  KEY `idx_risk_level` (`risk_level`),
+  KEY `idx_software_time` (`software_id`, `created_at`),
+  KEY `idx_hash` (`event_hash`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='运行时安全事件';
 
 SET FOREIGN_KEY_CHECKS = 1;
 

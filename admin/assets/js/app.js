@@ -11,6 +11,7 @@ const PAGES = [
     "group", "message", "feedback", "plan", "shop", "shop_setting", "shop_goods",
     "seller", "screenshot", "log", "files", "audit", "sec_report", "setting", "profile", "portal_web", "templates", "games",
     "system_update", "admins",
+    "rt_security",
 ];
 const pagesReady = Promise.all(
     PAGES.map(p => import(`./pages/${p}.js?v=${window.NB_V || ''}`).catch(() => {

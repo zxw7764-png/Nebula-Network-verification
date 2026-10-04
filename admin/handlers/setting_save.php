@@ -82,9 +82,6 @@ $tiers = [
         // 人机风控总开关：关闭后四端接口不再做前端信号评分（排查误拦用）
         'guard_enabled',
         'ip_blacklist',
-        // 风险评分模型权重与冻结阈值（用户管理页风险列 / 登录失败自动冻结）
-        'risk_ip_weight', 'risk_user_weight', 'risk_device_weight',
-        'risk_agent_weight', 'risk_freeze_score',
     ],
 
     // 基础设施与密钥：缓存后端（含 Redis 口令）与系统更新服务地址
@@ -200,19 +197,6 @@ if (isset($normalized['ip_blacklist'])) {
         Response::error(1001, implode('；', $errors));
     }
     $normalized['ip_blacklist'] = implode("\n", $lines);
-}
-
-// 风险评分权重/阈值：整数钳制 0~200（freeze_score 存 0 表示关闭自动冻结）
-$riskKeys = ['risk_ip_weight', 'risk_user_weight', 'risk_device_weight', 'risk_agent_weight', 'risk_freeze_score'];
-foreach ($riskKeys as $rk) {
-    if (isset($normalized[$rk])) {
-        $v = (int) $normalized[$rk];
-        if ($v < 0 || $v > 200) {
-            $errors[] = "风险评分项 {$rk} 需为 0~200 的整数";
-        } else {
-            $normalized[$rk] = (string) $v;
-        }
-    }
 }
 
 // 逐档校验：任一档无权限即整单拒绝

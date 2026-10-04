@@ -141,11 +141,6 @@ if (isset($updates['status']) && (int) $updates['status'] !== 1) {
     Session::kickUser($userId);
 }
 
-// 管理员改动状态后刷新风险评分缓存（解冻/封禁后重新计算）
-if (isset($updates['status'])) {
-    try { RiskScore::flush($userId); } catch (Throwable $e) { /* 忽略 */ }
-}
-
 // 审计：对比变更前后
 $oldSnap = [
     'username'    => $user['username'],

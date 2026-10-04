@@ -150,7 +150,7 @@ if ($action !== '' && !RateLimit::byIp($action, $limit)) {
 // 只对「使用型」接口计数；登录、公告、在线人数等豁免，
 // 否则配额用尽后用户连登录、看公告、退出登录都做不了。
 // ------------------------------------------------------------------
-$quotaFreeActions = ['init', 'register', 'login', 'logout', 'notice', 'version', 'online', 'handshake'];
+$quotaFreeActions = ['init', 'register', 'login', 'logout', 'notice', 'version', 'online', 'handshake', 'runtime_policy', 'runtime_security_event'];
 if ($action !== '' && !in_array($action, $quotaFreeActions, true)) {
     $qToken = Util::str($requestData, 'token', Util::str($input, 'token', ''));
     if ($qToken !== '') {

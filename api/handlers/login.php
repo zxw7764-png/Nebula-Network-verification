@@ -20,19 +20,13 @@ $deviceName = Util::str($requestData, 'device_name', '');
 $osInfo     = Util::str($requestData, 'os_info', '');
 $curIp      = Util::ip();
 
-// 2026-09-30 修复：客户端可控字符串按入库列宽钳制（nb_devices：128/128/128），
-// 超长值在严格模式下会让设备绑定/登录直接报 9999，被当成免费"报错炸弹"用。
-$machineId  = mb_substr($machineId, 0, 128);
-$deviceName = mb_substr($deviceName, 0, 128);
-$osInfo     = mb_substr($osInfo, 0, 128);
-
 if ($machineId === '') {
     Response::error(4003, '缺少机器码 machine_id');
 }
 
 // 版本强制更新拦截：低于「最低可用版本」，或低于最新已发布版本且该版本勾选了强制更新
 // （与 version 接口同一套规则；client_ver 缺失的旧客户端不拦，避免误伤）
-$clientVer = mb_substr(Util::str($requestData, 'client_ver', ''), 0, 32);
+$clientVer = Util::str($requestData, 'client_ver', '');
 if ($clientVer !== '') {
     $swForVer = Software::current();
     if ($swForVer) {
@@ -113,6 +107,17 @@ if (!$vip['valid']) {
     ]);
 }
 
+// 点数/次数卡扣点（模式可配：per_login 每次登录 / daily 每天首次 / online 心跳按在线时长）
+// 时长卡/永久卡 points=0，天然不受影响。
+if ($vip['points'] > 0 && Points::chargeOnLogin($user)) {
+    $vip['points'] = (int) $vip['points'] - 1;
+    Logger::log('login', 1, '点数扣减 1（剩余 ' . $vip['points'] . '）', [
+        'user_id'  => (int) $user['id'],
+        'username' => $username,
+        'method'   => $method,
+    ]);
+}
+
 // 设备校验（自动绑定）
 // device_fp 为可选的硬件组件指纹：上报则做加权校验与模拟器/虚拟机识别，
 // 不上报则行为与旧版完全一致（对接方可以按自己的节奏升级）。
@@ -164,52 +169,25 @@ if (!$dev['ok']) {
     ]);
 }
 
-// 点数/次数卡扣点（模式可配：per_login 每次登录 / daily 每天首次 / online 心跳按在线时长）
-// 时长卡/永久卡 points=0，天然不受影响。
-// 2026-09-30 修复：扣点从「会员有效性检查后」移到「设备校验/异地拦截全部通过后」。
-// 原顺序下，设备数超限或异地登录被拦的用户登录失败，per_login 模式点数照样被扣，
-// 造成「登录失败还扣费」的客诉。扣点紧贴建会话之前执行。
-if ($vip['points'] > 0 && Points::chargeOnLogin($user)) {
-    $vip['points'] = (int) $vip['points'] - 1;
-    Logger::log('login', 1, '点数扣减 1（剩余 ' . $vip['points'] . '）', [
-        'user_id'  => (int) $user['id'],
-        'username' => $username,
-        'method'   => $method,
-    ]);
-}
-
 // 同账号单点登录（后台「系统设置 → 安全设置」可开关）
 // ------------------------------------------------------------------
 // 开启时：本次登录成功前，先把该账号的旧会话全部作废，
 // 使「后登录踢掉先登录」，同一时刻只有一个端在线。
 // 关闭时（默认）：允许多端同时在线，保持旧行为不变。
-// 2026-09-30 修复：踢旧 + 建新放进同一事务，消除并发窗口——
-// 原实现两步之间，两台机器同时登录会各活一个会话（都过了 kickUser）。
 // 注意必须在 Session::create() **之前**执行，否则会把刚建的会话一起踢掉。
 $singleLogin = Policy::singleLogin();
 $kicked      = 0;
-$ttl         = (int) Config::get('policy.session_ttl', 3600);
 if ($singleLogin) {
-    Database::begin();
-    try {
-        $kicked = Session::kickUser((int) $user['id']);
-        $token  = Session::create((int) $user['id'], [
-            'machine_id' => $machineId,
-            'ip'         => Util::ip(),
-            'client_ver' => $clientVer,
-        ], $ttl);
-        Database::commit();
-    } catch (Throwable $e) {
-        Database::rollback();
-        throw $e;
-    }
-} else {
-    $token = Session::create((int) $user['id'], [
-        'machine_id' => $machineId,
-        'ip'         => Util::ip(),
-        'client_ver' => $clientVer,
-    ], $ttl);
+    $kicked = Session::kickUser((int) $user['id']);
 }
+
+// 创建会话
+$ttl   = (int) Config::get('policy.session_ttl', 3600);
+$token = Session::create((int) $user['id'], [
+    'machine_id' => $machineId,
+    'ip'         => Util::ip(),
+    'client_ver' => $clientVer,
+], $ttl);
 
 Logger::log('login', 1, '登录成功', [
     'user_id'    => $user['id'],
@@ -225,6 +203,39 @@ Logger::log('login', 1, '登录成功', [
 // 可在票据到期前继续离线运行，避免全体掉线。
 // 返回 null 表示服务端未开启该能力，客户端按原逻辑处理即可。
 $grace = Grace::issue($user, $token, $machineId, true);
+
+// §32 §33 §86 §87 §88 §89 §90: Login 响应下发 Runtime Policy + 能力协商
+// §89 §90: 如果软件/全局策略要求 RuntimeGuard，客户端不支持时拒绝登录
+$rtCapabilities = $requestData['capabilities'] ?? [];
+$rtGuardSupported = is_array($rtCapabilities) && !empty($rtCapabilities['runtime_guard']);
+
+// 强制 RuntimeGuard 检查
+if (!RuntimeGuard::checkRuntimeGuardRequired($sw, $requestData)) {
+    Logger::log('login', 0, '客户端不支持 RuntimeGuard，被强制策略拒绝', [
+        'user_id'   => $user['id'],
+        'username'  => $username,
+        'app_key'   => $sw['app_key'] ?? '',
+    ]);
+    Response::send(7002, '当前软件要求运行时安全防护，请更新客户端版本', [
+        'need_relogin'       => true,
+        'runtime_guard_required' => true,
+    ]);
+}
+
+$rtPolicyData = null;
+if ($rtGuardSupported) {
+    // 客户端声称支持 RuntimeGuard，下发策略
+    $rtPolicyData = RuntimePolicy::forClient((int) ($sw['id'] ?? 0));
+}
+
+// 初始化会话 Runtime 状态为 CLEAN
+Database::update('sessions', [
+    'rt_status'       => 'CLEAN',
+    'rt_risk_score'   => 0,
+    'rt_risk_level'   => 'LOW',
+    'rt_flags'        => 0,
+    'rt_policy_version' => (int) ($rtPolicyData['policy_version'] ?? 0),
+], 'token = :tok', ['tok' => $token]);
 
 Response::ok([
     'token'          => $token,
@@ -247,4 +258,6 @@ Response::ok([
         'risk'        => $dev['risk'] ?? [],
     ],
     'grace'          => $grace,
+    // §32 §33: Runtime Policy（仅客户端声明支持时下发）
+    'runtime_policy' => $rtPolicyData,
 ], '登录成功');

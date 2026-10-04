@@ -29,7 +29,7 @@
  *     本机制的目标是「防止服务端抖动导致误伤」，不是「防破解」。
  *     真正的防盗版拦截仍应放在联网校验路径上。
  *
- * 客户端校验步骤（协议字段见 docs/API.md「离线宽限协议」，链路时序见 docs/ARCHITECTURE.md 第 5 节）：
+ * 客户端校验步骤（见 docs/OFFLINE_GRACE.md）：
  *   1) 用内置公钥验证签名；
  *   2) 比对 m 字段与本地机器码摘要、k 字段与本地会话摘要；
  *   3) 检查 time() < g（允许一定时钟偏差）；
@@ -49,10 +49,10 @@ class Grace
 
     public static function enabled(): bool
     {
-        if (!Config::get('grace.enable', true)) {
+        if (!Setting::boolWithConfig('grace_enable', 'grace.enable')) {
             return false;
         }
-        if ((int) Config::get('grace.seconds', 0) <= 0) {
+        if ((int) Setting::intWithConfig('grace_seconds', 'grace.seconds') <= 0) {
             return false;
         }
         // 分软件策略覆盖：当前软件显式关闭（policy_json.grace_enable = 0）时不签发
@@ -69,8 +69,8 @@ class Grace
         $keys = self::ensureKeys() ? self::$keys : null;
         return [
             'enable'     => self::enabled(),
-            'seconds'    => (int) Config::get('grace.seconds', 0),
-            'max_seconds'=> (int) Config::get('grace.max_seconds', 0),
+            'seconds'    => (int) Setting::intWithConfig('grace_seconds', 'grace.seconds'),
+            'max_seconds'=> (int) Setting::intWithConfig('grace_max_seconds', 'grace.max_seconds'),
             'algorithm'  => $keys['algo'] ?? '',
             'kid'        => $keys['kid'] ?? '',
             'public_key' => $keys['public'] ?? '',
@@ -127,8 +127,14 @@ class Grace
         }
 
         $now     = time();
-        $seconds = (int) Config::get('grace.seconds', 0);
-        $max     = (int) Config::get('grace.max_seconds', 0);
+        // 优先从当前软件的策略读取，否则走全局 Setting
+        if (class_exists('Policy') && class_exists('Software')) {
+            $seconds = Policy::graceSeconds(Software::current());
+            $max     = Policy::graceMaxSeconds(Software::current());
+        } else {
+            $seconds = (int) Setting::intWithConfig('grace_seconds', 'grace.seconds');
+            $max     = (int) Setting::intWithConfig('grace_max_seconds', 'grace.max_seconds');
+        }
         if ($max > 0) {
             $seconds = min($seconds, $max);
         }
@@ -140,6 +146,24 @@ class Grace
         // 未激活账号不签发（0 = 未激活；-1 = 永久，不钳制）
         if ($vip === 0) {
             return null;
+        }
+
+        // §30: 高危 Runtime 事件发生后，不允许通过旧 Grace Ticket 无限恢复 Session
+        // 检查设备 Runtime 风险状态 — CRITICAL 设备拒绝签发 Grace Ticket
+        if ($machineId !== null && $machineId !== '' && class_exists('Database')) {
+            $devRt = Database::one(
+                'SELECT rt_risk_level, rt_status FROM ' . Database::t('devices') . '
+                 WHERE user_id = ? AND machine_id = ? AND status = 1 LIMIT 1',
+                [(int) ($user['id'] ?? 0), $machineId]
+            );
+            if ($devRt) {
+                $devRtLevel = strtoupper((string) ($devRt['rt_risk_level'] ?? 'LOW'));
+                $devRtStatus = strtoupper((string) ($devRt['rt_status'] ?? 'UNKNOWN'));
+                if ($devRtLevel === 'CRITICAL' || $devRtStatus === 'BLOCKED') {
+                    // 设备处于 CRITICAL / BLOCKED 状态，拒绝恢复 Grace Session
+                    return null;
+                }
+            }
         }
 
         $until = $now + $seconds;

@@ -320,23 +320,6 @@ async function render() {
                 排查前端异常、或怀疑误拦正常用户时，可临时关闭（关闭后不再评分，等同未部署）。
             </div>
         </div>
-        <div class="card-head" style="padding-left:0"><h3 style="font-size:13px">风险评分模型（登录失败自动冻结）</h3></div>
-        <div class="row2">
-            <div class="field"><label>IP 异常权重</label>
-                <input id="stRiskIp" type="number" value="${esc(s.risk_ip_weight || '30')}"></div>
-            <div class="field"><label>账号失败权重</label>
-                <input id="stRiskUser" type="number" value="${esc(s.risk_user_weight || '20')}"></div>
-        </div>
-        <div class="row2">
-            <div class="field"><label>设备异常权重</label>
-                <input id="stRiskDevice" type="number" value="${esc(s.risk_device_weight || '20')}"></div>
-            <div class="field"><label>代理异常权重</label>
-                <input id="stRiskAgent" type="number" value="${esc(s.risk_agent_weight || '30')}"></div>
-        </div>
-        <div class="field"><label>自动冻结阈值（总分）</label>
-            <input id="stRiskFreeze" type="number" value="${esc(s.risk_freeze_score || '80')}">
-            <div class="hint">各维度按登录失败日志 / 设备风险标记 / 代理商状态累计加分，达到阈值即自动冻结账号（写 risk_freeze 日志）；填 0 = 关闭自动冻结。权重与阈值范围 0~200。用户管理页的风险评分缓存 10 分钟，保存后可点明细里的强制重评立即生效</div>
-        </div>
         <div class="card-head" style="padding-left:0"><h3 style="font-size:13px">官网防刷</h3></div>
         <div class="row2">
             <div class="field"><label>注册频控(个/小时/IP)</label>
@@ -734,11 +717,6 @@ async function saveSecurity() {
             web_act_max_min: document.getElementById('stWebActMax').value.trim(),
             guard_enabled: document.getElementById('stGuard').value,
             ip_blacklist: document.getElementById('stIpBlacklist').value,
-            risk_ip_weight: document.getElementById('stRiskIp').value.trim(),
-            risk_user_weight: document.getElementById('stRiskUser').value.trim(),
-            risk_device_weight: document.getElementById('stRiskDevice').value.trim(),
-            risk_agent_weight: document.getElementById('stRiskAgent').value.trim(),
-            risk_freeze_score: document.getElementById('stRiskFreeze').value.trim(),
             grace_enable: document.getElementById('stGraceEnable').value,
             grace_seconds: document.getElementById('stGraceSec').value.trim(),
             grace_max_seconds: document.getElementById('stGraceMax').value.trim(),

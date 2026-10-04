@@ -386,7 +386,7 @@ sequenceDiagram
 | 安全审计报告 | `lib/SecReport.php` | 每日巡检暴力破解 / 撞库 / 密钥重置 / 卡密突增 |
 | 文件完整性 | `lib/FileGuard.php` | 全站 sha256 基准比对 + Webshell 特征扫描 |
 | 健康检查 | `lib/Health.php` | 环境与依赖自检 |
-| 风险评分 | `lib/RiskScore.php` | 登录风险打分，达阈值自动冻结（后台设置优先） |
+| 运行时防护 | `lib/RuntimePolicy.php`、`lib/RuntimeGuard.php`、`lib/RuntimeRiskEngine.php`、`lib/RuntimeEventService.php` | 策略匹配下发（软件级 > 全局 > 内置默认）、心跳遥测合并、事件风险评估与自动处置 |
 
 ### 9.3 发布与迁移
 
@@ -408,7 +408,8 @@ sequenceDiagram
 | 认证与权限 | `AdminAuth`（位于后台目录）、`AdminPermission`、`Session`、`SessionCookie`、`Totp`、`Auth`、`LoginMethod`、`ShopAuth`、`Tenant` |
 | 业务 | `Software`、`Policy`、`Quota`、`Points`、`Card`、`Device`、`DeviceFp`、`Heartbeat`、`Version`、`Agent`、`AgentCode`、`AgentRecharge`、`WebInteract` |
 | 商城与支付 | `Shop`、`Pay`、`UiTemplate` |
-| 运维 | `Logger`、`Audit`、`SecReport`、`RiskScore`、`FileGuard`、`Backup`、`Health`、`Deleter`、`Setting` |
+| 运维 | `Logger`、`Audit`、`SecReport`、`FileGuard`、`Backup`、`Health`、`Deleter`、`Setting` |
+| 运行时安全 | `RuntimePolicy`、`RuntimeGuard`、`RuntimeRiskEngine`、`RuntimeEventService` |
 
 ---
 
@@ -426,7 +427,7 @@ sequenceDiagram
 | CSRF | 写操作令牌校验 | `admin/index.php`、`agent/api.php` 等 |
 | 令牌泄露 | token + session_key 分离、UA/IP 绑定、HttpOnly Cookie | `admin/AdminAuth.php` |
 | 越权 | RBAC 默认拒绝 + 多租户 `Tenant` | `lib/AdminPermission.php`、`lib/Tenant.php` |
-| 暴力破解 | 失败锁定 + 限流 + 风控评分自动冻结 | `lib/RateLimit.php`、`lib/RiskScore.php` |
+| 暴力破解 | 失败锁定（账号+IP 双维）+ 限流 + 验证码 | `lib/RateLimit.php`、后台 `handlers/login.php` |
 | 目录遍历 / 直访 | `.htaccess` 禁 `config|lib|logs|data`、禁 handlers 直访 | `.htaccess` |
 | 服务器抖动误伤 | 离线宽限票据（短时、可钳制） | `lib/Grace.php` |
 

@@ -10,6 +10,23 @@ $machineId = Util::str($requestData, 'machine_id', '');
 
 // 版本信息：按当前软件独立下发（发布表该软件记录优先，回落软件自身配置）
 $sw = Software::current() ?: ['id' => 1, 'latest_version' => '1.0.0', 'force_update' => 0, 'update_url' => '', 'update_note' => '', 'min_version' => ''];
+
+// 登录前（免鉴权）运行时安全上报：SDK 在 init 请求体中携带 runtime_event。
+// init 阶段尚无业务会话，无法走 runtime_security_event（那个要求 token）；
+// 这里用 machine_id 作为匿名键（user_id/device_id=0）落库，供后台审计与风控，
+// 复用 RuntimeEventService 的去重 / 限流 / 评分。
+$preLoginEvent = $requestData['runtime_event'] ?? null;
+if (is_array($preLoginEvent) && !empty($preLoginEvent['event_type'])) {
+    $anonKey = $machineId !== '' ? $machineId : ('anon:' . Util::ip());
+    RuntimeEventService::handle($preLoginEvent, [
+        'token'         => mb_substr($anonKey, 0, 128),
+        'user_id'       => 0,
+        'device_id'     => 0,
+        'software_id'   => (int) ($sw['id'] ?? 0),
+        'rt_risk_score' => 0,
+        'rt_flags'      => 0,
+    ], '', 0);
+}
 $minVer = Software::minVersion($sw);
 
 $vInfo = Software::versionInfo($sw, 'stable');
@@ -82,6 +99,9 @@ Response::ok([
     // 之后 login / heartbeat 会下发签名票据，心跳失败时本地验签即可离线运行。
     // enable=false 表示服务端未开启，客户端跳过该逻辑。
     'grace'          => Grace::info(),
+    // §47 运行时防护策略：SDK 在 init 响应中解析 runtime_protection 并自动 apply
+    // （键名/字段与 sdk/nebula/protect/runtime_policy.hpp 严格一致）
+    'runtime_protection' => RuntimePolicy::forSdkClient((int) $sw['id']),
     'crypto'         => [
         'enforce' => (bool) Config::get('security.enforce_crypto', true),
         'proto'   => 31,

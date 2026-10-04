@@ -14,10 +14,10 @@ $force = !empty($input['force']);
 // 当前系统版本
 $currentVersion = (string) (defined('NB_VERSION') ? NB_VERSION : Config::get('system_version', '1.0.0'));
 
-// 版本更新服务地址（写死固定，不读取任何配置）
-$updateServer = 'https://mmbr.serv00.net';
+// 版本更新服务地址（从配置读取，默认空）
+$updateServer = Config::get('update_server', '');
 if ($updateServer === '') {
-    // 未配置更新服务器：返回「未启用」（不阻断后台）
+    // 未配置更新服务器，静默返回（不阻断后台）
     Response::ok([
         'current_version' => $currentVersion,
         'latest'          => null,

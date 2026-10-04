@@ -89,19 +89,10 @@ class Auth
             return ['ok' => false, 'code' => 2003, 'msg' => '账号已锁定，请 ' . ceil($left / 60) . ' 分钟后再试', 'user' => $user];
         }
 
-        // 多软件隔离：客户端 API 上下文中，账号绑定了其他软件则拒绝登录。
-        // 2026-09-30 修复（防枚举）：错误码与文案必须与「用户名或密码错误」完全一致。
-        // 原实现返回独立的 2005「账号不属于当前软件」，攻击者向 B 软件接口
-        // 提交 A 软件的用户名列表即可凭 2005/2001 差异免费枚举全站用户名
-        //（uk_username 全库唯一，用户名跨软件冲突）。真实原因只在服务端日志可见。
+        // 多软件隔离：客户端 API 上下文中，账号绑定了其他软件则拒绝登录
         if (Software::currentId() > 0 && (int) ($user['software_id'] ?? 0) > 0
             && (int) $user['software_id'] !== Software::currentId()) {
-            Logger::log('login', 0, '跨软件登录被拒（对外按密码错误返回）', [
-                'username'   => $username,
-                'software'   => (int) $user['software_id'],
-                'current_sw' => Software::currentId(),
-            ]);
-            return ['ok' => false, 'code' => 2001, 'msg' => '用户名或密码错误', 'user' => null];
+            return ['ok' => false, 'code' => 2005, 'msg' => '账号不属于当前软件', 'user' => null];
         }
 
         // 密码校验
@@ -467,13 +458,6 @@ class Auth
             $data['login_fail_cnt'] = 0;
         }
         Database::update('users', $data, 'id = :id', ['id' => $userId]);
-
-        // 风险评分：每次失败后重估，达到阈值自动冻结（异常不阻断登录流程）
-        try {
-            RiskScore::evaluate($userId, true);
-        } catch (Throwable $e) {
-            // 评分失败不影响原有锁定逻辑
-        }
     }
 
     /**

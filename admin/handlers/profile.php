@@ -14,8 +14,8 @@ if ($op === 'change_password') {
     $old = (string) Util::get($input, 'old_password', '');
     $new = (string) Util::get($input, 'new_password', '');
 
-    // 强度校验（与注册/改密统一口径：长度 8-64、字母+数字、拒绝弱口令）
-    if (($pwIssue = Util::passwordIssue($new)) !== null) {
+    // 强度校验（管理员严格档：≥10 位、字母+数字、需含大写或符号、拒绝弱口令）
+    if (($pwIssue = Util::passwordIssue($new, true)) !== null) {
         Response::error(1001, $pwIssue);
     }
 

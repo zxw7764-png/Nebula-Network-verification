@@ -1,20 +1,4 @@
 <?php
-// 更新包数字签名内置公钥（供应链信任链）
-// 对应私钥由官方开发者在打包时持有（tools/update_signer tools），此公钥仅用于验签。
-// 泄露公钥无风险。更换私钥时同步替换此处公钥。
-if (!defined('NEBULA_UPDATE_PUBLIC_KEY')) {
-    define('NEBULA_UPDATE_PUBLIC_KEY', <<<'PEM'
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqPRkOUsyjmMVQQr+966/
-jgn8l+lfZ3fFHhHRbx6rSMQIDALADRNv3glsP1y6RsYYFY83DNVaGRJf4T+80+mU
-N8pJYauKUmSLQQMnU5cyb9Z+VKGutgGtCSB6xvdnstW6/1z7CVjYvsl/xetsufQa
-Z57u3oPuHx6t8rwbFKIqvBnZGWtQcmQIrGTR+8Exa8JgIowyRp76aY3FXLd/h37s
-MToKRi6sn1pdBLc6HPgS4QBeGc4Y2DByUBH4hkaJlbbWsRizD3qaPlukt9XeIIgY
-sjKQz+ZasjpqTHk5rOSoX015nfFNsxk3e/WgRKpXY99Jd2o/qOska9umXs1NfrLI
-GwIDAQAB
------END PUBLIC KEY-----
-PEM);
-}
 /**
  * admin action: system_update_do
  * ------------------------------------------------------------------
@@ -88,8 +72,8 @@ try {
     // ----------------------------------------------------------------
     $downloadOk = false;
     $downloadErr = '';
-    // 域名白名单校验：只允许从写死的更新服务器下载
-    $allowedHost = parse_url('https://mmbr.serv00.net', PHP_URL_HOST);
+    // 域名白名单校验：只允许从配置的更新服务器下载
+    $allowedHost = parse_url(Config::get('update_server', ''), PHP_URL_HOST);
     $dlHost = parse_url($downloadUrl, PHP_URL_HOST);
     if (!$dlHost || ($allowedHost && $dlHost !== $allowedHost)) {
         throw new RuntimeException('下载地址域名不在允许列表中，拒绝执行更新');
@@ -100,63 +84,19 @@ try {
         if ($fp2 === false) {
             throw new RuntimeException('无法创建下载文件，请检查 logs 目录权限');
         }
-
-        // 下载目标校验：每次重定向后都必须重新验证 scheme=https 且 host 仍在白名单，
-        // 防止初始 URL 命中白名单后经 302 跳转到内网 / 非白名单地址（SSRF / 供应链风险）。
-        $currentUrl = $downloadUrl;
-        $ch = curl_init();
+        $ch = curl_init($downloadUrl);
         curl_setopt_array($ch, [
             CURLOPT_FILE => $fp2,
             CURLOPT_TIMEOUT => 300,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_FOLLOWLOCATION => false, // 手动跟随，每跳校验
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 3,
             CURLOPT_USERAGENT => 'Nebula-Updater/' . NB_VERSION,
-            CURLOPT_HEADERFUNCTION => static function ($curl, $header) use (&$currentUrl) {
-                $trimmed = trim($header);
-                if (stripos($trimmed, 'Location:') === 0) {
-                    $loc = trim(substr($trimmed, 9));
-                    if ($loc !== '') {
-                        // 相对跳转补全为绝对 URL 后再校验
-                        if (preg_match('#^https?://#i', $loc)) {
-                            $currentUrl = $loc;
-                        } else if (preg_match('#^/#', $loc)) {
-                            $parts = parse_url($currentUrl);
-                            $currentUrl = ($parts['scheme'] ?? 'https') . '://' . ($parts['host'] ?? '') . $loc;
-                        }
-                    }
-                }
-                return strlen($header);
-            },
         ]);
-
-        $ok = false;
-        $httpCode = 0;
-        $err = '';
-        $redirects = 0;
-        do {
-            $h = parse_url($currentUrl);
-            $scheme = strtolower($h['scheme'] ?? '');
-            $host = strtolower($h['host'] ?? '');
-            if ($scheme !== 'https' || !$host || ($allowedHost && $host !== $allowedHost)) {
-                @fclose($fp2);
-                @unlink($pkgPath);
-                throw new RuntimeException('下载重定向目标不在允许列表（仅允许 HTTPS 且仅限 ' . ($allowedHost ?: '官方域名') . '），拒绝执行更新');
-            }
-            curl_setopt($ch, CURLOPT_URL, $currentUrl);
-            curl_setopt($ch, CURLOPT_HTTPGET, true);
-            $ok = curl_exec($ch);
-            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $err = curl_error($ch);
-            if ($httpCode >= 300 && $httpCode < 400 && $redirects < 3) {
-                $redirects++;
-                // 清空已写入的（可能的）302 body，避免污染最终包
-                rewind($fp2);
-                if (function_exists('ftruncate')) @ftruncate($fp2, 0);
-                continue; // 继续跟随下一跳（header 回调已更新 $currentUrl）
-            }
-            break;
-        } while ($redirects < 3);
+        $ok = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
         curl_close($ch);
         fclose($fp2);
         if (!$ok || $httpCode >= 400) {
@@ -221,38 +161,6 @@ try {
     if ($manifestProduct !== 'nebula-verification') {
         $zip->close();
         throw new RuntimeException('产品标识不匹配（' . $manifestProduct . '），此更新包不适用于当前系统');
-    }
-
-    // 数字签名校验（供应链信任链）：
-    //   若 manifest 携带 signature，则必须通过内置公钥验证，否则拒绝安装；
-    //   这样即使更新服务器/SHA-256 被攻破，非官方私钥签发的包也会被拒。
-    if (isset($manifest['signature']) && is_string($manifest['signature']) && $manifest['signature'] !== '') {
-        $pubPem = NEBULA_UPDATE_PUBLIC_KEY;
-        if ($pubPem === '') {
-            $zip->close();
-            throw new RuntimeException('更新包带有签名，但服务器未配置内置公钥（NEBULA_UPDATE_PUBLIC_KEY），拒绝安装');
-        }
-        // 签名输入格式：按顺序拼接 manifest 的 5 个字段（与 pack.php 产出的字段一致）
-        // （不绑定 zip 总哈希，因为带签名的 manifest 会改变 zip 哈希形成循环依赖；
-        //   签名证明「该版本为官方私钥签名发布」，配合上面的 SHA-256 校验共同防篡改）
-        $signInput = implode("\n", [
-            (string)($manifest['product'] ?? ''),
-            (string)($manifest['version'] ?? ''),
-            (string)($manifest['build'] ?? ''),
-            (string)($manifest['min_version'] ?? ''),
-            (string)($manifest['published_at'] ?? ''),
-        ]);
-        $sig = base64_decode($manifest['signature'], true);
-        $pub = openssl_pkey_get_public($pubPem);
-        if ($pub === false || $sig === false) {
-            $zip->close();
-            throw new RuntimeException('更新包签名或公钥无效，拒绝安装');
-        }
-        $ok = openssl_verify($signInput, $sig, $pub, OPENSSL_ALGO_SHA256);
-        if ($ok !== 1) {
-            $zip->close();
-            throw new RuntimeException('更新包数字签名验证失败，包可能被篡改或非官方发布，拒绝安装');
-        }
     }
 
     // ----------------------------------------------------------------

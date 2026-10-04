@@ -4,90 +4,129 @@
 版本号遵循语义化版本（`主.次.修订`）。每次发版请在本文件顶部追加条目，并同步
 `lib/bootstrap.php` 的 `NB_VERSION`；发布到版本更新系统时，把对应条目整理为 `release_notes`。
 
-## [2.65.22] - 2026-10-01
+## [2.65.31] - 2026-10-04
+
+### 修复（安全自检 · 权限点未登记）
+
+- 2.65.30 新增的 `security_check` handler 漏了在 `AdminPermission::ACTION_PERM` 登记，RBAC 默认拒绝未登记 action → 审计日志出现 `admin_rbac 失败 未登记权限点` 且首页卡片不显示；已登记为 `settings.security` 档
+
+## [2.65.30] - 2026-10-04
+
+### 新增（SDK · 敏感数据内存保护）
+
+- `SecureBuffer`（core/secure_string.hpp）：擦除型字节缓冲 —— 析构/`wipe()` 时 volatile 写擦除（编译器不可优化掉），可选 `VirtualLock` 锁页防止明文被交换到磁盘页面文件
+- `feature::openSecure()`：`open()` 的内存保护升级版 —— 核心数据解密进 SecureBuffer，解密临时副本返回前立即擦除；旧 `open()` 保留兼容
+- `LoginResult::wipeFeatureKey()`：功能密钥用完立即安全擦除（`nebula::secureZero` + `shrink_to_fit`，幂等）
+- 新增 `secureZero(p,n)` / `secureWipe(str)` 通用擦除工具
+- SDK_PROTECTION.md §0.0 新增使用说明（推荐时序：login → openSecure → wipeFeatureKey）
+- MSVC TU 编译 + 运行时验证：seal/openSecure 往返、错误密钥拒绝、篡改拒绝、擦除幂等 全部通过
+
+### 新增（后台 · 管理面安全加固）
+
+- **管理员密码严格档**：`Util::passwordIssue($plain, true)` —— ≥10 位 + 字母数字 + 必须含大写字母或符号（普通用户仍为 8 位档）；管理员新增/编辑/重置密码、个人中心改密四处入口全部切换
+- **安全自检**（新 handler `security_check` + 数据概览页卡片，需 settings.security 权限）：扫描 6 类风险 —— 管理员 2FA 覆盖（danger）、默认账号名 admin（warn）、软件未配置功能密钥（warn）、运行时防护策略覆盖缺口（warn）、备份文件暴露面（info）、密码策略档说明；汇总徽章一屏看清（N 项高危 / N 项注意 / 状态良好）
+
+## [2.65.29] - 2026-10-04
+
+### 修复（防护配置 · 关闭防护不生效）
+
+- **根因（策略匹配回落链）**：策略按「软件专属 > 全局(software_id=0)」匹配；某软件两者都没有时**回落内置默认策略（标准级全开）**。用户把等级 0 策略建在了 SWDEFAULT（software_id=1）上，测试软件无覆盖 → 一直拿内置默认全开策略
+- `RuntimePolicy::forSdkClient()`：防护被关闭（enabled/status 关闭或**等级=0**）时下发**完全静默策略**（enabled=false、modules=0、三档动作=0 RECORD、strict=false）——此前等级 0 仍下发 enabled=true + TERMINATE/吊销动作 + strict，语义不一致
+- `RuntimePolicy::actionForLevel()`：防护关闭时事件处置回落 `RECORD`，服务端事件自动处置（阻断会话/踢线）同步停用
+- 后台「防护策略」编辑弹窗：「软件ID」裸数字框改为**下拉选择**（全局 + 软件列表）；列表页与编辑弹窗补策略匹配规则说明（无匹配 = 内置默认标准级全开）
+- 用户数据修正：策略 #13 软件范围 SWDEFAULT → 全局（等级 0 现已覆盖所有软件）
+
+## [2.65.28] - 2026-10-04
+
+### 修复（用户管理列表）
+
+- 删除「风险评分模型」功能后，表头漏删 `<th>风险</th>` 导致列不对齐；已移除并修正 `colspan` 从 11 → 10
+
+## [2.65.27] - 2026-10-04
+
+### 移除（用户管理 · 风险评分模型）
+
+- 删除 `RiskScore` 类及相关功能：不再在登录失败时自动计算用户风险分、不再自动冻结账号
+- 移除后台「用户管理」页面的风险评分列和评分详情弹窗
+- 移除后台「系统设置」页面的风险评分模型配置项（IP异常权重、账号失败权重、设备异常权重、代理异常权重、自动冻结阈值）
+- 删除 `lib/RiskScore.php`、`nb9b6f51/handlers/user_risk.php`
+
+## [2.65.26] - 2026-10-04
+
+### 修复（防护配置 · 列表翻页全坏）
+
+- **翻页点一下就只剩「首尾两个页码」**：rt_security.js 手搓的分页用混合大小写属性 `data-evPage`/`data-rsPage` 等，HTML 属性名会被浏览器转小写，`btn.dataset[prefix]` 读到 undefined → `parseInt(undefined)=NaN` → 页码条只渲染 `i===1 || i===totalPages` 两个按钮，且服务端收到 page=NaN 兜底为第 1 页（翻了没反应）。**四个列表页（安全事件/风险会话/风险设备/防护策略）全部命中**。改用全局共享 `pager()` + `bindPager()`（`data-go` 属性，与设备管理等页面同款，附带「共 N 条，第 x/y 页」）
+
+### 变更（防护配置 · 批量操作与其他页面对齐）
+
+- 安全事件批量操作从独立一行改为**标准工具栏批量框**：`createSelection()` + `checkAllBox()`/`rowCheckBox()` + `.bulk-inline`（选中后在操作区出现「批量已处理/批量误报」下拉+执行，与设备管理页同款交互）；勾选框点击不再冒泡触发行详情
+
+### 变更（SDK · 清理疑似环境策略编译期开关）
+
+- 删除 `config.hpp` 的 `kProtectStrictPolicy` 编译期常量及 `setProtectAction()` 里的 `setSuspiciousPolicy()` 引导调用：strict 策略自 2.65.23 起已完全由服务端 `runtime_protection.strict` 下发、init/heartbeat 自动应用并覆盖，编译期默认值无任何生效场景（反链路排查：定义 → 引导 → 覆盖 → fallback 兜底，全链路无消费点）。SDK_PROTECTION.md §3.7.2 同步注明策略控制权归服务端、宿主手动 `setSuspiciousPolicy()` 会被下一次下发覆盖。需重新编译登录器生效
+
+## [2.65.25] - 2026-10-04
+
+### 修复（风险会话「解除」登出的真正根因）
+
+- **body 参数名 `token` 劫持管理员认证**：`SessionCookie::fromRequest()` 取令牌优先级为 X-Token 头 > **body.token** > Cookie，而「风险会话-解除」请求体恰好携带 `{token: 客户端会话令牌}` —— 入口把客户端令牌当成管理员令牌验证，必然 1003 并 `SessionCookie::clear()` 登出管理员（请求从未到达 handler，2.65.24 的 SQL 修复无法触达）。参数更名为 `session_token`（handler 与前端同步），并全库排查确认无其他 body.token 用法
+- 附：同批 [2.65.24] 修复的 handler 内 SQL（MySQL 1235 的 `IN (SELECT...LIMIT)` + `Database::update` 位置参数 HY093）在本根因修复后才开始真正生效
+
+## [2.65.24] - 2026-10-04
+
+### 修复（后台「防护配置」）
+
+- **风险会话「解除」必失败**：`rt_session_unblock` 同步恢复 3.1 会话层的 UPDATE 使用 `IN (SELECT ... LIMIT 1)` 子查询（MySQL 1235 不支持）且占位符与 `Database::update` 命名参数机制不兼容（HY093），两层错误叠加导致点击解除必然 500。改为去掉 LIMIT 的 IN 子查询 + 命名参数
+- **业务错误误用 1002 导致后台被登出**：`rt_session_unblock` / `rt_device_unblock` / `rt_event_detail` / `rt_policy_detail` / `rt_policy_save` / `rt_policy_delete` / `file_delete` 的"对象不存在"类业务错误原先返回 1002，与前端 `AUTH_FAIL_CODES=[1002,1003]`（登录过期自动登出）冲突 —— 任何一次对象失配都会把管理员踢回登录页。全部改为 1001
+- 后台左侧菜单「运行时安全」更名「防护配置」（含面包屑、子页「运行时策略」→「防护策略」）
+
+### 新增（后台）
+
+- **安全事件批量操作**：事件列表新增复选框 + 全选 + 批量已处理/批量误报（新接口 `rt_event_batch`，单次 ≤500 条，RBAC 沿用 RT_SECURITY_EVENTS，含审计日志；`RuntimeEventService::markHandledBatch()` 单条 UPDATE 完成）
+
+### 修复（SDK 事件详情）
+
+- **事件「模块名」恒为空**：SDK 上报 details 仅含拼接文本 `{"detail": "..."}`，服务端白名单里的 `module_name` 从未被填充。现在 `scan()` 汇总时提取「最高严重级且带模块信息的命中事件」的模块名（`Report::primary_module`），`reportDetailJson()` 输出 `details.module_name`；纯调试器/环境类检测无模块归属时保持为空
+
+## [2.65.23] - 2026-10-04
+
+### 新增（等级即策略：检测模块并入三档防护等级并真实下发）
+
+- 检测模块不再单独勾选，随防护等级整档下发：`RuntimePolicy::levelModuleMask()` 定义各等级预设掩码（关闭=0 / 基础=反调试+反VM沙箱+代码完整性 / 标准=+API钩子+代码补丁+模块守卫+内存守卫 / 严格=+进程守卫+时序+环境痕迹），`forSdkClient()` 新增 `modules` 字段随 `runtime_protection` 下发（init / heartbeat）
+- SDK 端按掩码门控各检测模块（`runtime_policy.hpp` ModBit 位定义与服务端严格一致；`effectiveModules()` 与编译期能力取交，服务端不能提权）；四个守卫模块（模块/内存/进程/代码完整性扫描）首次纳入等级控制
+- 关闭语义修复：后台选「关闭」下发 `level:0` / `enabled:false` 时客户端**真关闭**（停止全部检测 + 停看门狗）；仅"从未收到策略"才回落编译期默认
+
+### 修复（三档处置动作按选择实际执行）
+
+- **高危/严重动作不生效**：SDK 各守卫事件产生时已定级（注入=High、代码补丁/完整性=Critical），但 scan() 汇总时丢弃事件分级，enforce() 仅靠 flag/score 反推，大量真实命中被降级为 Medium → 只执行中危动作。现在汇总保留事件最高分级（`Report.severity_hint`），处置时与 flag 推导**取更严重者**，后台的中危/高危/严重动作下拉严格对应 `medium_action` / `high_action` / `critical_action` 落地
+- 修复 `module_guard.hpp` 默认零加固配置（`NEBULA_PROTECT_LEVEL=0`）下的遗留编译错误（ModuleInfo 结构体被门控在存根引用之外）
+
+### 变更（后台）
+
+- 运行时策略编辑器移除 7 个检测项 + 4 个行为独立勾选框：检测模块改为随防护等级联动的只读展示（本等级检测模块清单 + 说明），违规处置并入中危/高危/严重三档动作、看门狗开关随等级生效；`NB_VERSION` → 2.65.23 刷新缓存
+
+> 注：[2.65.22]（2026-10-03 审计修复）未及记录：响应签名私钥轮换（prod kid=80a54302）、响应加密独立密钥 `sk_enc_rsp=HKDF(sk_enc,info="nebula31-enc-rsp")`（四端同步，SDK ≥ 3.1.1 才能连 2.65.22+ 服务端）、`Session::validate` 增加 requireMachine 强制参数、unbind all 强制密码、FileGuard 拒绝 config/lib/install 目录访问。
+
+## [2.65.21] - 2026-10-03
+
+### 移除（3.0 遗留下线）
+
+- 软件级静态通信密钥体系整体下线：删除「重置密钥 / 平滑轮换」后台入口与 software_reset_keys 接口、Software::resetKeys / rotateKeysGraceful / prevKeys / genAesKey / genSignSalt，软件列表与编辑表单不再暴露 AES_KEY / SIGN_SALT
+- 3.1 协议（ECDH P-256 + AES-256-GCM）下客户端与配置文件均无静态对称密钥，上述功能无任何消费方；nb_softwares 表历史列保留不动（无读取方，无害）
+- 安全巡检报告移除「密钥重置追踪」段（对应审计动作已不存在）
+
+## [2.65.20] - 2026-10-02
+
+### 新增（3.1 协议，2.65.17–2.65.20 汇总）
+
+- **Nebula 3.1 协议正式上线**：ECDH P-256 握手（SIGMA 简化）+ HKDF 派生会话密钥 + AES-256-GCM 信封 + 单调 seq 防重放；客户端零静态对称机密。请求带 `sid` 自动走 3.1，服务端对旧 3.0 信封返回 1001 由 SDK 回落
+- 三端 SDK 同步升级：C++（handshake.hpp，修复请求信封漏前置 IV 导致 GCM 认证失败）、Python（envelope.py 重写，cryptography 库实现）、C#（新增 NebulaSecure31.cs）；废弃的 `kAesKey` / `kSignSalt` 静态占位全部移除
 
 ### 修复
 
-- 版本排序改为「按版本号倒序」：`Software::versionInfo()` 原用 `ORDER BY id DESC`（即插入顺序）定位最新版本，
-  `changelogList()` 同样按 id 倒序，导致「先发高版本、后补发低版本」时最新版判定与更新日志顺序双双错乱
-  （现网即出现 1.0.2 先入库、1.0.1 后入库，最新版被误判为 1.0.1）；
-  改为用 `Util::versionCompare()` 按版本号逐段语义比较：`versionInfo()` 经新增的 `Software::newestByVersion()`
-  取最大值，`changelogList()` 在 PHP 侧 `usort` 后再 `array_slice` 截断，排序结果与发布先后无关
-
-### 说明
-
-- `nb_versions.created_at` 为**入库时间**（仅在新增时写入），不代表版本先后，故未采用按时间排序
-- `Software::releaseOf()`（按指定版本号取哈希，供客户端完整性自校验）不受影响
-
-## [2.65.21] - 2026-10-01
-
-### 新增
-
-- `init` 响应 `data.version` 新增 `versions` 数组：下发该软件 stable 渠道**已发布且填写了更新说明**的历史版本
-  列表（`version` / `channel` / `changelog` / `force_update` / `download_url` / `file_hash` / `file_size` /
-  `created_at`，按 id 倒序，最多 10 条），供客户端「更新日志」逐条展开查看。此前只下发最新一条 `changelog`，
-  客户端只能展示一个版本，无法呈现历史版本
-- `Software::changelogList()`：历史版本列表查询（`status = 1` 且 `changelog` 非空），
-  与 `versionInfo()` 的「最新一条」定位互补，互不影响既有字段
-
-### 文档
-
-- `docs/API.md` 的 `init` 响应示例与字段说明补充 `data.version.versions`
-- `docs/API_RAW_EXAMPLES.md` 的 `init` 原始响应示例补充 `versions`
-
-### 说明
-
-- 纯增量、向后兼容：老客户端忽略该字段即可；服务端无历史版本记录时下发空数组，
-  客户端仍可退回「`latest` + `changelog`」单条展示
-
-## [2.65.18] - 2026-09-30
-
-### 修复（登录链路安全审查 P1）
-
-- 风险自动冻结被评分缓存跳过：RiskScore::evaluate 命中缓存时无视 persist 参数直接返回，
-  登录失败触发的自动冻结最长延迟 10 分钟，且攻击者停手等缓存过期后永远不触发；
-  改为缓存命中同样执行 maybeFreeze（幂等，status 条件更新防重复冻结）
-- 登录失败仍扣点：点数卡 per_login 扣点原在设备校验/异地拦截之前执行，
-  设备数超限或异地被拦的用户点数照样被扣；扣点移至全部校验通过后、建会话前执行
-- 跨软件用户名枚举预言机：账号归属其他软件时返回独立错误码 2005，
-  攻击者可凭 2005/2001 差异枚举全站用户名（uk_username 全库唯一）；
-  改为与「用户名或密码错误」完全一致的 2001，真实原因仅记服务端日志
-
-### 修复（登录链路安全审查 P2）
-
-- 单点登录并发窗口：kickUser 与 Session::create 分离执行，两机同时登录会各活一个会话；
-  改为同一事务内先踢旧后建新
-- 心跳旁路设备校验：不带 machine_id 的心跳请求会跳过设备解绑检查，
-  管理端强制解绑后旧会话仍可心跳到 TTL；缺 machine_id 的心跳按 need_relogin 拒绝
-- init 会话密钥表灌水：sign_keys 每次签发插一行（7 天 TTL），随机机器码+代理池可无限写表；
-  新增机器码维度签发限流（10 次/分钟），cron 增加过期密钥兜底清理（1b 节）
-- 客户端可控字符串超长致 9999：machine_id / device_name / os_info / client_ver
-  按入库列宽钳制（128/128/128/32），超长不再触发严格模式报错
-
-### 其他
-
-- .gitignore 增加 tests/_certs/（测试证书由测试脚本运行时自生成，勿入库）
-- 发布工具（deploy/make_release.php，仅开发站）修复打包规则：
-  新增排除开发站专用目录（deploy / tests / update-system / _pkg / releases）与本机工具目录（.freebuff 等）、
-  uploads / pack 运行时目录仅保留 .gitkeep、install/migrate_* 升级脚本不随空白包分发；
-  修复目录级剪枝顺序导致 data/ logs/ 等前缀目录下 .gitkeep 占位文件收集不到的问题；
-  修复 pack 默认源路径按旧布局硬编码的问题（现在可 --src 显式指定）
-
-### 文档
-
-- 新增 `docs/ARCHITECTURE.md` 架构设计文档：分层架构、请求生命周期，
-  以及客户端 API 管线 / 管理端鉴权 / 密钥平滑轮换 / 离线宽限 / 响应防伪造 / 心跳与统计聚合 /
-  支付回调 / 在线更新 等关键链路时序图，附组件清单与安全设计对照表
-- 统一全项目 PHP 最低版本声明为 `8.0`（README / 架构文档 / 安装向导 / 在线更新引擎），
-  并将 `lib/bootstrap.php` 中 `fake_404_exit()` 的 `never` 返回类型改为 `void`，消除 8.1 专属语法依赖；
-  `install/` 清单改为真实分发内容并说明迁移脚本随更新包分发、不随空白包分发；
-  `sdk/` 布局补充 `nebula/` 子模块与 `vmp/`、`themida/`；`api/handlers` 清单补充 `online`
-- 统一文档中心互链：`docs/API.md`、`docs/API_RAW_EXAMPLES.md`、`docs/TEMPLATE.md`、
-  `sdk/SDK.md`、`sdk/SDK_PROTECTION.md` 的导航加入架构文档；修正 `sdk/SDK.md` 子头数量（19 → 21）
-- 修正 `lib/Grace.php` 注释中指向不存在的 `docs/OFFLINE_GRACE.md` 的失效引用
-- README 补登 **C# SDK**（`sdk-c#/`，SDK 1.0.3 / .NET 10）：首段 SDK 数量由「C++ 与 Python 两套」
-  更正为三套，文档中心新增 `sdk-c#/NebulaSDK.md` 条目，目录树补充 `sdk-c#/` 分支，
-  客户端对接章节加 C# SDK 指引（此前 README 误称「C# 等其他语言依据接口文档直接对接」，与实际不符）
+- 后台「通信加密」展示文案 3.0 化残留（写死 AES-256-CBC + HMAC-SHA256）→ 改为 ECDH P-256 + AES-256-GCM / ES256
+- 后台「响应签名公钥」恒显示「尚未生成」：setting_get 漏发 `resp_sign` 段（公钥实际已生成于 config/resp_sign_keys.php），已补发 algo/kid/public_key
+- 操作日志部分条目无操作人（「-」）：模型层 Logger::log 未传管理员上下文 → Logger 增加从 `$GLOBALS['nb_admin']` 兜底补齐，历史空条目无法回补
 
 ## [2.65.16] - 2026-09-30
 
@@ -177,6 +216,7 @@
 ### 修复（接口）
 - `login.php` 成功响应中 `$sw` 未定义（软件识别后未保存引用），功能密钥等按软件
   下发的字段会被 `?? ''` 静默吞成空串 —— 已在入口处捕获 `Software::current()` 修复。
+
 
 ### 修复（支付）
 - **微信支付 V3 回调按官方规范完全重写**（`lib/Pay.php` `wechatVerifyNotify`、`shop/wechat_notify.php`）。

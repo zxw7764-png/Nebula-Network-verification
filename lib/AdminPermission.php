@@ -64,6 +64,14 @@ final class AdminPermission
     public const ADMIN_MANAGE   = 'admin.manage';
     public const CONTENT_MANAGE = 'content.manage';
 
+    // Runtime Security（§56）
+    public const RT_SECURITY_VIEW    = 'rt_security.view';
+    public const RT_SECURITY_EVENTS = 'rt_security.events';
+    public const RT_POLICY_READ     = 'rt_security.policy.read';
+    public const RT_POLICY_WRITE    = 'rt_security.policy.write';
+    public const RT_SESSION_BLOCK   = 'rt_security.session.block';
+    public const RT_DEVICE_BLOCK    = 'rt_security.device.block';
+
     // ------------------------------------------------------------------
     // action -> 权限点 映射
     // ------------------------------------------------------------------
@@ -193,6 +201,9 @@ final class AdminPermission
         'grace_rotate_keys'     => self::SETTINGS_SECURITY,
         'resp_sign_rotate_keys' => self::SETTINGS_SECURITY,
 
+        // ---- 安全自检（数据概览页卡片）：只读扫描，按「安全设置」档 ----
+        'security_check'        => self::SETTINGS_SECURITY,
+
         // ---- 软件管理（多软件网络验证），仅超管档 ----
         'software_list'         => self::SETTINGS_BUSINESS,
         'software_save'         => self::SETTINGS_BUSINESS,
@@ -214,6 +225,21 @@ final class AdminPermission
         'system_update_check'   => self::SETTINGS_INFRA,
         'system_update_save'    => self::SETTINGS_INFRA,
         'system_update_do'      => self::SETTINGS_INFRA,
+
+        // ---- Runtime Security（§37 §56） ----
+        'rt_overview'           => self::RT_SECURITY_VIEW,
+        'rt_event_list'         => self::RT_SECURITY_EVENTS,
+        'rt_event_detail'       => self::RT_SECURITY_EVENTS,
+        'rt_event_handle'       => self::RT_SECURITY_EVENTS,
+        'rt_event_batch'        => self::RT_SECURITY_EVENTS,
+        'rt_policy_list'        => self::RT_POLICY_READ,
+        'rt_policy_detail'      => self::RT_POLICY_READ,
+        'rt_policy_save'        => self::RT_POLICY_WRITE,
+        'rt_policy_delete'      => self::RT_POLICY_WRITE,
+        'rt_risk_devices'       => self::RT_SECURITY_VIEW,
+        'rt_risk_sessions'      => self::RT_SECURITY_VIEW,
+        'rt_session_unblock'    => self::RT_SESSION_BLOCK,
+        'rt_device_unblock'     => self::RT_DEVICE_BLOCK,
     ];
 
     // ------------------------------------------------------------------
@@ -304,6 +330,14 @@ final class AdminPermission
         '日志审计' => [
             self::AUDIT_READ => '查看操作与审计日志',
         ],
+        '运行时安全' => [
+            self::RT_SECURITY_VIEW    => '查看运行时安全概览',
+            self::RT_SECURITY_EVENTS  => '查看/处理安全事件',
+            self::RT_POLICY_READ      => '查看运行时策略',
+            self::RT_POLICY_WRITE     => '编辑运行时策略',
+            self::RT_SESSION_BLOCK    => '阻断/解除会话',
+            self::RT_DEVICE_BLOCK     => '阻断/解除设备',
+        ],
     ];
 
     // ------------------------------------------------------------------
@@ -338,6 +372,9 @@ final class AdminPermission
         // 内容运营（查看）
         'notice_list', 'version_list', 'message_list', 'feedback_list',
         'plan_list', 'seller_list', 'screenshot_list', 'game_list',
+        // Runtime Security（查看）
+        'rt_overview', 'rt_event_list', 'rt_event_detail', 'rt_policy_list', 'rt_policy_detail',
+        'rt_risk_devices', 'rt_risk_sessions',
         // 注意：log_list / audit_list / audit_detail / sec_report 故意不进白名单
         // —— 它们声明 AUDIT_READ 权限点，操作员角色默认没有，必须按勾选放行。
         // 放进 VIEW_ACTIONS 会绕过 AUDIT_READ（2026-09-30 审计发现的逻辑矛盾，已修）。

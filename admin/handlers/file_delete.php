@@ -18,7 +18,8 @@ if (isset($input['files']) && is_array($input['files'])) {
         Response::error(1001, '缺少 files 参数');
     }
     if (count($list) > 200) {
-        Response::error(1002, '一次最多删除 200 个文件');
+        // 1002 是前端登出码，业务错误一律用 1001
+        Response::error(1001, '一次最多删除 200 个文件');
     }
 
     Deleter::confirmPassword($admin, $input, '批量删除 ' . count($list) . ' 个文件');

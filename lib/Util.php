@@ -282,21 +282,27 @@ class Util
      * 返回 null 表示通过，否则返回可直接展示给用户的中文原因。
      *
      * 规则：长度 8-64；必须同时含字母与数字；拒绝常见弱口令与全同字符。
+     * $adminLevel=true（管理员档）：长度 10-64，且必须额外包含大写字母或符号
+     * —— 管理员账号是整个系统的单点，强度要求高于普通用户。
      *
      * 注意：只在「设置新密码」的链路上校验，登录链路不受影响 ——
      * 老账号哪怕密码很弱也照常登录，只是改密时必须换成符合强度的。
      */
-    public static function passwordIssue(string $plain): ?string
+    public static function passwordIssue(string $plain, bool $adminLevel = false): ?string
     {
         $len = strlen($plain);
-        if ($len < 8) {
-            return '密码至少 8 位';
+        $minLen = $adminLevel ? 10 : 8;
+        if ($len < $minLen) {
+            return $adminLevel ? '管理员密码至少 10 位' : '密码至少 8 位';
         }
         if ($len > 64) {
             return '密码最长 64 位';
         }
         if (!preg_match('/[A-Za-z]/', $plain) || !preg_match('/[0-9]/', $plain)) {
             return '密码需同时包含字母和数字';
+        }
+        if ($adminLevel && !preg_match('/[A-Z]/', $plain) && !preg_match('/[^A-Za-z0-9]/', $plain)) {
+            return '管理员密码需额外包含大写字母或符号';
         }
         $weak = [
             'admin888', 'admin123', 'administrator', 'password', 'passw0rd',

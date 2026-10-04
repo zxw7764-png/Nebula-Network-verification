@@ -4,10 +4,41 @@ import { loading, empty, esc, tag } from '../core/util.js';
 
 register('dashboard', render);
 
+/** 安全自检卡片渲染（有 settings.security 权限时返回 HTML，无权限返回空串） */
+async function renderSecurityCard() {
+    const res = await api('security_check').catch(() => null);
+    if (!res || res.code !== 0) return '';
+    const { checks, summary } = res.data;
+    const lvIcon = { ok: ['bi-check-circle-fill', '#10b981'], info: ['bi-info-circle-fill', '#3b82f6'], warn: ['bi-exclamation-triangle-fill', '#f59e0b'], danger: ['bi-x-octagon-fill', '#ef4444'] };
+    const rows = checks.map(c => {
+        const [icon, color] = lvIcon[c.level] || lvIcon.ok;
+        return `<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);align-items:flex-start">
+            <i class="bi ${icon}" style="color:${color};font-size:15px;margin-top:2px"></i>
+            <div>
+                <div style="font-size:13px;font-weight:600">${esc(c.title)}</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:2px;line-height:1.6">${c.detail}</div>
+            </div>
+        </div>`;
+    }).join('');
+    const badge = summary.danger > 0
+        ? tag(`${summary.danger} 项高危`, 'red')
+        : summary.warn > 0
+            ? tag(`${summary.warn} 项注意`, 'yellow')
+            : tag('状态良好', 'green');
+    return `
+    <div class="card" style="margin-top:18px">
+        <div class="card-head">
+            <h3><i class="bi bi-shield-plus"></i> 安全自检</h3>
+            <span>${badge}</span>
+        </div>
+        <div class="card-body" style="padding-top:4px">${rows}</div>
+    </div>`;
+}
+
 async function render() {
     const c = document.getElementById('content');
     c.innerHTML = loading();
-    const res = await api('dashboard');
+    const [res, secHtml] = await Promise.all([api('dashboard'), renderSecurityCard()]);
     if (res.code !== 0) return;
     const d = res.data;
     const s = d.stat;
@@ -57,6 +88,7 @@ async function render() {
         </div>
     </div>
 
+    ${secHtml}
     <div class="card" style="margin-top:18px">
         <div class="card-head"><h3>近 7 日调用量</h3></div>
         <div class="card-body">${trendHtml || empty('<i class="bi bi-bar-chart-line"></i>', '暂无数据')}</div>

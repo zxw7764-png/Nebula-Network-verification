@@ -140,6 +140,9 @@ $csrfExempt = [
     'shop_order_list',
     // 导出类：只读，不修改数据
     'user_export', 'card_export',
+    // Runtime Security：只读列表
+    'rt_overview', 'rt_event_list', 'rt_event_detail', 'rt_policy_list', 'rt_policy_detail',
+    'rt_risk_devices', 'rt_risk_sessions',
 ];
 if (!in_array($action, $csrfExempt, true)) {
     $csrf = $_SERVER['HTTP_X_CSRF'] ?? ($input['csrf'] ?? '');
@@ -221,6 +224,10 @@ if (!empty($admin) && in_array($action, $sensitiveActions, true)) {
 // ------------------------------------------------------------------
 // 分发
 // ------------------------------------------------------------------
+// $requestData 兼容别名：部分 handler（如 rt_*）使用 $requestData 读取参数，
+// 与 $input（Util::input()）指向同一份数据，保持双向兼容。
+$requestData = $input;
+
 try {
     $handler = __DIR__ . '/handlers/' . $action . '.php';
     if ($action === '' || !is_file($handler)) {

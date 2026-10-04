@@ -13,6 +13,7 @@ export const COMPOSITES = {
     portal:     ['portal_web', 'notice_list', 'message_list', 'feedback_list', 'seller_list', 'screenshot_list', 'games'],
     logs:     ['log_list', 'audit_list'],
     files:    ['files_integrity', 'files_scan'],
+    rt_security: ['rt_overview', 'rt_event_list', 'rt_risk_sessions', 'rt_risk_devices', 'rt_policy_list'],
 };
 
 export const LEGACY_MAP = {};
@@ -37,6 +38,7 @@ export const MENUS = [
 
     { group: '系统' },
     { id: 'admins',     name: '管理员',     icon: 'bi-shield-lock', type: 'page', perm: 'admin.manage' },
+    { id: 'rt_security', name: '防护配置', icon: 'bi-shield-check', type: 'composite' },
     { id: 'templates',  name: '界面模板',   icon: 'bi-palette', type: 'page', perm: 'settings.site' },
     { id: 'logs',       name: '日志中心',   icon: 'bi-clock-history', type: 'composite' },
     { id: 'sec_report', name: '安全巡检',   icon: 'bi-heart-pulse', type: 'page', perm: 'audit.read' },
@@ -61,6 +63,12 @@ export const TITLES = {
     softwares: '软件管理',
     setting:   '系统设置',
     profile:   '个人中心',
+rt_security: '防护配置',
+rt_overview: '概览',
+rt_event_list: '安全事件',
+rt_risk_sessions: '风险会话',
+rt_risk_devices: '风险设备',
+rt_policy_list: '防护策略',
 
     software_list: '软件列表',  version_list: '版本管理',  client_notice_list: '客户端公告',
     user_list: '用户管理',      group_list: '用户组',      device_list: '设备管理',
@@ -107,6 +115,11 @@ function tabVisible(tid) {
         shop_order_list: 'card.read',
         log_list: 'audit.read', audit_list: 'audit.read',
         files_integrity: 'settings.business', files_scan: 'settings.business',
+        rt_overview: 'rt_security.view',
+        rt_event_list: 'rt_security.events',
+        rt_risk_sessions: 'rt_security.view',
+        rt_risk_devices: 'rt_security.view',
+        rt_policy_list: 'rt_security.policy.read',
     };
     const p = PERM_OF_TAB[tid];
     return !p || can(p);

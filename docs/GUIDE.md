@@ -159,7 +159,8 @@ Nebula网络验证/
 │   ├── Version.php         版本取值（init/version/官网下载同源）
 │   ├── Setting.php         系统设置
 │   ├── AdminPermission.php RBAC 权限表（未登记即拒绝）
-│   ├── RiskScore.php       登录风险评分与自动冻结
+│   ├── RuntimePolicy.php · RuntimeGuard.php     运行时防护策略下发 / 心跳遥测合并
+│   ├── RuntimeRiskEngine.php · RuntimeEventService.php  事件风险评估 / 上报入库与自动处置
 │   ├── Shop.php · ShopAuth.php  发卡商城与前台鉴权
 │   ├── Pay.php             支付渠道对接
 │   ├── Util.php            工具函数
@@ -169,12 +170,12 @@ Nebula网络验证/
 ├── install/
 │   ├── install.php         网页安装向导
 │   ├── install.lock        安装锁（安装后生成，存在则禁止重装）
-│   ├── schema.sql          数据库结构（38 张表，全新安装一键建库）
+│   ├── schema.sql          数据库结构（41 张表，全新安装一键建库）
 │   ├── migrate.php         统一迁移执行器（schema_version 版本登记，status / run / baseline）
 │   ├── _cli_guard.php      CLI 守卫（install/ 下脚本仅限命令行执行）
 │   ├── clear_logs.php      日志清理工具（--dry-run 预演 / --yes 执行）
 │   └── nginx.conf.example  Nginx 部署配置示例
-├── sdk/ · sdk-py/ · sdk-c#/   三套 SDK 分发包（C++ / Python / C#）
+├── sdk-c++/ · sdk-py/ · sdk-c#/   三套 SDK 分发包（C++ / Python / C#）
 │                              ⚠ 不入库，定向分发获取（接入文档随包提供），
 │                              接入文档随包内提供（SDK.md / SDK_PROTECTION.md / README.md / NebulaSDK.md）
 ├── docs/

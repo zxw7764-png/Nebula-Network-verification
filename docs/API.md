@@ -248,12 +248,39 @@ POST http://<域名>/api/index.php?action=<接口名>
     },
     "notices": [
       { "id": 1, "title": "欢迎使用", "content": "系统已上线", "type": 4 }
-    ]
+    ],
+    "runtime_protection": {
+      "enabled": true,
+      "level": 2,
+      "modules": 127,
+      "action": 4,
+      "medium_action": 1,
+      "high_action": 3,
+      "critical_action": 4,
+      "watchdog_ms": 3000,
+      "strict": false,
+      "policy_id": 1,
+      "policy_version": 3
+    }
   }
 }
 ```
 
 > `notices` 仅下发 **列表公告**（type=4，公告栏展示用，按归属软件过滤）；弹窗公告（type=2）与立即公告（type=3）由客户端经 `notice` 接口配合 SDK `popupNotices()` / `flashNotices()` 处理。
+
+**`data.runtime_protection` · 运行时防护策略（后台「防护配置 → 防护策略」配置）**
+
+`heartbeat` 响应同样携带本对象，支持运行中动态调整。SDK ≥ 3.1.1 自动解析并应用，无需接入方代码。
+
+| 字段 | 说明 |
+| --- | --- |
+| `enabled` / `level` | 总开关与防护等级（0-3）。下发 `enabled:false` 或 `level:0` 时客户端**真关闭**（停止全部检测与看门狗）；仅"从未收到策略"才回落编译期默认 |
+| `modules` | 检测模块位掩码，随防护等级整档下发（1反调试 2反VM/沙箱 4API钩子 8代码补丁 16代码完整性 32模块守卫 64内存守卫 128进程守卫 256时序 512环境痕迹；等级 0/1/2/3 = 0 / 19 / 127 / 1023）；SDK 端与编译期能力取交，服务端不能提权 |
+| `action` | 全局兜底处置编码（SDK 优先用下面三档） |
+| `medium_action` / `high_action` / `critical_action` | 按命中事件严重级别分别执行的处置：`0`记录 `1`回调上报 `2`降级 `3`弹窗退出 `4`吊销会话。后台策略的「中危/高危/严重动作」下拉即对应这三个字段 |
+| `watchdog_ms` | 看门狗巡检间隔（毫秒） |
+| `strict` | `true` = 严格策略：疑似环境（VM/Hook）也按处置动作拦截 |
+| `policy_id` / `policy_version` | 策略 ID 与版本（每次修改 +1），供排障 |
 
 | `data.grace` 字段           | 说明                             |
 | ------------------------- | ------------------------------ |

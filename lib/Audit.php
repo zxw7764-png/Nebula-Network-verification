@@ -55,6 +55,14 @@ class Audit
         'admin_create'       => '新增管理员',
         'admin_update'       => '编辑管理员',
         'admin_delete'       => '删除管理员',
+
+        'rt_event_handle'    => '处理安全事件',
+        'rt_policy_save'     => '保存运行时策略',
+        'rt_policy_delete'   => '删除运行时策略',
+        'rt_session_block'   => '阻断运行时会话',
+        'rt_session_unblock' => '解除运行时会话',
+        'rt_device_block'    => '阻断运行时设备',
+        'rt_device_unblock'  => '解除运行时设备',
     ];
 
     /** 需要记录变更明细的字段中文名 */
@@ -92,6 +100,15 @@ class Audit
         'unit_price'    => '单价（分/张）',
         'contact'       => '联系方式',
         'can_void'      => '允许作废',
+        'protection_level'  => '防护等级',
+        'watchdog_interval_ms' => '看门狗间隔',
+        'medium_action'     => '中风险动作',
+        'high_action'       => '高风险动作',
+        'critical_action'   => '严重风险动作',
+        'enabled'           => '启用',
+        'status'            => '状态',
+        'policy_name'       => '策略名称',
+        'policy_version'    => '策略版本',
     ];
 
     /**

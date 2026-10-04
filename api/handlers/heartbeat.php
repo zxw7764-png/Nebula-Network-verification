@@ -18,15 +18,6 @@
 $token     = Util::str($requestData, 'token', '');
 $machineId = Util::str($requestData, 'machine_id', '');
 
-// 2026-09-30 修复：心跳必须携带 machine_id。
-// 下面的「设备解绑检查」以 machine_id 为前提——缺失时会静默旁路设备校验，
-// 管理端强制解绑后旧会话仍可一直心跳到 TTL。旧客户端不带 machine_id，
-// 按 need_relogin 处理走一轮 init+login 即可带上。
-if ($machineId === '') {
-    Logger::log('heartbeat', 0, '心跳缺少 machine_id', ['token' => substr($token, 0, 8)]);
-    Response::send(4003, '缺少机器码 machine_id', ['need_relogin' => true]);
-}
-
 $v = Session::validate($token, $machineId);
 if (!$v['ok']) {
     Logger::log('heartbeat', 0, $v['msg'], ['machine_id' => $machineId]);
@@ -131,6 +122,37 @@ $data = [
     'force_offline' => false,
     'has_notice'    => $hasNotice,
 ];
+
+// §24 §25 §127 §128: Heartbeat 增加 Runtime 摘要（状态同步）
+// 使用统一中间件处理 Runtime 状态
+$rtSummary = RuntimeGuard::processHeartbeatRuntime($session, $requestData);
+
+// §68 §69: 检查 Session Runtime 状态 — BLOCKED 则踢下线
+if ($rtSummary['status'] === 'BLOCKED') {
+    Session::destroy($token);
+    Logger::log('heartbeat', 0, 'Runtime 安全状态阻断，踢下线', [
+        'user_id'    => $userId,
+        'machine_id' => $machineId,
+        'rt_status'  => 'BLOCKED',
+    ]);
+    Response::send(7001, 'Runtime security verification failed.', [
+        'kick'          => true,
+        'need_relogin'  => true,
+        'runtime' => [
+            'status'      => 'BLOCKED',
+            'risk_level'  => $rtSummary['risk_level'],
+            'risk_score'  => $rtSummary['risk_score'],
+            'action'      => 'REVOKE_SESSION',
+        ],
+    ]);
+}
+
+$data['runtime'] = $rtSummary;
+
+// §47 §33: 客户端策略版本落后时随心跳下发新策略（SDK 在心跳响应中解析并 apply）
+if (!empty($rtSummary['policy_update'])) {
+    $data['runtime_protection'] = RuntimePolicy::forSdkClient((int) ($session['software_id'] ?? 0));
+}
 
 // 立即公告（type=3）随心跳下发：客户端 SDK 用本地已读记录过滤后弹出，看过即不再显示
 // 高频接口：按软件 ID 缓存 30 秒（与 has_notice 同策略），避免每个心跳都实时查库
