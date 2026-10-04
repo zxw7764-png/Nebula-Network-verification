@@ -1155,6 +1155,23 @@ if (lr.ok) {
 - 但密钥最终要进入客户端内存参与解密 —— **它提高的是破解成本与门槛，不是绝对防御**：  
   对手若完整逆向客户端并 dump 运行期内存，仍可能取到已解密数据；
 - 推荐组合拳：功能密钥（数据加密）+ VMProtect（客户端加壳）+ 离线宽限（防断网轰炸）分层纵深。
+- **v2.65.30 增量（C++ SDK）**：新增 `SecureBuffer` 敏感缓冲区（内存加密、访问时解密）、
+  `openSecure`（运行期才解包核心数据）与 `wipeFeatureKey` / `secureWipe`（用后立即清空密钥与明文）。
+  推荐时序：`login` 成功 → `openSecure` 打开数据包 → 使用完毕 → `wipeFeatureKey` + `secureWipe`
+  抹掉内存中的密钥与明文，降低运行期 dump 的收益。
+
+### 2.19 运行时安全接口（Runtime Security）
+
+客户端 SDK 内置运行时防护引擎（代码完整性 / 补丁检测 / 内联 Hook / 模块注入 / 调试器检测等）
+与服务端联动，均需 **3.1 会话信封**：
+
+| action | 说明 | 认证 |
+| ----- | ---- | ---- |
+| `runtime_policy` | 拉取当前生效的运行时安全策略快照：`policy_id` / `policy_version` / `protection_level` / 各检测项开关（`detect_code_integrity`、`detect_code_patch`、`detect_inline_hook`、`detect_module_injection`、`detect_manual_map`、`detect_debugger`、`detect_process_access_risk`）/ 处置动作（`medium_action` / `high_action` / `critical_action`）。策略同时随 `init` / `heartbeat` 下发，客户端可用本接口主动刷新 | 会话 |
+| `runtime_security_event` | SDK 防护引擎上报安全事件：需有效 `token` + `machine_id`；会话为 `BLOCKED` 状态直接拒绝（7001，`need_relogin`）；事件经白名单校验 → 去重 → 风险评分 → 处置（REPORT / TERMINATE / REVOKE_SESSION），响应 `accepted` + `deduped` + `runtime{status,risk_level,risk_score,action}`；频率超限返回 7004 | 业务会话 |
+
+策略默认档动作：MEDIUM→REPORT、HIGH→TERMINATE、CRITICAL→REVOKE_SESSION（后台策略可覆盖）；
+管理端对应接口见 §3.2「运行时安全（Runtime Security）」分组。
 
 ---
 
@@ -1165,25 +1182,38 @@ if (lr.ok) {
 
 ### 3.1 认证方式
 
-登录后返回 `token`，后续请求通过 **请求头** 传递：
+登录成功后建立**管理员会话**（存表 `nb_admin_sessions`），凭证双通道下发：
+
+- **HttpOnly Cookie**（P1-09）：`nb_admin_sid=<会话ID>`；JS 读不到，XSS 无法窃取；浏览器自动携带
+- **响应体**：返回 `token`（Cookie 被禁用 / 旧客户端回退用 `X-Token` 头）与 **`session_key`**（第二因子，只走 JS 内存，服务端仅存其 SHA-256 摘要）
+
+后续请求需携带：
 
 ```
-X-Token: <管理员token>
-X-CSRF:  <CSRF令牌>
+nb_admin_sid:   <HttpOnly Cookie，自动携带>
+X-Token:        <管理员token>                  // Cookie 不可用时回退
+X-Session-Key:  <登录时下发的随机第二因子>            // P0-02：Cookie 冒用 / CSRF 诱导下仍可防线
+X-CSRF:         <CSRF令牌>                     // 写操作必需
 ```
 
 > 管理端默认返回**明文 JSON**，便于前端 JS 处理。如需加密，请求体加 `"encrypt": 1`。
+
+#### 会话密钥（X-Session-Key，P0-02）
+
+`session_key` 仅在登录时下发一次且不进 Cookie：攻击者即使诱导浏览器带 Cookie 发请求（CSRF）
+也拿不到 JS 持有的 `session_key`。**已绑定 session_key 的会话必须同时提供 token + session_key
+才放行**；历史会话（sk_hash 为 NULL）不校验，保证升级不踢人。会话失效（1003）后 HttpOnly Cookie 会被一并清除。
 
 #### CSRF 令牌
 
 所有**写操作**必须携带 CSRF 令牌（`X-CSRF` 头或 body 的 `csrf` 字段）。  
 令牌由页面入口 `/admin/home.php` 注入到 `window.__NB__.csrf`，并绑定当前 PHP session cookie。
 
-- 只读接口（列表、详情、统计、导出等）**豁免** CSRF 校验
+- 只读接口（列表、详情、统计、导出等）**豁免** CSRF 校验，但仍要求有效会话
 - 令牌缺失或错误返回 `code=1006`
 
 > 如果你的客户端不是浏览器（如脚本、自动化工具），需先 `GET /admin/home.php`  
-> 并保持 cookie，再从中提取 CSRF 令牌，后续请求同时带上 cookie 和令牌。
+> 并保持 cookie，再从中提取 CSRF 令牌，后续请求同时带上 cookie、令牌与登录下发的 `session_key`。
 
 
 ### 3.2 接口清单
@@ -1272,6 +1302,64 @@ X-CSRF:  <CSRF令牌>
 | `stat_overview`       | API 调用统计                                                                                                                                                                                                                                                                                                                      | 登录          |
 | `setting_get`         | 读取设置（含 `login_methods_options` 登录方式、`agent_modes_options` 代理商控量模式可选项、`effective` 策略项当前生效值与来源）                                                                                                                                                                                                                                 | 登录          |
 | `setting_save`        | 保存设置（白名单含 `login_methods` / `single_login` / `geo_block` / `heartbeat_interval` / `heartbeat_timeout` / `unbind_per_day` / `rate_limit_per_min` / `agent_enable` / `agent_unit_price` / `agent_entry_key` / `contact` / `web_message_board` / `ip_blacklist` 等；`ip_blacklist` 归安全档，逐行 `inet_pton` 校验，支持单 IP 与 CIDR 段，非法行整单拒绝） | 操作员+        |
+
+#### 补录接口（v2.65.x 新增，与上表同属 3.2 权限体系）
+
+| action                  | 说明                                                                                | 权限          |
+| ----------------------- | --------------------------------------------------------------------------------- | ----------- |
+| **设备拉黑**               |                                                                                   |             |
+| `device_ban_list`       | 设备拉黑名单（含来源 / 解除时间，可手动解除）                                                         | 登录          |
+| `device_unban`          | 解除设备拉黑                                                                             | 操作员+        |
+| **用户组 / 商家 / 小游戏 / 模板** |                                                                                   |             |
+| `group_batch`           | 用户组批量操作（启停 / 删除）                                                                     | 操作员+        |
+| `seller_list`           | 购买商家列表                                                                             | 登录          |
+| `seller_save`           | 购买商家增删改（上架 / 下架 / 删除）                                                                  | 操作员+        |
+| `game_list`             | 小游戏排行榜列表                                                                           | 登录          |
+| `game_del`              | 删除小游戏排行记录                                                                          | 操作员+        |
+| `template_list`         | 界面模板列表（官网 / 发卡网换肤）                                                                     | 操作员+        |
+| `template_save`         | 界面模板增删改 / 应用换肤                                                                       | 操作员+        |
+| `tpl_sections_get`      | 读取模板布局（Layout 顺序）与自定义区块（sections）                                                  | 操作员+        |
+| `tpl_sections_save`     | 写入模板布局与自定义区块                                                                        | 操作员+        |
+| `shop_sw_get`           | 读取发卡网界面模板设置                                                                         | 操作员+        |
+| `shop_sw_save`          | 保存发卡网界面模板设置                                                                         | 操作员+        |
+| **软件管理（多软件分站）**       |                                                                                   |             |
+| `software_list`         | 多软件列表（分站配置）                                                                         | 仅超管         |
+| `software_save`         | 新增 / 编辑软件（分站文案 / Logo / 主题色 / 模板覆盖）                                                  | 仅超管         |
+| `software_delete`       | 删除软件（名下有用户 / 卡密 / 设备时拒绝）                                                             | 仅超管         |
+| `software_batch`        | 软件批量操作（启停 / 删除）                                                                      | 仅超管         |
+| `software_web_get`      | 读取软件官网分站内容（总站 + 分软件覆盖）                                                                | 操作员+        |
+| `software_web_save`     | 保存软件官网分站内容                                                                          | 操作员+        |
+| `web_upload`            | 官网图片上传（背景图等，`getimagesize` 校验）                                                           | 操作员+        |
+| **管理员账号**              |                                                                                   |             |
+| `admin_list`            | 管理员账号列表（含权限清单）                                                                      | 仅超管         |
+| `admin_save`            | 新增 / 编辑 / 启停管理员、配置自定义权限清单                                                             | 仅超管         |
+| **安全 / 维护 / 更新**      |                                                                                   |             |
+| `sec_report`            | 安全审计报告（cron 巡检产物，列表 / 详情 / 下载）                                                         | 仅超管（默认）    |
+| `security_check`        | 安全自检（只读扫描，结果在数据概览页卡片展示）                                                             | 仅超管         |
+| `grace_rotate_keys`     | 离线宽限密钥轮换（删除旧私钥重新生成，旧票据全部失效）                                                          | 仅超管         |
+| `resp_sign_rotate_keys` | 响应签名密钥轮换（ES256 私钥重生成）                                                                    | 仅超管         |
+| `system_maintenance`    | 系统维护（健康巡检 / 数据备份 / 缓存处理）                                                               | 仅超管         |
+| `system_update_check`   | 检查系统更新（只读，结果缓存 6h，可手动刷新）                                                              | 仅超管         |
+| `system_update_do`      | 一键更新（下载 → SHA-256 校验 → 备份 → 覆盖 → 升级版本号）                                                   | 仅超管         |
+| **运行时安全（Runtime Security）** |                                                                             |             |
+| `rt_overview`           | 运行时安全总览（事件计数 / 风险分布 / 策略状态）                                                            | 仅超管（可勾选）   |
+| `rt_event_list`         | 运行时安全事件列表（`level` / `event_type` / `handled` 过滤）                                           | 仅超管（可勾选）   |
+| `rt_event_detail`       | 事件详情（载荷 / 风险评分 / 处置动作）                                                                    | 仅超管（可勾选）   |
+| `rt_event_handle`       | 标记事件处理状态（0 未处理 / 1 已处理 / 2 误报）                                                             | 仅超管（可勾选）   |
+| `rt_event_batch`        | 批量标记事件状态                                                                           | 仅超管（可勾选）   |
+| `rt_policy_list`        | 运行时策略列表（版本 / 启用 / 等级）                                                                    | 仅超管（可勾选）   |
+| `rt_policy_detail`      | 策略详情（检测项开关、处置动作）                                                                      | 仅超管（可勾选）   |
+| `rt_policy_save`        | 新建 / 编辑运行时策略                                                                        | 仅超管（可勾选）   |
+| `rt_policy_delete`      | 删除策略                                                                               | 仅超管（可勾选）   |
+| `rt_risk_devices`       | 风险设备列表                                                                             | 仅超管（可勾选）   |
+| `rt_risk_sessions`      | 风险会话列表                                                                             | 仅超管（可勾选）   |
+| `rt_session_unblock`    | 解除会话封锁                                                                             | 仅超管（可勾选）   |
+| `rt_device_unblock`     | 解除设备封锁                                                                             | 仅超管（可勾选）   |
+
+> 权限列说明：`登录`=任意已登录管理员；`操作员+`=role 2 / role 1（权限点在 role 2 默认矩阵内）；
+> `仅超管`=默认仅 role 1（权限点在 role 2/3 默认矩阵之外，如 `settings.business` / `settings.security` /
+> `settings.infra` / `admin.manage`）；`可勾选`=超管可在账号自定义权限清单中单独授予 role 2/3。
+> 审计类（`audit_list` / `audit_detail` / `sec_report`）权限点为 `audit.read`，默认矩阵不含 → 默认仅超管。
 
 #### 登录方式配置项 `login_methods`
 
@@ -1366,16 +1454,35 @@ X-CSRF:  <CSRF令牌>
 
 > `retention` / `repurchase` / `tier` 的口径说明随响应一并返回（`meta` 字段），便于前端展示提示。
 
-### 3.3 角色权限
+### 3.3 角色权限（RBAC）
+
+权限判断统一走 `lib/AdminPermission.php` 的 **ACTION_PERM** 表 + **ROLE_MATRIX** 角色矩阵：
+入口 `admin/index.php` 对每个 action 做粗粒度校验（`AdminPermission::requireAction`），handler
+内部（如 `setting_save`）再按安全 / 业务 / 基础设施分档细分。**所有 action 必须登记权限点才可访问
+（默认拒绝）**；未登记的 action 一律拒绝。
 
 | role | 名称    | 权限              |
 | ---- | ----- | --------------- |
-| 1    | 超级管理员 | 全部（含删除用户、查看审计）  |
-| 2    | 操作员   | 除删除用户、查看审计外的写操作 |
-| 3    | 只读    | 仅查询类接口          |
+| 1    | 超级管理员 | 全部权限；`admin.manage`（管理员账号与权限配置）为超管专属硬权限，即使出现在自定义清单也不生效 |
+| 2    | 操作员   | 默认矩阵：用户读/改、卡密读、代理读、设备读、会话踢出、内容管理、站点展示设置；**不能**发卡密、碰代理资金、改业务/安全/基础设施设置、看审计日志、删用户、封设备、批量导入、导出卡密 |
+| 3    | 只读    | 默认矩阵：仅各域 `.read` 与内容查看，无任何写权限点 |
 
-> 权限在**接口层**校验（`AdminAuth::READONLY_ACTIONS`），不依赖前端隐藏按钮。  
-> 即使直接构造请求，只读角色也无法执行写操作。
+**权限自定义**：`nb_admins.permissions` 为超管给账号逐项勾选的自定义权限清单；非 NULL 即
+完全覆盖角色默认矩阵（老账号不勾选时行为不变）。super admin（role=1）不查矩阵直接放行，
+保证即使矩阵漏配也不会把超管锁在门外。
+
+**默认矩阵（权限点全集）**：`user.read/edit/import/delete`、`card.read/export/generate/void`、
+`agent.read/edit/recharge_code`、`device.read/manage/ban`、`session.kick`、`content.manage`、
+`settings.site`、`audit.read`、`rt_security.*` —— 其中 role 2 默认持有【用户读/改、卡密读、代理读、
+设备读、会话踢出、内容管理、站点展示设置】，role 3 默认仅各 `.read`；`settings.business` /
+`settings.security` / `settings.infra` / `admin.manage` / `audit.read` / `rt_security.*`
+默认不在 role 2/3 矩阵（超管可在自定义清单中勾选授予）。
+
+> 审计类（`audit_list` / `audit_detail` / `sec_report`）默认仅超管可见；如需开放给 role 2/3，
+> 需在账号自定义权限清单中勾选 `audit.read`。
+
+> 权限在**接口层**校验（`AdminPermission::requireAction`），不依赖前端隐藏按钮；即使直接构造
+> 请求，未授权角色也会被拒绝（403）。旧 `AdminAuth::READONLY_ACTIONS` 已废弃，仅为兼容保留。
 
 ### 3.3.1 批量操作接口说明
 
@@ -1699,7 +1806,7 @@ CSRF 令牌由页面入口 `/agent/` 注入到 `window.__NBAG__.csrf`（绑定 `
    - 单 IP 每分钟 20 次激活尝试
    - 单账号每日 3 次设备解绑
 5. **密码存储**：bcrypt（cost 10），兼容历史 md5 哈希自动升级。  
-   管理员密码要求至少 8 位且含字母和数字；改密后该账号所有旧会话立即失效。
+   管理员密码要求至少 10 位且同时包含字母、数字、大写字母与符号（v2.65.30 起强制）；改密后该账号所有旧会话立即失效。
 6. **管理端防护**：
    - **CSRF**：写操作校验令牌（`X-CSRF`），只读接口豁免
    - **入口密钥**：可配置 `admin.entry_key`，访问后台需带 `?k=密钥`，错误时返回 404 不暴露后台

@@ -175,7 +175,7 @@ Nebula网络验证/
 │   ├── _cli_guard.php      CLI 守卫（install/ 下脚本仅限命令行执行）
 │   ├── clear_logs.php      日志清理工具（--dry-run 预演 / --yes 执行）
 │   └── nginx.conf.example  Nginx 部署配置示例
-├── sdk-c++/ · sdk-py/ · sdk-c#/   三套 SDK 分发包（C++ / Python / C#）
+├── sdk/ · sdk-py/ · sdk-c#/      三套 SDK 分发包（C++ / Python / C#）
 │                              ⚠ 不入库，定向分发获取（接入文档随包提供），
 │                              接入文档随包内提供（SDK.md / SDK_PROTECTION.md / README.md / NebulaSDK.md）
 ├── docs/
@@ -239,13 +239,7 @@ mysql -u root -p < install/schema.sql
 ],
 ```
 
-1. 生成通信密钥并填入配置：
-
-```bash
-php -r "echo 'aes_key   = ' . bin2hex(random_bytes(16)) . PHP_EOL;
-        echo 'sign_salt = ' . bin2hex(random_bytes(24)) . PHP_EOL;"
-```
-
+1. 通信安全（可选）：Nebula 3.1 采用 **ECDH 会话握手 + AES-256-GCM 信封**，客户端零静态对称机密，**无需填写任何通信密钥**；按需配置 `security` 段（见下文「配置说明 → 通信安全」），如关闭 `enforce_crypto` 或调整明文白名单
 
 1. 手动创建管理员（把 `<bcrypt哈希>` 换成实际值）：
 
@@ -363,7 +357,7 @@ mv admin manage_x9k2
 
 ### 6. 修改默认密码
 
-首次登录后立刻在「个人中心」修改密码。新密码要求：**至少 8 位，且同时包含字母和数字**。
+首次登录后立刻在「个人中心」修改密码。新密码要求：**至少 10 位，同时包含字母、数字，且必须含大写字母与符号**（v2.65.30 起强制）。
 
 ### 内建的安全机制
 
@@ -376,7 +370,7 @@ mv admin manage_x9k2
 | 审计追溯    | 所有写操作记录操作人、IP、时间、字段变更前后值                             |
 | 输出转义    | 前端所有数据渲染前做 HTML 转义，防 XSS                             |
 | 安全响应头   | `nosniff` / `X-Frame-Options` / `Referrer-Policy`    |
-| 密钥不落地   | AES 密钥只存在服务端，前端页面仅注入随机化的会话标识                         |
+| 密钥不落地   | 3.1 无静态对称密钥：会话密钥由 ECDH 握手即态派生，仅存于服务端 `nb_hsessions`，会话过期即失效 |
 | 离线票据防伪  | 离线宽限票据由服务端私钥签名，客户端公钥验签；票面绑定账号 / 机器码 / 会话 / 有效期，篡改即失效 |
 
 ---
@@ -428,8 +422,8 @@ server {
 安装完成后，可用以下命令测试接口是否正常：
 
 ```bash
-# 1. 测试初始化接口（明文白名单内，无需加密）
-curl "http://127.0.0.1/api/index.php?action=init"
+# 1. 测试公开接口（明文白名单接口，无需加密；init 自 3.1 起不再明文允许）
+curl "http://127.0.0.1/api/index.php?action=online"
 
 # 2. 测试管理端登录
 curl -X POST "http://127.0.0.1/admin/index.php?action=login" \
@@ -537,7 +531,7 @@ c.logout(lr.token);
 **或用外部服务定时访问**
 
 ```
-https://你的域名/cron.php?key=<config.php 中的 sign_salt>
+https://你的域名/cron.php?key=<security.cron_secret，或自动生成的 logs/cron_secret.txt>
 ```
 
 ---
@@ -628,12 +622,12 @@ https://你的域名/cron.php?key=<config.php 中的 sign_salt>
 
 ```php
 'security' => [
-    'aes_key'        => '...',   // 32 字节，安装时自动生成
-    'sign_salt'      => '...',   // 签名盐
-    'time_window'    => 300,     // 时间戳容差（秒）
     'enforce_crypto' => true,    // 是否强制加密（调试时可设 false）
-    'plain_whitelist'=> ['init', 'notice', 'version', 'online'],  // 允许明文的接口
+    'time_window'    => 300,     // 时间戳容差（秒）
+    'plain_whitelist'=> ['notice', 'version', 'online'],  // 允许明文的接口（init 自 3.1 起不再明文允许）
 ],
+// 说明：3.1 无静态 aes_key / sign_salt；会话密钥由 ECDH 握手派生，
+// 签名用服务端 ES256 私钥，客户端验签公钥经 init/login 下发。
 ```
 
 ### 业务策略
@@ -672,7 +666,7 @@ https://你的域名/cron.php?key=<config.php 中的 sign_salt>
 - **一键更新**：自动下载更新包 → SHA-256 校验 → 备份当前文件 → 解压覆盖 → 更新版本号。
 - **强制更新**：当当前版本低于服务端设定的最低支持版本时，后台弹出不可关闭的封锁弹窗，必须更新后才能使用。
 - **保护目录**：`config/`、`logs/`、`data/`、`uploads/` 等目录不会被更新覆盖。
-- **更新服务地址**：后台「系统设置 → 基础设施」中可配置 `update_server`（默认 `https://mmbr.serv00.net`）。
+- **更新服务地址**：后台「系统设置 → 基础设施」中可配置 `update_server`（**默认留空**，未配置时更新检查与一键更新不生效；需自行部署 update-system 版本服务器后填入地址）。
 
 > 也可通过后台「版本管理」动态配置，优先级高于配置文件。
 

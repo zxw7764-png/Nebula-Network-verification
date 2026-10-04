@@ -22,12 +22,12 @@
 
 | 入口 | 目录 | 访问者 | 认证方式 |
 | --- | --- | --- | --- |
-| 客户端 API | `api/` | 接入软件的客户端 | 通信密钥 AES + HMAC + 会话密钥 |
+| 客户端 API | `api/` | 接入软件的客户端 | ECDH 会话握手 + AES-256-GCM 信封 + seq 防重放 |
 | 管理后台 | `admin/`（可改名） | 平台管理员 / 租户管理员 | X-Token + X-Session-Key + CSRF + RBAC |
 | 代理商后台 | `agent/` | 代理商 | 会话 Cookie（NBAGSID）+ CSRF |
 | 官网门户 | `web/` | 终端用户 | 官网会话（含多软件分站 `?app=`） |
 | 发卡商城 | `shop/` | 购买者 | 商店会话 + 支付回调 |
-| 定时任务 | `cron.php` | 系统 | CLI 或 `?key=<sign_salt>` |
+| 定时任务 | `cron.php` | 系统 | CLI 或 HTTP `?key=<security.cron_secret>`（未配置时自动生成 `logs/cron_secret.txt`） |
 
 ### 1.2 分层架构
 
@@ -95,7 +95,7 @@ flowchart TD
 2. **安全响应头**：`nosniff`、`X-Frame-Options`、`Referrer-Policy`、`COOP`、`Permissions-Policy`；
    HTTPS 时追加 HSTS；CSP 使用**每请求随机 nonce** 白名单 `script-src`
 3. `OPTIONS` 预检直接 204 返回
-4. 加载 43 个核心库类（顺序固定，见 `lib/bootstrap.php` 的 `require_once` 段）
+4. 加载 48 个核心库类（顺序固定，见 `lib/bootstrap.php` 的 `require_once` 段；另有 `error_page.php` 用于统一错误页）
 5. 载入 `config/config.php` → `Config::load()`
 6. 初始化 `Database` / `Crypto` / `Logger` / `Cache`（缓存配置可被后台设置覆盖）
 7. **IP 黑名单**校验（精确 IP 或 CIDR，命中输出自定义 403 页）
@@ -116,21 +116,23 @@ sequenceDiagram
     participant H as handlers/{action}.php
     participant DB as MySQL
 
-    SDK->>API: POST action + 信封{data,sign,t,n,k}
+    SDK->>API: POST handshake { app_key, eph_pub, nc, ts, mhash }（明文）
     API->>API: 注册 shutdown 统计钩子
     API->>SW: resolve(input) 按 app_key 识别软件
     SW-->>API: 软件行（失败 → 1004）
-    API->>CR: useKeys(软件 aes_key / sign_salt)
+    API->>CR: ECDH P-256 交换 → HKDF 派生 sk_enc / sk_mac / sk_enc_rsp
+    API->>DB: nb_hsessions 落库（双方公钥 / 派生密钥 / seq 游标）
+    API-->>SDK: { sid, eph_pub, ns, ts_s, sign }（ES256 签名，握手阶段防伪造服务器）
+    SDK->>API: POST action + 3.1 信封 { proto:31, sid, seq, t, data, mac, app_key }
     API->>CR: parseRequest(input, allowPlain)
-    Note over CR: 时间窗 ±300s → nonce 独占占用 → HMAC 验签 → AES 解密
+    Note over CR: 时间窗 ±300s → seq 防重放(5004) → HMAC(sk_mac) 验签 → AES-256-GCM 解密
     CR-->>API: 明文 data（异常 → 1001/5002/5003/5004）
-    API->>API: 会话密钥强制校验（业务接口必须带 k）
-    API->>API: 会话密钥与 machine_id 绑定比对
+    API->>API: 会话校验（BLOCKED/过期 → 5002，SDK 自动重握手）
     API->>API: 维护模式 / 最低版本 / IP 限流 / 每日配额
     API->>H: require handlers/{action}.php
     H->>DB: 业务读写（全部预处理参数）
     H->>API: Response::send(code, msg, data)
-    API-->>SDK: 加密信封响应 + 服务端签名
+    API-->>SDK: { data, sig(ES256, data|sid), code } 响应信封
 ```
 
 各阶段失败的错误码：`1001` 参数、`1004` 软件无效、`5001` 限流、
@@ -419,8 +421,8 @@ sequenceDiagram
 | --- | --- | --- |
 | 报文窃听 | AES-256-GCM（ECDH 会话密钥，客户端零静态机密） | `lib/Handshake.php`、`lib/Crypto.php` |
 | 报文篡改 | HMAC-SHA256 + `hash_equals` | `lib/Crypto.php` |
-| 重放攻击 | 时间窗 ±300s + nonce 独占占用 | `lib/Crypto.php` |
-| 密钥逆向后伪造请求 | 会话密钥（`k`）强制 + 机器码绑定 | `api/index.php` |
+| 重放攻击 | 时间窗 ±300s + seq 单调递增（服务端按会话游标校验，旧序号拒绝 5004） | `lib/Crypto.php` |
+| 密钥逆向后伪造请求 | 3.1 会话（sid/seq）+ token + machine_id 绑定 | `api/index.php` |
 | 伪造服务端响应 | 服务端私钥签名（ES256），客户端公钥验签 | `lib/Handshake.php`、`lib/RespSign.php` |
 | SQL 注入 | 全量预处理参数；`ORDER BY` 白名单 | `lib/Database.php` |
 | XSS | 输出转义 + CSP nonce 白名单 | `lib/bootstrap.php`、前端渲染层 |
