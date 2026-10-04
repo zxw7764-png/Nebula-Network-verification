@@ -1168,7 +1168,7 @@ if (lr.ok) {
 | action | 说明 | 认证 |
 | ----- | ---- | ---- |
 | `runtime_policy` | 拉取当前生效的运行时安全策略快照：`policy_id` / `policy_version` / `protection_level` / 各检测项开关（`detect_code_integrity`、`detect_code_patch`、`detect_inline_hook`、`detect_module_injection`、`detect_manual_map`、`detect_debugger`、`detect_process_access_risk`）/ 处置动作（`medium_action` / `high_action` / `critical_action`）。策略同时随 `init` / `heartbeat` 下发，客户端可用本接口主动刷新 | 会话 |
-| `runtime_security_event` | SDK 防护引擎上报安全事件：需有效 `token` + `machine_id`；会话为 `BLOCKED` 状态直接拒绝（7001，`need_relogin`）；事件经白名单校验 → 去重 → 风险评分 → 处置（REPORT / TERMINATE / REVOKE_SESSION），响应 `accepted` + `deduped` + `runtime{status,risk_level,risk_score,action}`；频率超限返回 7004 | 业务会话 |
+| `runtime_security_event` | SDK 防护引擎上报安全事件：需有效 `token` + `machine_id`；会话为 `BLOCKED` 状态直接拒绝（7001，`need_relogin`）；事件经白名单校验 → 去重 → 风险评分 → 处置（REPORT / TERMINATE / REVOKE_SESSION），响应 `accepted` + `deduped` + `runtime{status,risk_level,risk_score,action}`；频率超限返回 7004；**2.65.32 起**：sticky 硬证据事件（代码篡改 / 受保护代码失败 / 手动映射）到达即自动冻结——设备永久拉黑 + 该用户已激活卡密一次作废 | 业务会话 |
 
 策略默认档动作：MEDIUM→REPORT、HIGH→TERMINATE、CRITICAL→REVOKE_SESSION（后台策略可覆盖）；
 管理端对应接口见 §3.2「运行时安全（Runtime Security）」分组。

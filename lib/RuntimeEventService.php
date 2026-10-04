@@ -215,6 +215,34 @@ class RuntimeEventService
                 );
             }
 
+            // ============================================================
+            // §P1 违规自动冻结（2026-10-05）：sticky 硬证据 → 冻结设备 + 作废卡密
+            // ------------------------------------------------------------
+            // 触发条件：本次事件为 sticky（不可自动衰减的硬证据：代码被篡改 /
+            // 受保护代码失败 / 手动映射等，见 RuntimeRiskEngine::EVENT_SCORES）。
+            // 目的：本地把客户端 patch 得再干净也没用——事件已上报，服务端直接
+            // 冻结：该机器码永久拉黑（任何账号都登不了）+ 该用户已激活卡密一次作废。
+            // 防误杀：调试器 / 沙箱 / 虚拟机等非 sticky 事件不触发，只累计风险分；
+            // 误杀可后台解拉黑 + 恢复卡密（既有 device_unban / card 作废流程）。
+            // ------------------------------------------------------------
+            if ($sticky && $deviceId > 0) {
+                $machineId = (string) ($session['machine_id'] ?? '');
+                if ($machineId !== '') {
+                    Device::addBan($machineId, "违规自动冻结（{$eventType} {$riskLevel}）", 0, 0);
+                    $frozen = Card::freezeByUser($userId, $softwareId, "违规自动冻结（{$eventType}，事件#{$eventId}）");
+                    Database::update('security_events',
+                        ['handled' => 1],
+                        'id = :id', ['id' => $eventId]
+                    );
+                    Logger::log('runtime_freeze', 0, "违规自动冻结：user#{$userId} device#{$deviceId}，作废卡密 {$frozen} 张", [
+                        'event_id'   => $eventId,
+                        'event_type' => $eventType,
+                        'risk_level' => $riskLevel,
+                        'machine_id' => $machineId,
+                    ]);
+                }
+            }
+
             // 更新 nb_devices 运行时风险
             if ($deviceId > 0) {
                 $devRow = Database::one(

@@ -420,7 +420,7 @@ sequenceDiagram
 | 业务 | `Software`、`Policy`、`Quota`、`Points`、`Card`、`Device`、`DeviceFp`、`Heartbeat`、`Version`、`Agent`、`AgentCode`、`AgentRecharge`、`WebInteract` |
 | 商城与支付 | `Shop`、`Pay`、`UiTemplate` |
 | 运维 | `Logger`、`Audit`、`SecReport`、`FileGuard`、`Backup`、`Health`、`Deleter`、`Setting` |
-| 运行时安全 | `RuntimePolicy`、`RuntimeGuard`、`RuntimeRiskEngine`、`RuntimeEventService` |
+| 运行时安全（2.65.32：sticky 硬证据事件 → 自动冻结设备 + 作废卡密） | `RuntimePolicy`、`RuntimeGuard`、`RuntimeRiskEngine`、`RuntimeEventService` |
 
 ---
 

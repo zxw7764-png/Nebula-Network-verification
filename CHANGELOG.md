@@ -4,6 +4,15 @@
 版本号遵循语义化版本（`主.次.修订`）。每次发版请在本文件顶部追加条目，并同步
 `lib/bootstrap.php` 的 `NB_VERSION`；发布到版本更新系统时，把对应条目整理为 `release_notes`。
 
+## [2.65.32] - 2026-10-05
+
+### 新增（运行时安全 · 违规自动冻结闭环）
+
+- **服务端自动冻结**：`RuntimeEventService::handle` 对 sticky 硬证据事件（代码篡改 / 受保护代码失败 / 手动映射等，见 `RuntimeRiskEngine::EVENT_SCORES`）触发自动处置——设备永久拉黑（`Device::addBan`，幂等写 `nb_device_bans` + 解绑 + 踢下线全部会话）+ 该用户已激活卡密一次作废（`Card::freezeByUser`，仅 status=1 的卡）+ 事件标记已处理。目标：本地把客户端 patch 得再干净也没用，事件上报即冻结
+- 新增 `Device::addBan()`（与后台 device_ban 等价、`admin_id=0` 系统自动）、`Card::freezeByUser()`（作废 + card_logs 审计）
+- 防误杀：调试器 / 沙箱 / 虚拟机等非 sticky 事件不触发冻结，只累计风险分；误杀可后台 `device_unban` 解除拉黑 + 恢复卡密
+- **客户端 SDK 配套**（随 SDK 发行包同步）：`NebulaClient::CreateClient` 显式接线 `setProtectAction(3)` / `enableProtection(0,5000)` / `registerCriticalCode(login,256)`；SDK 新增自毁钩子 `protect::setSelfDestructCallback/selfDestruct`（Critical 弹窗前先清零内存凭据）与 `Client::wipeSensitiveData()`；登录主循环每帧 `TickGuard()` 功能侧耦合
+
 ## [2.65.31] - 2026-10-04
 
 ### 修复（安全自检 · 权限点未登记）

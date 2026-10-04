@@ -513,6 +513,41 @@ class Card
         return ['ok' => true, 'code' => 0, 'msg' => '卡密已作废'];
     }
 
+    /**
+     * 违规自动冻结：作废该用户在指定软件下的全部已激活卡密（status=1 → 2）。
+     * 服务端安全事件自动处置用（如代码被篡改命中后，卡密一次作废，重装/重登无效）。
+     * 幂等：已是作废/未使用/已售出的卡不动；重复调用只影响仍处于 status=1 的卡。
+     *
+     * @return int 实际作废的卡密数量
+     */
+    public static function freezeByUser(int $userId, int $softwareId, string $reason = 'runtime违规冻结'): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+        $cards = Database::all(
+            'SELECT id, code FROM ' . Database::t('cards')
+            . ' WHERE used_by = ? AND status = ? AND (? = 0 OR software_id = ?)',
+            [$userId, self::STATUS_USED, $softwareId, $softwareId]
+        );
+        foreach ($cards as $c) {
+            Database::update('cards',
+                ['status' => self::STATUS_VOID],
+                'id = :id', ['id' => (int) $c['id']]
+            );
+            Database::insert('card_logs', [
+                'card_id'    => (int) $c['id'],
+                'code'       => $c['code'],
+                'user_id'    => $userId,
+                'action'     => 'void',
+                'detail'     => $reason,
+                'ip'         => Util::ip(),
+                'created_at' => time(),
+            ]);
+        }
+        return count($cards);
+    }
+
     /** 卡密类型名称 */
     public static function typeName(int $type): string
     {

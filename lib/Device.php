@@ -435,6 +435,42 @@ class Device
         return $ban;
     }
 
+    /**
+     * 自动拉黑设备（服务端自动处置，非管理员操作：admin_id=0）
+     * 与后台 device_ban 动作等价：写黑名单 → 解绑该机器码全部绑定 → 踢下线全部会话。
+     * 幂等：已拉黑则更新有效期（ON DUPLICATE KEY）；重复调用不会产生脏数据。
+     *
+     * @param string $machineId 机器码
+     * @param string $reason    拉黑原因（记录到黑名单/解绑原因）
+     * @param int    $expire    解除时间，0=永久
+     * @param int    $adminId   操作者，0=系统自动
+     */
+    public static function addBan(string $machineId, string $reason = '违规自动冻结', int $expire = 0, int $adminId = 0): bool
+    {
+        if ($machineId === '') {
+            return false;
+        }
+        $now = time();
+        Database::exec(
+            'INSERT INTO ' . Database::t('device_bans')
+            . ' (machine_id, reason, admin_id, expire_at, created_at) VALUES (?, ?, ?, ?, ?)'
+            . ' ON DUPLICATE KEY UPDATE reason = VALUES(reason), expire_at = VALUES(expire_at),'
+            . ' admin_id = VALUES(admin_id)',
+            [$machineId, mb_substr($reason, 0, 250), $adminId, $expire, $now]
+        );
+        Database::exec(
+            'UPDATE ' . Database::t('devices')
+            . ' SET status = 0, unbind_at = ?, unbind_reason = ? WHERE machine_id = ? AND status = 1',
+            [$now, '违规冻结：' . $reason, $machineId]
+        );
+        Database::exec(
+            'UPDATE ' . Database::t('sessions')
+            . ' SET status = 3 WHERE machine_id = ? AND status = 1',
+            [$machineId]
+        );
+        return true;
+    }
+
     /** 更新设备最后活跃时间 */
     public static function touch(int $deviceId, ?string $ip = null): void
     {
