@@ -61,8 +61,10 @@ Response::ok([
             'seconds'     => (int) Setting::intWithConfig('grace_seconds', 'grace.seconds'),
             'max_seconds' => (int) Setting::intWithConfig('grace_max_seconds', 'grace.max_seconds'),
             'clock_skew'  => (int) Config::get('grace.clock_skew', 120),
-            // ES256 公钥 PEM（公开信息，可展示）：客户端 SDK 的 grace_public_key 字段填它；
-            // 密钥由服务端自动生成落盘 config/grace_keys.php，后台只读展示，改密钥走「轮换密钥」按钮
+            // ES256 公钥 PEM（公开信息，可展示）：客户端登录/心跳时由服务端自动下发，
+            // SDK 无需手动配置；密钥由服务端自动生成落盘 config/grace_keys.php，后台只读展示，改密钥走「轮换密钥」按钮
+            'algo'        => class_exists('Grace') ? Grace::algorithm() : '',
+            'kid'         => class_exists('Grace') ? Grace::keyId() : '',
             'public_key'  => class_exists('Grace') ? (string) (Grace::publicKey() ?? '') : '',
         ],
         // 响应签名（3.1 协议）：公钥 PEM 由 lib/RespSign 管理，落盘 config/resp_sign_keys.php；

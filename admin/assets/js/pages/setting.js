@@ -40,6 +40,23 @@ function noPermBar(tierName) {
     </div>`;
 }
 
+/**
+ * 公钥展示：固定 SEC1 头置灰、差异段高亮（前 12 + 后 10 字符加粗），附 kid/algo 指纹行。
+ * P-256 公钥前 36 个 base64 字符对所有密钥都相同，旧实现整串截断导致两把钥匙看起来一样；
+ * 这里把「差异部分」突出显示，一眼可区分，完整 PEM 仍在 title 中可悬停查看。
+ */
+function pubBrief(pem, kid, algo) {
+    if (!pem) return '';
+    const b64 = String(pem).replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----|\s+/g, '');
+    const HEAD = b64.slice(0, 36);
+    const TAIL = b64.slice(36);
+    const tailHead = TAIL.slice(0, 12);
+    const tailTail = TAIL.slice(-10);
+    const fp = [kid ? 'kid ' + kid : '', algo ? 'algo ' + algo : ''].filter(Boolean).join(' · ');
+    return `<span class="mono" style="display:inline-block;vertical-align:middle;font-size:11.5px;line-height:1.65" title="${esc(pem)}"
+        ><span style="color:#7d93a8">${esc(HEAD)}</span><b style="color:#66d9ef">${esc(tailHead)}</b><span style="color:#7d93a8">…</span><b style="color:#66d9ef">${esc(tailTail)}</b>${fp ? `<br><span style="color:#4ade80;font-size:10.5px">${esc(fp)}</span>` : ''}</span>`;
+}
+
 async function render() {
     const c = document.getElementById('content');
     c.innerHTML = loading();
@@ -413,10 +430,10 @@ async function render() {
             <span class="v">${cfg.grace.enable ? tag('已开启', 'green') : tag('未开启', 'gray')}${cfg.grace.enable ? ` · 单次 ${cfg.grace.seconds} 秒 / 累计上限 ${cfg.grace.max_seconds} 秒` : ''}
                 <span class="hint">断网时客户端可凭签名票据离线运行；单次=一张票据允许的离线时长，累计=一个会话内离线总上限（不超账号到期时间）；分软件开关在「软件管理 → 编辑 → 策略覆盖」</span></span>
             <span class="k">离线宽限公钥</span>
-            <span class="v">${cfg.grace.public_key ? `<span class="mono" style="display:inline-block;max-width:420px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px" title="${esc(cfg.grace.public_key)}">${esc(cfg.grace.public_key)}</span> <button class="btn ghost xs" id="stCopyGracePub">复制 PEM</button> <button class="btn ghost xs" id="stRotateGraceKey">轮换密钥</button> ${tag('已生成', 'green')}` : tag('尚未生成（首次心跳时自动生成）', 'gray')}
-                <span class="hint">离线宽限票据验证公钥，客户端 SDK 的 grace_public_key 字段填它；「轮换密钥」删除旧密钥文件并重新生成（旧离线票据立即失效，需更新重发布客户端）</span></span>
+            <span class="v">${cfg.grace.public_key ? `${pubBrief(cfg.grace.public_key, cfg.grace.kid, cfg.grace.algo)} <button class="btn ghost xs" id="stRotateGraceKey">轮换密钥</button> ${tag('已生成', 'green')}` : tag('尚未生成（首次心跳时自动生成）', 'gray')}
+                <span class="hint">离线宽限票据验证公钥，客户端登录/心跳时由服务端自动下发，SDK 无需手动配置；「轮换密钥」删除旧密钥文件并重新生成（旧离线票据立即失效，客户端重新登录后自动获取新公钥）</span></span>
             <span class="k">响应签名公钥</span>
-            <span class="v">${cfg.resp_sign && cfg.resp_sign.public_key ? `<span class="mono" style="display:inline-block;max-width:420px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px" title="${esc(cfg.resp_sign.public_key)}">${esc(cfg.resp_sign.public_key)}</span> <button class="btn ghost xs" id="stCopyRespPub">复制 PEM</button> <button class="btn ghost xs" id="stCopyRespCpp">复制 C++ 代码</button> <button class="btn ghost xs" id="stRotateRespKey">轮换密钥</button> ${tag('已生成', 'green')}` : tag('尚未生成（首次请求时自动生成）', 'gray')}
+            <span class="v">${cfg.resp_sign && cfg.resp_sign.public_key ? `${pubBrief(cfg.resp_sign.public_key, cfg.resp_sign.kid, cfg.resp_sign.algo)} <button class="btn ghost xs" id="stCopyRespPub">复制 PEM</button> <button class="btn ghost xs" id="stCopyRespCpp">复制 C++ 代码</button> <button class="btn ghost xs" id="stRotateRespKey">轮换密钥</button> ${tag('已生成', 'green')}` : tag('尚未生成（首次请求时自动生成）', 'gray')}
                 <span class="hint">API 响应签名验证公钥，客户端 SDK 的 kRespSignPubKey 配置填它；与离线宽限密钥独立管理，轮换不影响离线票据；「复制 C++ 代码」得到可直接粘贴进客户端 SDK 的 NEBULA_STR 片段（换行已转义）</span></span>
             <span class="k">后台入口</span>
             <span class="v mono">${esc(cfg.admin.path || '/admin/')} ${cfg.admin.entry_key_enable ? tag('已启用入口密钥', 'green') : ''}
@@ -534,13 +551,6 @@ async function render() {
         const lines = String(pem).trim().split(/\r?\n/).map(l => '    "' + l + '\\n"');
         return 'NEBULA_STR(\n' + lines.join('\n') + ')';
     };
-    // 离线宽限公钥按钮
-    const copyGracePub = document.getElementById('stCopyGracePub');
-    if (copyGracePub) copyGracePub.addEventListener('click', () => {
-        const pem = ((((d.config || {}).grace || {}).public_key) || '');
-        if (!pem) return toast('离线宽限公钥尚未生成', 'err');
-        copyText(pem).then(() => toast('已复制离线宽限公钥 PEM'));
-    });
     const rotateGraceBtn = document.getElementById('stRotateGraceKey');
     if (rotateGraceBtn) rotateGraceBtn.addEventListener('click', async () => {
         if (!confirm('轮换离线宽限签名密钥？\n\n旧密钥文件将被备份，旧客户端的离线票据立即失效。\n轮换后需要更新并重新发布所有客户端。')) return;
