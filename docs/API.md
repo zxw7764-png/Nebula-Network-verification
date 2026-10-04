@@ -10,7 +10,7 @@ POST http://<域名>/api/index.php?action=<接口名>
 
 > ### 不想手写协议？
 >
-> **C++ SDK 随官网分发包 `sdk.zip` 提供**（header-only），把 `sdk/nebula/` 目录 + `nebula_sdk.hpp` 一起拖进项目即可，  
+> **C++ SDK 可在仓库发行处（Releases）下载 `sdk.zip`**（header-only），把 `sdk/nebula/` 目录 + `nebula_sdk.hpp` 一起拖进项目即可，  
 > 无需 OpenSSL / libcurl（用系统自带的 `bcrypt.dll` / `winhttp.dll`，仅 Windows + MSVC）。
 > 配置只需改一个文件：`sdk/nebula/client/config.hpp`。
 >

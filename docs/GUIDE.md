@@ -1,6 +1,6 @@
 # Nebula 网络验证
 
-一套基于 PHP + MySQL 的网络验证（授权）系统后端，提供客户端 API 与管理后台 API。官方提供 **C++、Python 与 C#** 三套协议同规格的开箱即用 SDK（**定向分发获取，不在本仓库内**），易语言等其他语言依据接口文档直接对接。本文档为完整使用指南。
+一套基于 PHP + MySQL 的网络验证（授权）系统后端，提供客户端 API 与管理后台 API。官方提供 **C++、Python 与 C#** 三套协议同规格的开箱即用 SDK（**可在仓库发行处 Releases 下载**），易语言等其他语言依据接口文档直接对接。本文档为完整使用指南。
 
 ## 📚 文档中心
 
@@ -176,7 +176,7 @@ Nebula网络验证/
 │   ├── clear_logs.php      日志清理工具（--dry-run 预演 / --yes 执行）
 │   └── nginx.conf.example  Nginx 部署配置示例
 ├── sdk/ · sdk-py/ · sdk-c#/      三套 SDK 分发包（C++ / Python / C#）
-│                              ⚠ 不入库，定向分发获取（接入文档随包提供），
+│                              ⚠ 源码不入库，发行版随仓库 Releases 提供（接入文档随包），
 │                              接入文档随包内提供（SDK.md / SDK_PROTECTION.md / README.md / NebulaSDK.md）
 ├── docs/
 │   ├── ARCHITECTURE.md     架构设计文档（分层架构 / 关键链路时序图 / 安全设计对照）
@@ -441,7 +441,7 @@ curl -X POST "http://127.0.0.1/admin/index.php?action=dashboard" \
 
 ### 方式一：用现成 SDK（推荐）
 
-三套 SDK（C++ / Python / C#）不在本仓库内，**定向分发获取**（含完整接入文档与示例工程）。
+三套 SDK（C++ / Python / C#）发行版可在**仓库发行处（Releases）下载**，含完整接入文档与示例工程。
 
 C++ SDK 为 header-only：**把整个 `sdk/` 目录（聚合入口 `nebula_sdk.hpp` + `nebula/` 子模块）拖进项目即可**，无需预编译。  
 📘 完整接入文档见包内 **`sdk/SDK.md`**（初始化/登录/心跳/内置提示/完整性自校验/离线宽限全说明）。  
@@ -481,7 +481,7 @@ c.logout(lr.token);
 - 仅 Windows（VS/MSVC 工具链），系统自带 `bcrypt` / `WinHTTP` 已 `#pragma comment` 自动链接，**不需要 OpenSSL 或 libcurl**
 - 另提供 `activate` / `devices` / `unbindDevice` / `userinfo` / `getNotices` / `checkVersion` / `online` / `checkOffline`（离线票据本地校验）等接口
 
-📘 其他语言：**C# SDK**（.NET 10 / WinForms，协议与 C++ 同规格）与 **Python SDK**（内置 Pygame 登录界面）均随官网分发包提供，接入文档见包内 `NebulaSDK.md` / `README.md`。
+📘 其他语言：**C# SDK**（.NET 10 / WinForms，协议与 C++ 同规格）与 **Python SDK**（内置 Pygame 登录界面）均可在仓库发行处（Releases）下载，接入文档见包内 `NebulaSDK.md` / `README.md`。
 
 ### 方式二：手写协议
 

@@ -2,14 +2,14 @@
 
 > 📚 本文属 Nebula 文档中心，主索引见 [README.md](../README.md)，完整指南见 [GUIDE.md](GUIDE.md)；
 > 其他文档：[API 接口](API.md) · [报文示例](API_RAW_EXAMPLES.md) · [界面模板](TEMPLATE.md) ·
-> [C++ SDK 接入] · [C++ SDK 加固] · [Python SDK]（三套 SDK 文档随官网分发包 sdk.zip / sdk-py.zip 提供，不在本仓库）
+> [C++ SDK 接入] · [C++ SDK 加固] · [Python SDK]（三套 SDK 文档随仓库发行处（Releases）sdk.zip / sdk-py.zip 提供）
 
 本文档描述 Nebula 网络验证系统的整体架构、请求生命周期、关键链路时序与安全设计，
 面向二次开发、安全审计与私有化部署运维人员。
 
 - **代码版本**：以 `lib/bootstrap.php` 的 `NB_VERSION` 为唯一真源，本文不写具体版本号（避免漂移）
 - **运行环境**：PHP ≥ 8.0（`str_contains` / `str_starts_with` 要求 8.0）、MySQL 5.7+ / MariaDB 10.3+
-- **协议真源**：服务端 [`lib/Handshake.php`](../lib/Handshake.php) + [`lib/Crypto.php`](../lib/Crypto.php) 与客户端 `sdk/nebula/client/handshake.hpp`（随官网 `sdk.zip` 分发），二者与 [`docs/API.md`](API.md) 严格对齐
+- **协议真源**：服务端 [`lib/Handshake.php`](../lib/Handshake.php) + [`lib/Crypto.php`](../lib/Crypto.php) 与客户端 `sdk/nebula/client/handshake.hpp`（随仓库发行处 `sdk.zip` 分发），二者与 [`docs/API.md`](API.md) 严格对齐
 
 ---
 
@@ -182,7 +182,7 @@ sequenceDiagram
 
 > 协议唯一参照：服务端 [`lib/Handshake.php`](../lib/Handshake.php) +
 > [`lib/Crypto.php`](../lib/Crypto.php)，客户端 `sdk/nebula/client/handshake.hpp`
-> （随官网 `sdk.zip` 分发）；字段详见 [`docs/API.md`](API.md)。
+> （随仓库发行处 `sdk.zip` 分发）；字段详见 [`docs/API.md`](API.md)。
 
 > 客户端离线校验的票面与验签步骤见第 5 节；协议字段见 [`docs/API.md`](API.md) 的
 > 「离线宽限协议」与「响应防伪造」章节。
@@ -396,6 +396,15 @@ sequenceDiagram
   内置敏感文件硬阻断 `assertNoSensitive`
 - **空白包 vs 更新包**：`install/migrate_*.php` **不随空白包分发**（`.gitignore` 忽略），
   全新安装由 `schema.sql` 直接建库到基线版本；升级迁移脚本随**更新包**分发
+- **更新压缩包制作**（每次大改动发版必须执行，三步）：
+  1. **空白安装包**（全新安装分发）：`php deploy/make_release.php pack --src=yanzheng/ --out=releases/<版本> --version=<版本>`
+     → `releases/<版本>/nebula-<版本>.zip` + `MANIFEST.txt`（逐文件 md5）
+  2. **在线更新包**（update-system 发布、存量站点升级）：`python update-system/pack.py <版本号> <站点根目录> [输出.zip]`
+     → zip 内含 `manifest.json`（product / version / min_version / schema_version / channel / download_url / sha256 / files）+ 全量文件，并输出 SHA-256 校验值
+  3. **发布**：把更新包路径与 SHA-256 填入 `update-system/releases/<版本>/manifest.json`，
+     执行 `php update-system/deploy_add_version.php`（或 update-system 后台「版本发布」）写入更新库
+- 增量更新包（可选）：`php deploy/make_release.php diff <旧目录> <新目录> --out=FILE.zip`
+  → 收录「新增 + 变更」文件，生成 `MANIFEST.txt`（新文件 md5 清单）与 `DELETED.txt`（应删除清单）
 - **迁移执行器**：`php install/migrate.php status|run`，以 `settings.skey='schema_version'`
   登记数据库版本，`MIGRATIONS` 表按版本升序补跑，文件缺失即终止（绝不半升级）
 
@@ -438,10 +447,15 @@ sequenceDiagram
 ## 12. 扩展约定
 
 1. **新增客户端接口**：在 `api/handlers/` 添加同名的 `{action}.php`，并在
-   [`docs/API.md`](API.md) 与客户端 `handshake.hpp`（随官网 sdk.zip 分发，如需新字段）同步
+   [`docs/API.md`](API.md) 与客户端 `handshake.hpp`（随仓库发行处 sdk.zip 分发，如需新字段）同步
 2. **新增管理接口**：在后台 `handlers/` 添加文件，并**必须**在 `lib/AdminPermission.php`
    的 `ACTION_PERM` 登记权限（未登记即拒绝）；只读接口需加入 `admin/index.php` 的 `$csrfExempt`
 3. **新增业务表涉及软件维度**：必须接入 `Tenant` 的 `apply*` / `requireTouch*` 校验
 4. **协议变更**：必须同时修改服务端 `lib/Handshake.php` / `lib/Crypto.php`、客户端 `handshake.hpp` 与 `docs/API.md`
 5. **数据库变更**：写入 `schema.sql`（新装）并在 `install/migrate.php` 的 `MIGRATIONS` 追加幂等迁移
-6. **版本发布**：更新 `lib/bootstrap.php` 的 `NB_VERSION`，并在 [`CHANGELOG.md`](../CHANGELOG.md) 顶部追加条目
+6. **版本发布**：更新 `lib/bootstrap.php` 的 `NB_VERSION`，并在 [`CHANGELOG.md`](../CHANGELOG.md) 顶部追加条目；
+   **每次大改动（新功能 / 协议 / 数据库 / 安全 / 计费代理逻辑）必须同时制作版本更新压缩包**（制作方法见 §9.3），
+   否则存量站点只能换包重装、无法在线升级——仅改版本号不打包视为未完成发布
+7. **更新包产物自检**：`releases/<版本>/` 下必须存在空白安装包 zip 与在线更新包 zip 及其 SHA-256；
+   两包产物中不得出现 `migrate_*.php`（老库升级迁移另发）与敏感文件
+   （`deploy/make_release.php` 内置 `assertNoSensitive` 会在 pack 时硬阻断）
