@@ -42,6 +42,9 @@ DirectoryIndex index.php index.html
     # 2.5) releases/*/metadata.json 例外（供自动更新系统读取版本元数据）
     RewriteRule ^releases/[^/]+/metadata\.json$ - [L]
 
+    # 2.5.5) releases/*/manifest.json 例外（供客户端解压后校验更新包）
+    RewriteRule ^releases/[^/]+/manifest\.json$ - [L]
+
     # 3) 后台 / 代理的 handlers 目录不可直接访问
     #    这些 PHP 依赖入口注入的 $input/$admin/$agent 变量，单独访问无意义且可能泄露信息
     RewriteRule ^[^/]+/handlers/ - [F,L]
