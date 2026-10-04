@@ -12,11 +12,12 @@ define('NB_ROOT', dirname(__DIR__));
 $certDir = __DIR__ . '/_certs';
 if (!is_dir($certDir)) { @mkdir($certDir, 0777, true); }
 
-// openssl.cnf 探测（Windows 下 RSA 生成必需）
+// openssl.cnf 探测（Windows 下 RSA 生成必需；优先取 PHP 安装目录 extras/ssl）
 foreach ([
-    'D:/phpstudy_pro/Extensions/php/php8.0.2nts/extras/ssl/openssl.cnf',
+    (getenv('OPENSSL_CONF') ?: ''),
+    dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf',
 ] as $cnf) {
-    if (is_file($cnf)) { putenv("OPENSSL_CONF={$cnf}"); break; }
+    if ($cnf !== '' && is_file($cnf)) { putenv("OPENSSL_CONF={$cnf}"); break; }
 }
 
 // stub Setting：certDir 指向测试证书目录（Pay.php 内部调 Setting::get）
@@ -49,10 +50,11 @@ stream_wrapper_register('php', 'MockPhpStream');
 // ---- 「平台证书」：运行时自签生成到 _certs/（分发包不携带预置私钥）----
 $cnfFile = null;
 foreach ([
-    'D:/phpstudy_pro/Extensions/php/php8.0.2nts/extras/ssl/openssl.cnf',
+    (getenv('OPENSSL_CONF') ?: ''),
+    dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf',
     '/etc/ssl/openssl.cnf',
     '/usr/local/etc/openssl/openssl.cnf',
-] as $c) { if (is_file($c)) { $cnfFile = $c; break; } }
+] as $c) { if ($c !== '' && is_file($c)) { $cnfFile = $c; break; } }
 $genArgs = ['digest_alg' => 'sha256', 'private_key_type' => OPENSSL_KEYTYPE_RSA, 'private_key_bits' => 2048];
 if ($cnfFile) { $genArgs['config'] = $cnfFile; }
 $certPem = $pkeyPem = '';

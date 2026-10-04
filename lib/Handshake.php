@@ -61,7 +61,6 @@ class Handshake
         // 异常会导致握手 9999），因此全部用 @ 抑制，找不到就当没有配置文件。
         foreach ([
             (getenv('OPENSSL_CONF') ?: ''),
-            'C:/phpstudy_pro/Extensions/php/php8.0.2nts/extras/ssl/openssl.cnf',
             PHP_BINARY !== '' ? dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf' : '',
         ] as $c) {
             if ($c !== '' && @is_file($c)) {

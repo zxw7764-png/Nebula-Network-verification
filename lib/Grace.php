@@ -436,7 +436,6 @@ class Grace
             (string) (getenv('OPENSSL_CONF') ?: ''),
             dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf',
             dirname(PHP_BINARY) . '/extras/openssl/openssl.cnf',
-            'C:/phpstudy_pro/Extensions/php/php8.0.2nts/extras/ssl/openssl.cnf',
             '/etc/ssl/openssl.cnf',
             '/usr/local/ssl/openssl.cnf',
         ];
