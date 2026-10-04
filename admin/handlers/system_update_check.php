@@ -17,12 +17,9 @@ $currentVersion = (string) (defined('NB_VERSION') ? NB_VERSION : Config::get('sy
 // 版本更新服务地址（从配置读取，默认空）
 $updateServer = Config::get('update_server', '');
 if ($updateServer === '') {
-    // 未配置更新服务器，静默返回（不阻断后台）
-    Response::ok([
-        'current_version' => $currentVersion,
-        'latest'          => null,
-        'configured'      => false,
-    ]);
+    // 缺少更新服务器地址：明确报错，不再静默显示"已是最新版本"，
+    // 便于部署者第一时间发现配置被删/被改，及时修复更新链路。
+    Response::error(1001, '未配置更新服务器地址（config.php 中缺少 update_server），无法检查版本更新');
 }
 
 // 构造请求参数（与 update-system api/version.php 的参数一致）

@@ -285,6 +285,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $config = (string) file_get_contents($configFile);
+
+                // --------------------------------------------------
+                // 强制校验更新服务器地址（update_server）
+                // 该配置随官方安装包自带（指向官方版本更新系统），
+                // 缺失 / 留空 / 被删改则拒绝安装，
+                // 防止部署者自行移除后无法接收版本更新。
+                // --------------------------------------------------
+                if (!preg_match("/'update_server'\s*=>\s*'https?:\/\/[^']+'/", $config)) {
+                    throw new RuntimeException(
+                        '安装包缺少更新服务器地址配置：config/config.php 中的 update_server 缺失或为空。' .
+                        '请使用官方完整安装包（自带更新地址），勿删除该配置，否则系统将无法检测版本更新。'
+                    );
+                }
+
                 $config = preg_replace_callback("/'host'\s*=>\s*'[^']*'/",     function ($m) use ($nbQ, $db) { return "'host'    => '" . $nbQ($db['host']) . "'"; }, $config);
                 $config = preg_replace_callback("/'port'\s*=>\s*\d+/",         function ($m) use ($db) { return "'port'    => " . (int) $db['port']; }, $config);
                 $config = preg_replace_callback("/'name'\s*=>\s*'[^']*'/",     function ($m) use ($nbQ, $db) { return "'name'    => '" . $nbQ($db['name']) . "'"; }, $config);
