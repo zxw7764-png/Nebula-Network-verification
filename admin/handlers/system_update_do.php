@@ -175,16 +175,49 @@ try {
     // 4. 备份当前文件
     // ----------------------------------------------------------------
     // 更新包里的后台目录在打包时固定为 admin/，这里按本站实际后台目录名重写。
-    // 否则改过名的站点会多出一份默认路径的后台，而真正的后台代码反而得不到更新。
-    $adminPath = trim((string) Config::get('admin.path', 'admin'), '/');
-    if (!preg_match('/^[A-Za-z][A-Za-z0-9_-]{2,31}$/', $adminPath)) {
-        $adminPath = 'admin';
-    }
-    $mapEntryPath = static function (string $path) use ($adminPath): string {
-        if ($path === 'admin' || strpos($path, 'admin/') === 0) {
-            return $adminPath . substr($path, 5);
+    // 优先使用 config 的 admin.path（单目录）；未配置或非法时自动探测站点根下
+    // 的后台目录（特征：AdminAuth.php + assets/js/app.js + handlers/），可命中
+    // 多个随机目录，保证改名后的站点后台也能被更新（2026-10-06 修复：
+    // 生产曾因未配置 admin.path 导致后台目录整段漏更）。
+    $adminNames = [];
+    $sn = trim((string) Config::get('admin.path', ''), '/');
+    if ($sn !== '' && preg_match('/^[A-Za-z][A-Za-z0-9_-]{2,31}$/', $sn)) {
+        $adminNames[] = $sn;
+    } else {
+        $reserved = array_flip(['api', 'agent', 'shop', 'web', 'config', 'lib', 'logs',
+            'data', 'uploads', 'update-system', 'install', 'pack', 'docs', 'assets',
+            'deploy', 'tests', 'releases']);
+        $scan = @scandir(NB_ROOT);
+        if (is_array($scan)) {
+            foreach ($scan as $name) {
+                if ($name === '.' || $name === '..' || isset($reserved[$name])) {
+                    continue;
+                }
+                $dir = NB_ROOT . '/' . $name;
+                if (!is_dir($dir)) continue;
+                if (is_file($dir . '/AdminAuth.php')
+                    && is_file($dir . '/assets/js/app.js')
+                    && is_dir($dir . '/handlers')) {
+                    $adminNames[] = $name;
+                }
+            }
         }
-        return $path;
+    }
+    if (!$adminNames) {
+        $adminNames[] = 'admin';
+    }
+    sort($adminNames);
+    // admin/xx → 每个实际后台目录映射后的路径（可能多个）
+    $mapEntries = static function (string $path) use ($adminNames): array {
+        if ($path === 'admin' || strpos($path, 'admin/') === 0) {
+            $suffix = substr($path, 5);
+            $out = [];
+            foreach ($adminNames as $n) {
+                $out[] = $n . $suffix;
+            }
+            return $out;
+        }
+        return [$path];
     };
 
     $filesBackedUp = 0;
@@ -194,23 +227,25 @@ try {
         if (substr($entry, -1) === '/') continue;
         // 跳过 manifest.json 本身
         if ($entry === 'manifest.json') continue;
-        // 跳过保护目录
-        $skip = false;
-        $entryNorm = $mapEntryPath(str_replace('\\', '/', $entry));
-        foreach ($protectedDirs as $pdir) {
-            if ($entryNorm === $pdir || substr($entryNorm, 0, strlen($pdir) + 1) === $pdir . '/') { $skip = true; break; }
-        }
-        if ($skip) continue;
-        // Zip Slip 防护
-        if (substr($entryNorm, 0, 1) === '/' || strpos($entryNorm, '..') !== false) continue;
-        if (preg_match('#^[a-zA-Z]:#', $entryNorm)) continue;
+        $rawEntry = str_replace('\\', '/', $entry);
+        foreach ($mapEntries($rawEntry) as $entryNorm) {
+            // 跳过保护目录
+            $skip = false;
+            foreach ($protectedDirs as $pdir) {
+                if ($entryNorm === $pdir || substr($entryNorm, 0, strlen($pdir) + 1) === $pdir . '/') { $skip = true; break; }
+            }
+            if ($skip) continue;
+            // Zip Slip 防护
+            if (substr($entryNorm, 0, 1) === '/' || strpos($entryNorm, '..') !== false) continue;
+            if (preg_match('#^[a-zA-Z]:#', $entryNorm)) continue;
 
-        $srcPath = NB_ROOT . '/' . $entryNorm;
-        if (!is_file($srcPath)) continue;
-        $bakPath = $bakDir . '/' . $entryNorm;
-        $bakDirName = dirname($bakPath);
-        if (!is_dir($bakDirName)) @mkdir($bakDirName, 0750, true);
-        if (@copy($srcPath, $bakPath)) $filesBackedUp++;
+            $srcPath = NB_ROOT . '/' . $entryNorm;
+            if (!is_file($srcPath)) continue;
+            $bakPath = $bakDir . '/' . $entryNorm;
+            $bakDirName = dirname($bakPath);
+            if (!is_dir($bakDirName)) @mkdir($bakDirName, 0750, true);
+            if (@copy($srcPath, $bakPath)) $filesBackedUp++;
+        }
     }
 
     // 备份 version.php（lib/bootstrap.php 中的 NB_VERSION 定义）
@@ -238,23 +273,25 @@ try {
         if (substr($entry, -1) === '/') continue;
         if ($entry === 'manifest.json') continue;
 
-        $entryNorm = $mapEntryPath(str_replace('\\', '/', $entry));
-        $skip = false;
-        foreach ($protectedDirs as $pdir) {
-            if ($entryNorm === $pdir || substr($entryNorm, 0, strlen($pdir) + 1) === $pdir . '/') { $skip = true; break; }
-        }
-        if ($skip) continue;
-        // Zip Slip 防护
-        if (substr($entryNorm, 0, 1) === '/' || strpos($entryNorm, '..') !== false) continue;
-        if (preg_match('#^[a-zA-Z]:#', $entryNorm)) continue;
+        $rawEntry = str_replace('\\', '/', $entry);
+        foreach ($mapEntries($rawEntry) as $entryNorm) {
+            $skip = false;
+            foreach ($protectedDirs as $pdir) {
+                if ($entryNorm === $pdir || substr($entryNorm, 0, strlen($pdir) + 1) === $pdir . '/') { $skip = true; break; }
+            }
+            if ($skip) continue;
+            // Zip Slip 防护
+            if (substr($entryNorm, 0, 1) === '/' || strpos($entryNorm, '..') !== false) continue;
+            if (preg_match('#^[a-zA-Z]:#', $entryNorm)) continue;
 
-        $targetPath = NB_ROOT . '/' . $entryNorm;
-        $targetDirName = dirname($targetPath);
-        if (!is_dir($targetDirName)) @mkdir($targetDirName, 0750, true);
-        $content = $zip->getFromIndex($i);
-        if ($content === false) { $errors[] = "读取失败：{$entry}"; continue; }
-        if (@file_put_contents($targetPath, $content) === false) { $errors[] = "写入失败：{$entry}"; continue; }
-        $updated++;
+            $targetPath = NB_ROOT . '/' . $entryNorm;
+            $targetDirName = dirname($targetPath);
+            if (!is_dir($targetDirName)) @mkdir($targetDirName, 0750, true);
+            $content = $zip->getFromIndex($i);
+            if ($content === false) { $errors[] = "读取失败：{$entry}"; continue; }
+            if (@file_put_contents($targetPath, $content) === false) { $errors[] = "写入失败：{$entry}"; continue; }
+            $updated++;
+        }
     }
     $zip->close();
 
