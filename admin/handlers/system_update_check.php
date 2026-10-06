@@ -37,7 +37,7 @@ $params = http_build_query([
 $url = rtrim($updateServer, '/') . '/api/version.php?' . $params;
 
 // 带缓存（6 小时）
-$cacheKey = 'system_update_check';
+$cacheKey = 'system_update_check_' . $currentVersion; // 按版本隔离：升级后旧缓存自动失效
 if (!$force) {
     $cached = Cache::get($cacheKey);
     if ($cached !== null) {
@@ -76,7 +76,7 @@ if (!is_array($data) || !($data['success'] ?? false)) {
 
 // 授权门禁响应：服务器要求授权但本站未激活 / 授权无效 → 明确提示并透传原因
 if (!empty($data['license_required']) && empty($data['download_url'])) {
-    Response::error(1002, '获取更新需要有效授权：' . (string) ($data['license_msg'] ?? '未激活或授权无效')
+    Response::error(1001, '获取更新需要有效授权：' . (string) ($data['license_msg'] ?? '未激活或授权无效')
         . '。请在安装页或 config.php 的 license_key 中配置授权码，激活后重试。');
 }
 

@@ -351,7 +351,13 @@ try {
         'backup_path' => $bakDir,
     ]);
 
-    Response::ok([
+    // 升级后清尾：清版本检查缓存 + 重置 OPcache（共享主机常见 timestamp 校验延迟，
+// 否则下一请求可能仍跑旧代码，出现"更新完成却又提示可更新/会话异常"）
+try { Cache::delete('system_update_check_' . $targetVer); } catch (Throwable $e) { }
+try { Cache::delete('system_update_check'); } catch (Throwable $e) { }
+if (function_exists('opcache_reset')) { @opcache_reset(); }
+
+Response::ok([
         'updated_files' => $updated,
         'backup_path' => basename($bakDir),
         'backup_files' => $filesBackedUp,

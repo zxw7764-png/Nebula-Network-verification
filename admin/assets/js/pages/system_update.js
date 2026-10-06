@@ -222,8 +222,12 @@ function compareVersion(a, b) {
 async function renderLicenseCard() {
     const wrap = document.getElementById('licCardWrap');
     if (!wrap) return;
-    const st = await api('license_manage', { op: 'status' }, true);
-    const d = (st.code === 0 && st.data) ? st.data : { configured: false, masked: '', domain: '' };
+    // 先渲染卡片骨架（状态获取失败不影响卡片可见），再异步填充状态
+    let d = { configured: false, masked: '', domain: '', pending: true };
+    try {
+        const st = await api('license_manage', { op: 'status' }, true);
+        if (st.code === 0 && st.data) d = st.data;
+    } catch (e) { /* 状态获取失败按未激活展示 */ }
 
     wrap.innerHTML = `
     <div class="card">
