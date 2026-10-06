@@ -69,3 +69,6 @@ config/resp_sign_keys.php
 # Python
 __pycache__/
 *.pyc
+
+# 文档不入库（保留工作区；更新包如需可随包分发）
+docs/
