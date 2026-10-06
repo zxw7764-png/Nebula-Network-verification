@@ -277,13 +277,13 @@ export function renderNav() {
     nav.innerHTML = groups.map(g => {
         const fold = collapsed.includes(g.group);
         const items = g.items.map(m => `
-            <a data-page="${m.id}" class="${S.page === m.id ? 'active' : ''}">
+            <a data-page="${m.id}" role="menuitem" tabindex="0" class="${S.page === m.id ? 'active' : ''}"${S.page === m.id ? ' aria-current="page"' : ''}>
                 <span class="ic"><i class="bi ${m.icon}"></i></span>
                 <span class="tx">${esc(m.name)}</span>
             </a>`).join('');
         return `
             <div class="nav-group${fold ? ' collapsed' : ''}" data-group="${esc(g.group)}">
-                <div class="group-title" data-toggle="${esc(g.group)}" title="点击收起 / 展开">
+                <div class="group-title" data-toggle="${esc(g.group)}" role="button" tabindex="0" aria-expanded="${fold ? 'false' : 'true'}" title="点击收起 / 展开">
                     <span class="tx">${esc(g.group)}</span>
                     <span class="arrow"><i class="bi bi-chevron-down"></i></span>
                 </div>
@@ -293,9 +293,23 @@ export function renderNav() {
 
     nav.querySelectorAll('a[data-page]').forEach(a => {
         a.addEventListener('click', () => go(a.dataset.page));
+        // 键盘可达：无 href 的导航项需支持 Enter / Space 触发（a11y）
+        a.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                go(a.dataset.page);
+            }
+        });
     });
 
     nav.querySelectorAll('[data-toggle]').forEach(el => {
+        const toggle = () => el.dispatchEvent(new MouseEvent('click'));
+        el.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggle();
+            }
+        });
         el.addEventListener('click', () => {
             const t = el.dataset.toggle;
             const box = el.closest('.nav-group');

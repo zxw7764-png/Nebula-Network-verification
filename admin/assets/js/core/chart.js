@@ -7,6 +7,8 @@ export function fmtNum(n) {
     n = num(n);
     if (Math.abs(n) >= 100000000) return (n / 100000000).toFixed(2) + '亿';
     if (Math.abs(n) >= 10000) return (n / 10000).toFixed(2) + '万';
+    // 小数（如刻度 0.30000000000000004）统一保留 2 位，避免可视化出现浮点尾巴
+    if (!Number.isInteger(n)) return String(Math.round(n * 100) / 100);
     return String(n);
 }
 
@@ -26,7 +28,10 @@ function axisScale(values) {
     const step = Math.ceil(rawStep / mag) * mag;
     max = step * 4;
     const ticks = [];
-    for (let i = 0; i <= 4; i++) ticks.push(min + step * i);
+    for (let i = 0; i <= 4; i++) {
+        // 浮点累加会产出 0.30000000000000004；这里收敛到 6 位小数，消除尾巴
+        ticks.push(Math.round((min + step * i) * 1e6) / 1e6);
+    }
     return { min, max, step, ticks };
 }
 

@@ -804,3 +804,105 @@ html[data-theme="dark"] .shot-thumb .thumb-bad { color: #fca5a5; }
 .tpl-info { flex: 1; min-width: 0; }
 .tpl-info b { font-size: 13.5px; color: var(--text); }
 .tpl-info .hint { color: var(--text-sub); }
+
+/* ============================================================
+   UI 重构增强（2026-10-06 · frontend-agent-skills / frontend-ai-skills）
+   —— 全局设计 token + 可访问性 + 细节打磨，作用于所有后台页面
+   ============================================================ */
+
+/* ---- 1) 设计 token 补齐：间距 / 圆角 / 阴影 / 字阶 / 焦点 / 动效 ---- */
+:root {
+    --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+    --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-7: 32px;
+    --radius-sm: 8px;  --radius-md: 10px;
+    --radius-lg: 14px; --radius-xl: 16px; --radius-round: 999px;
+    --shadow-1: 0 1px 2px rgba(16, 24, 40, .05);
+    --shadow-2: 0 8px 24px rgba(16, 24, 40, .09);
+    --shadow-3: 0 24px 70px rgba(16, 24, 40, .22);
+    --focus-ring: 0 0 0 3px rgba(99, 102, 241, .20);
+    --focus-outline: 2px solid var(--primary);
+    --ease-base: cubic-bezier(.2, .9, .3, 1);
+    --dur-fast: .15s; --dur-med: .24s;
+    --text-hint: #8790a3; /* 补充弱提示色（比 faint 略深，保对比度） */
+}
+html[data-theme="dark"] {
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, .30);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, .40);
+    --shadow-3: 0 24px 70px rgba(0, 0, 0, .55);
+    --focus-ring: 0 0 0 3px rgba(129, 140, 248, .30);
+    --text-hint: #7d8698;
+}
+
+/* ---- 2) 全局可见焦点（修复原先 outline:none 造成的键盘失焦） ---- */
+:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: 2px;
+}
+/* 输入类控件用统一的环形焦点（不叠双圈） */
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+.nav a:focus-visible, .pager button:focus-visible, .subtabs button:focus-visible,
+.card-head button:focus-visible, .tab:focus-visible, .tabs button:focus-visible {
+    outline-offset: 2px;
+}
+
+/* ---- 3) 尊重「减弱动效」偏好 ---- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .content, .content.page-anim, .modal-mask, .modal-mask .modal { animation: none !important; }
+}
+
+/* ---- 4) 数据表吸顶表头：长表保持表头可见（可扫性） ---- */
+.table-wrap table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+/* 表头悬浮阅读提示：比普通行 hover 更明确的定位 */
+.table-wrap table thead th::after {
+    content: '';
+    position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+    background: var(--border-strong); opacity: .6;
+}
+
+/* ---- 5) 导航：active 增加主色指示条 + 键盘可达样式（配合 router.js tabindex 补丁） ---- */
+.nav a { position: relative; }
+.nav a.active::before {
+    content: '';
+    position: absolute; left: 0; top: 22%; height: 56%; width: 3px;
+    border-radius: 2px; background: linear-gradient(180deg, var(--primary-light), var(--primary));
+}
+/* 键盘聚焦时的导航项：内描边避免被指示条干扰 */
+.nav a:focus-visible { outline-offset: -2px; }
+
+/* ---- 6) 阴影对齐 token：统一层次感（低/中/高三级） ---- */
+.card, .stat { box-shadow: var(--shadow-1); }
+.stat:hover { box-shadow: var(--shadow-2); }
+.modal { box-shadow: var(--shadow-3); }
+.toolbar input, .toolbar select, .field input, .field select, .field textarea {
+    transition: border-color var(--dur-fast) var(--ease-base), box-shadow var(--dur-fast) var(--ease-base);
+}
+
+/* ---- 7) 按钮与交互目标：active 反馈 + disabled 语义统一（非色线索） ---- */
+.btn { position: relative; transition: transform var(--dur-fast) var(--ease-base), opacity var(--dur-fast); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { cursor: not-allowed; opacity: .55; }
+.nav a, .subtabs button, .pager button { transition-duration: var(--dur-fast); }
+
+/* ---- 8) 标签与状态徽章：垂直对齐 + 弱提示色补充（对比度安全） ---- */
+td .tag, .card-head .tag { vertical-align: middle; }
+.text-hint { color: var(--text-hint); font-size: 12px; }
+
+/* ---- 9) 内容区在超宽屏的阅读舒适度（数据后台保留下限，避免无边距） ---- */
+@media (min-width: 1700px) { .content { padding: 24px 34px 34px; } }
+
+/* ---- 10) 选区与复选行的可识别反馈（非纯颜色） ---- */
+tbody tr.checked td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
+tbody tr.checked td { background-color: var(--primary-bg); }
