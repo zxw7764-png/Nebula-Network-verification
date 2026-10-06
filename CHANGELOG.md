@@ -4,6 +4,32 @@
 版本号遵循语义化版本（`主.次.修订`）。每次发版请在本文件顶部追加条目，并同步
 `lib/bootstrap.php` 的 `NB_VERSION`；发布到版本更新系统时，把对应条目整理为 `release_notes`。
 
+## [2.65.34] - 2026-10-06
+
+### 安全修复（多租户隔离全链路闭合 · 攻击者视角审计）
+
+- **租户隔离补全（21 个后台 handler/lib）**：此前租户管理员可通过 ID 枚举跨租户读取/操作数据，本次全链路闭合：
+  - `user_detail` / `user_kick` / `user_batch_op` / `user_export`：跨租户 IDOR / 批量越权 / 整库导出（用户、设备、会话、卡密记录）
+  - `card_export` / `device_ban` / `device_ban_list`：卡密导出、机器码拉黑、黑名单列表的租户范围过滤
+  - `plan_save` / `shop_goods_save` / `shop_goods_delete` / `shop_goods_import`：官网套餐与发卡商品的软件归属校验
+  - `software_web_get` / `software_web_save`：官网分站配置跨软件读写
+  - `agent_list` / `agent_detail` / `agent_save`：代理商资产（卡密/批次/额度/余额）跨租户读写
+  - `group_save` / `group_batch`：用户组为全局对象，仅平台管理员可管理（租户管理员拒绝）
+  - `session_list`：在线会话按租户范围过滤
+  - 批量操作（用户/设备/商品）遵循「整单拒绝」：混合 ID 中任一越权即整体拒绝，杜绝边界枚举侧信道
+- **公告软件隔离**：`notice` 接口按 app_key 归属软件过滤（software_id=0 通用），单条查询同样过滤
+- **logout 如实返回**：服务端在令牌无效（含缺 machine_id）时返回真实错误，不再虚假返回成功而会话未销毁
+- **Runtime 事件服务端定级**：处置等级改由服务端静态表（`RuntimeRiskEngine::EVENT_SCORES`）决定，客户端自报 risk_level/risk_score 仅作 telemetry，防止「自报 CRITICAL 自毁 / 自报 LOW 压低处置」两端滥用
+- **速度限制分级**：`api/index.php` 按 action 收紧阈值 —— handshake 20/min、login 30/min、register 10/min（Config `security.*_limit_per_min` 可调），其余接口维持统一限额
+- **更新器重定向校验**：`system_update_do` 下载跟随 302 后重新校验最终域名白名单，越界删包中止
+
+### SDK 兼容性修复（C++ / C#）
+
+- `devices()` / `userinfo()` / `logout()` / `unbindDevice()` 补齐 `machine_id`（服务端 2026-10-03 起强制设备绑定校验，旧调用会被拒绝）
+- 登录请求在编译/运行期启用 RuntimeGuard 时上报 `capabilities.runtime_guard=true`（服务端强制防护策略 7002 才能放行）
+- SDK 版本宏统一 3.1.1：`NEBULA_SDK_VERSION` / `SdkConfig.SdkVersion` 由 3.1.0 修正（此前影响 sdk_version 审计与兼容判断）
+- Python 登录器 logout 本就携带 machine_id，无需变更
+
 ## [2.65.32] - 2026-10-05
 
 ### 新增（运行时安全 · 违规自动冻结闭环）

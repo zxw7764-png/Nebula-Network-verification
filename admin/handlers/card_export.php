@@ -15,6 +15,9 @@ $limit   = min(50000, max(1, Util::int($input, 'limit', 10000)));
 $where  = ['1=1'];
 $params = [];
 
+// 2026-10-06 审计：卡密导出按租户范围过滤（此前可跨租户导出任意卡密 = 商业凭证泄露）
+Tenant::applyNamed($where, $params);
+
 if ($batchId > 0) {
     $where[] = 'batch_id = :bid';
     $params['bid'] = $batchId;

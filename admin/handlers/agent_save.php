@@ -49,6 +49,8 @@ if ($op === 'delete') {
     if (!$agent) {
         Response::error(1001, '代理商不存在');
     }
+    // 2026-10-06 审计：租户管理员仅可删除自己软件下的代理
+    Tenant::touchRow($admin, 'agents', $agent, 'software_id');
 
     $cardCount = (int) Database::value(
         'SELECT COUNT(*) FROM ' . Database::t('cards') . ' WHERE agent_id = ?',
@@ -78,6 +80,8 @@ if ($op === 'toggle') {
     if (!$agent) {
         Response::error(1001, '代理商不存在');
     }
+    // 2026-10-06 审计：租户管理员仅可启停自己软件下的代理
+    Tenant::touchRow($admin, 'agents', $agent, 'software_id');
     $new = (int) $agent['status'] === Agent::STATUS_ON ? Agent::STATUS_OFF : Agent::STATUS_ON;
 
     Database::update('agents', ['status' => $new, 'updated_at' => time()], 'id = :id', ['id' => $id]);
@@ -106,6 +110,8 @@ if ($op === 'grant') {
     if (!$agent) {
         Response::error(1001, '代理商不存在');
     }
+    // 2026-10-06 审计：额度/余额调整涉及资金与授权资产，租户管理员仅可操作自己软件下的代理
+    Tenant::touchRow($admin, 'agents', $agent, 'software_id');
     if (!$adds && $addYuan === 0.0) {
         Response::error(1001, '请填写要调整的张数或金额');
     }
@@ -137,6 +143,8 @@ if ($op === 'reset_password') {
     if (!$agent) {
         Response::error(1001, '代理商不存在');
     }
+    // 2026-10-06 审计：租户管理员仅可重置自己软件下代理的密码
+    Tenant::touchRow($admin, 'agents', $agent, 'software_id');
 
     Database::update('agents', [
         'password'   => Util::hashPassword($pass),
@@ -178,6 +186,10 @@ if ($groupId > 0 && !Database::value('SELECT id FROM ' . Database::t('groups') .
 $old = $id > 0 ? Agent::find($id) : null;
 if ($id > 0 && !$old) {
     Response::error(1001, '代理商不存在');
+}
+// 2026-10-06 审计：租户管理员仅可编辑自己软件下的代理
+if ($old) {
+    Tenant::touchRow($admin, 'agents', $old, 'software_id');
 }
 
 // 账号唯一性
@@ -246,7 +258,12 @@ if ($swId > 0) {
     if (!$sw) {
         Response::error(1001, '所选软件不存在或已停用');
     }
+    // 2026-10-06 审计：租户管理员仅可为自己的软件创建代理
+    Tenant::requireTouch($admin, $swId);
     $fields['software_id'] = $swId;
+} elseif (Tenant::isTenant($admin)) {
+    // 未指定时默认软件 1：租户管理员不盲降落到平台默认软件
+    Response::error(4031, '租户管理员创建代理商必须指定归属软件');
 }
 
 $fields['password']   = Util::hashPassword($pass);

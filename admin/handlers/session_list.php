@@ -10,6 +10,9 @@ $onlyOnline = Util::get($input, 'online', '1') === '1';
 $where  = ['1=1'];
 $params = [];
 
+// 2026-10-06 审计：会话列表按租户范围过滤（sessions 无 software_id，经 JOIN 的 u.software_id 推导）
+Tenant::applyNamed($where, $params, 'u.software_id');
+
 if ($onlyOnline) {
     $where[] = 's.status = 1 AND s.last_active > :la';
     $params['la'] = time() - $timeout;

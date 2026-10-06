@@ -11,6 +11,9 @@ if (!$agent) {
     Response::error(1001, '代理商不存在');
 }
 
+// 2026-10-06 审计：跨租户读取修复 —— 租户管理员仅可查看自己软件下的代理及其卡密/批次资产
+Tenant::touchRow($admin, 'agents', $agent, 'software_id');
+
 // 最近 30 张卡密
 $cards = [];
 foreach (Database::all(

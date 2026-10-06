@@ -32,6 +32,11 @@ if ($op === 'delete') {
     if (!$old) {
         Response::error(1004, '套餐不存在');
     }
+    // 2026-10-06 审计：套餐归属校验（挂卡归属 + 官网展示归属均须在租户范围内）
+    Tenant::touchRow($admin, 'plans', $old, 'software_id');
+    if ((int) ($old['web_software_id'] ?? 0) > 0) {
+        Tenant::requireTouch($admin, (int) $old['web_software_id']);
+    }
 
     // 发卡商品已拆独立表 nb_shop_plans，这里只删官网侧（软删 web_deleted=1），
     // 与发卡商店完全互不影响
@@ -55,6 +60,11 @@ if ($op === 'toggle') {
     $old = Database::one("SELECT * FROM {$table} WHERE id = ?", [$id]);
     if (!$old) {
         Response::error(1004, '套餐不存在');
+    }
+    // 2026-10-06 审计：套餐归属校验（挂卡归属 + 官网展示归属均须在租户范围内）
+    Tenant::touchRow($admin, 'plans', $old, 'software_id');
+    if ((int) ($old['web_software_id'] ?? 0) > 0) {
+        Tenant::requireTouch($admin, (int) $old['web_software_id']);
     }
 
     $new = (int) $old['status'] === 1 ? 0 : 1;
@@ -87,6 +97,12 @@ if ($webSoftwareId < 0) {
 if ($webSoftwareId > 0 && !Software::find($webSoftwareId)) {
     Response::error(1001, '所属软件不存在');
 }
+// 2026-10-06 审计：租户管理员仅可为自己的软件创建官网套餐；全域通用（0）仅平台管理员可建
+if ($webSoftwareId > 0) {
+    Tenant::requireTouch($admin, $webSoftwareId);
+} elseif (Tenant::isTenant($admin)) {
+    Response::error(4031, '租户管理员创建官网套餐必须指定归属软件');
+}
 
 if ($name === '') {
     Response::error(1001, '套餐名不能为空');
@@ -112,6 +128,11 @@ if ($id > 0) {
     $old = Database::one("SELECT * FROM {$table} WHERE id = ?", [$id]);
     if (!$old) {
         Response::error(1004, '套餐不存在');
+    }
+    // 2026-10-06 审计：套餐归属校验（挂卡归属 + 官网展示归属均须在租户范围内）
+    Tenant::touchRow($admin, 'plans', $old, 'software_id');
+    if ((int) ($old['web_software_id'] ?? 0) > 0) {
+        Tenant::requireTouch($admin, (int) $old['web_software_id']);
     }
 
     Database::update('plans', $data, 'id = :id', ['id' => $id]);

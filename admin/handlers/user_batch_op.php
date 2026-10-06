@@ -19,6 +19,9 @@ if (count($ids) > 500) {
 }
 
 $now   = time();
+// 2026-10-06 审计：批量越权修复 —— 租户管理员不可批量操作其他软件下的用户；
+// requireTouchAll 对有归属但越权的 ID 整单拒绝（查无记录的交业务侧 404/忽略）。
+Tenant::requireTouchAll($admin, 'users', $ids);
 $users = Database::all(
     'SELECT id, username, status, points, max_devices, vip_expire, nickname, email, remark, group_id'
     . ' FROM ' . Database::t('users') . ' WHERE id IN (' . implode(',', $ids) . ')'

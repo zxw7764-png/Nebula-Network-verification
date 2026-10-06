@@ -11,6 +11,9 @@ if (!$sw) {
     Response::error(1001, '软件不存在');
 }
 
+// 2026-10-06 审计：跨租户篡改修复 —— 租户管理员仅可修改自己软件的官网配置（此前可改任意软件分站）
+Tenant::requireTouch($admin, $id);
+
 // 可覆盖的官网文案字段白名单（与 web/inc/portal.php 的 webSetting() 取值键一致）
 $keys = [
     'site_name', 'site_sub',

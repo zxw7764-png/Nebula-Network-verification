@@ -148,14 +148,21 @@ class RuntimeEventService
         //    会话/设备风险累计仍用静态表（不信任客户端）。
         //    处置动作按当前生效策略的三档配置取（与下发给 SDK 的动作同源）。
         // ----------------------------------------------------------
-        $eval = RuntimeRiskEngine::evaluate($eventType);
-        $clientLevel = strtoupper(trim((string) ($event['risk_level'] ?? '')));
-        $riskLevel   = in_array($clientLevel, ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], true)
-                     ? $clientLevel
-                     : 'LOW';
-        $riskScore   = max(0, min((int) ($event['risk_score'] ?? 0), 100000));
-        $action      = RuntimePolicy::actionForLevel($riskLevel, $softwareId);
-        $sticky      = $eval['sticky'];
+$eval = RuntimeRiskEngine::evaluate($eventType);
+
+// 2026-10-06 审计：处置等级改为「服务端定级」—— 只信事件类型在服务端静态表里的
+// 严重度（RuntimeRiskEngine::EVENT_SCORES），客户端自报的 risk_level / risk_score
+// 仅作 telemetry 展示，不再参与处置决策（此前客户端自报 CRITICAL 即可触发 REVOKE_SESSION / 冻结，
+// 自报 LOW 也可压低处置，两端都可被篡改利用）。
+$riskLevel = (string) ($eval['level'] ?? 'LOW');
+$riskScore = (int) ($eval['score'] ?? 0);
+$clientLevel = strtoupper(trim((string) ($event['risk_level'] ?? '')));
+if (!in_array($clientLevel, ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], true)) {
+    $clientLevel = 'LOW'; // 非法值按 LOW 记展示
+}
+$clientScore = max(0, min((int) ($event['risk_score'] ?? 0), 100000));
+$action      = RuntimePolicy::actionForLevel($riskLevel, $softwareId);
+$sticky      = $eval['sticky'];
 
         // ----------------------------------------------------------
         // 4. 持久化 + 更新 Session（§96 §99 §100: 事务）
@@ -294,10 +301,12 @@ class RuntimeEventService
 
         // 写日志
         Logger::log('runtime_event', 1, "{$eventType} ({$riskLevel}, score={$riskScore})", [
-            'user_id'    => $userId,
-            'session_id' => $sessionId,
-            'event_type' => $eventType,
-            'risk_level' => $riskLevel,
+            'user_id'      => $userId,
+            'session_id'   => $sessionId,
+            'event_type'   => $eventType,
+            'risk_level'   => $riskLevel,
+            'client_level' => $clientLevel,   // 客户端自报（仅 telemetry，不参与处置）
+            'client_score' => $clientScore,
         ]);
 
         return [

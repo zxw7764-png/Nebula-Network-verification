@@ -401,8 +401,11 @@ sequenceDiagram
      → `releases/<版本>/nebula-<版本>.zip` + `MANIFEST.txt`（逐文件 md5）
   2. **在线更新包**（update-system 发布、存量站点升级）：`python update-system/pack.py <版本号> <站点根目录> [输出.zip]`
      → zip 内含 `manifest.json`（product / version / min_version / schema_version / channel / download_url / sha256 / files）+ 全量文件，并输出 SHA-256 校验值
-  3. **发布**：把更新包路径与 SHA-256 填入 `update-system/releases/<版本>/manifest.json`，
-     执行 `php update-system/deploy_add_version.php`（或 update-system 后台「版本发布」）写入更新库
+3. **发布**：把更新包路径与 SHA-256 填入 `update-system/releases/<版本>/manifest.json`，
+   执行 `php update-system/deploy_add_version.php`（或 update-system 后台「版本发布」）写入更新库。
+   **生产环境直接用远程 API 上传**（远程版本服务器 `https://mmbr.serv00.net`，update-system 部署在**根目录**）：
+   `curl -u xiaomihu:zxweq967423 -F "update_file=@update_<版本>.zip" https://mmbr.serv00.net/api/upload.php`
+   接口会自动解析包内 manifest、落盘 `releases/<版本>/update.zip` 并写入版本库（见 `.catpaw/skills/nebula-development/SKILL.md`）
 - 增量更新包（可选）：`php deploy/make_release.php diff <旧目录> <新目录> --out=FILE.zip`
   → 收录「新增 + 变更」文件，生成 `MANIFEST.txt`（新文件 md5 清单）与 `DELETED.txt`（应删除清单）
 - **迁移执行器**：`php install/migrate.php status|run`，以 `settings.skey='schema_version'`
@@ -459,3 +462,23 @@ sequenceDiagram
 7. **更新包产物自检**：`releases/<版本>/` 下必须存在空白安装包 zip 与在线更新包 zip 及其 SHA-256；
    两包产物中不得出现 `migrate_*.php`（老库升级迁移另发）与敏感文件
    （`deploy/make_release.php` 内置 `assertNoSensitive` 会在 pack 时硬阻断）
+
+---
+
+## 13. 安全边界（2.65.34 · 攻击者视角审计闭合）
+
+2026-10-06 第三方攻击面审计发现并修复的边界问题，形成以下硬性规则：
+
+- **租户隔离是全链路约束**：凡涉及 `users / cards / devices / versions / notices / plans / shop_plans / agents` 的
+  后台 handler，必须走 `Tenant` 校验——单对象用 `requireTouch*` / `touchRow`，列表用 `applyNamed` / `applyPositional`，
+  批量操作（用户/设备/商品）「整单拒绝」（任一 ID 越权即整体拒绝，杜绝边界枚举侧信道）。
+  RBAC 默认矩阵（role 2 自带 user.read / user.edit / content.manage / agent.read / settings.site）意味着
+  **默认可利用**的越权面（user_detail / user_kick / user_batch_op / user_export / plan_save /
+  software_web_* / agent_list / agent_detail）已全部闭合。
+- **全局对象边界**：无软件归属的表（如 `nb_groups`）为全局配置，`Tenant::isTenant` 租户管理员一律拒绝写。
+- **客户端 API 设备绑定**：携带 token 的接口统一 `Session::validate(..., machineId, true)` 强制；
+  SDK 三端（C++/C#/Python）对应方法必带 `machine_id`；`logout` 校验失败如实报错（不再虚假成功）。
+- **运行时事件服务端定级**：处置等级只信服务端静态表（`RuntimeRiskEngine::EVENT_SCORES`），
+  客户端自报 `risk_level / risk_score` 仅作 telemetry，防止自毁/压级两端滥用。
+- **限流分级**：handshake 20/min、login 30/min、register 10/min（`security.*_limit_per_min`），其余统一限额。
+- **更新器重定向信任**：下载跟随 302 后必须重新校验最终域名白名单，越界删除包体并中止。

@@ -27,6 +27,8 @@ if (count($ids) > 500) {
 }
 
 $in   = implode(',', $ids);
+// 2026-10-06 审计：跨租户删除修复 —— 任一商品不在本租户范围内即整单拒绝（此前可删任意软件商品及其卡密池）
+Tenant::requireTouchAll($admin, 'shop_plans', $ids);
 $rows = Database::all('SELECT id, name, shop_price FROM ' . Database::t('shop_plans') . " WHERE id IN ({$in})");
 if (!$rows) {
     Response::error(1004, '商品不存在');

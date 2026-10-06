@@ -14,6 +14,9 @@ if (!$user) {
     Response::error(1001, '用户不存在');
 }
 
+// 2026-10-06 审计：跨租户 IDOR 修复 —— 租户管理员仅可见/可查自己软件下的用户（此接口曾可枚举任意 user_id 拉取完整取证数据）
+Tenant::requireTouchUser($admin, $userId);
+
 $group = Auth::group((int) $user['group_id']);
 $vip   = Auth::checkVip($user);
 

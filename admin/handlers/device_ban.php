@@ -60,6 +60,12 @@ if (!$devices) {
     Response::error(1001, '未找到对应设备');
 }
 
+// 2026-10-06 审计：跨租户批量拉黑修复 —— 任一设备不在本租户范围内即整单拒绝
+//（device→user→software 授权链校验；此前可凭 device_id 拉黑任意软件/租户的机器码）
+foreach ($devices as $dv) {
+    Tenant::requireTouchDevice($admin, (int) $dv['id']);
+}
+
 $count = 0;
 foreach ($devices as $dv) {
     // 写入黑名单（已存在则更新）

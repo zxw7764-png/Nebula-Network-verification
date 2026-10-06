@@ -6,6 +6,11 @@
  */
 
 $op  = Util::str($input, 'op', '');
+
+// 2026-10-06 审计：用户组为全局对象（nb_groups 无软件归属），租户管理员不可操作
+if (Tenant::isTenant($admin)) {
+    Response::error(4031, '用户组为全局配置，仅平台管理员可管理');
+}
 $ids = array_values(array_unique(array_filter(
     array_map('intval', (array) ($input['ids'] ?? [])),
     fn ($v) => $v > 0

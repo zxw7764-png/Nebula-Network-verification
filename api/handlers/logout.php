@@ -11,6 +11,10 @@ if ($token !== '') {
     if ($v['ok']) {
         Session::destroy($token);
         Logger::log('logout', 1, '退出登录', ['user_id' => (int) $v['session']['user_id']]);
+    } else {
+        // 2026-10-06 审计：令牌无效（含缺 machine_id / 机器不匹配）时如实上报错误，
+        // 不再返回虚假的 logout=true —— 避免客户端误以为会话已注销而服务端仍在生效。
+        Response::send($v['code'], $v['msg'], ['need_relogin' => true]);
     }
 }
 

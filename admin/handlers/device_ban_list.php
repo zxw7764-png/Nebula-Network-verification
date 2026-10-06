@@ -11,6 +11,23 @@ $keyword = Util::str($input, 'keyword', '');
 $where  = ['1=1'];
 $params = [];
 
+// 2026-10-06 审计：黑名单按租户范围过滤 —— 仅展示本租户设备（machine_id → devices → users.software_id）的黑名单记录
+$swIds = Tenant::softwareScope($admin);
+if ($swIds !== null) {
+    if (!$swIds) {
+        $where[] = '1=0';
+    } else {
+        $ph = [];
+        foreach (array_values($swIds) as $i => $id) {
+            $ph[] = ':dSw' . $i;
+            $params['dSw' . $i] = $id;
+        }
+        $where[] = 'EXISTS (SELECT 1 FROM ' . Database::t('devices') . ' d'
+            . ' JOIN ' . Database::t('users') . ' u ON u.id = d.user_id'
+            . ' WHERE d.machine_id = b.machine_id AND u.software_id IN (' . implode(',', $ph) . '))';
+    }
+}
+
 if ($keyword !== '') {
     $where[] = '(b.machine_id LIKE :kw OR b.reason LIKE :kw2)';
     $params['kw']  = "%{$keyword}%";

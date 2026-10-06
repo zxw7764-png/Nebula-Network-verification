@@ -97,12 +97,20 @@ try {
         $ok = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err = curl_error($ch);
+        $effUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
         curl_close($ch);
         fclose($fp2);
         if (!$ok || $httpCode >= 400) {
             @unlink($pkgPath);
             $downloadErr = '下载失败：' . ($err ?: 'HTTP ' . $httpCode);
         } else {
+            // 2026-10-06 审计：重定向信任边界修复 —— FOLLOWLOCATION 跟随 302 后，最终主机
+            // 必须仍在白名单内（此前只校验初始 URL，恶意 302 可把下载导向白名单外主机）。
+            $effHost = parse_url($effUrl, PHP_URL_HOST);
+            if ($allowedHost && ($effHost === false || $effHost === null || $effHost !== $allowedHost)) {
+                @unlink($pkgPath);
+                throw new RuntimeException('下载地址被重定向到非白名单域名，已中止更新：' . (string) $effHost);
+            }
             $downloadOk = true;
         }
     } else {

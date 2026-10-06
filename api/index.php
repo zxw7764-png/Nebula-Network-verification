@@ -140,6 +140,15 @@ if ($action !== '' && !in_array($action, $publicActions, true)) {
 // IP 限流
 // ------------------------------------------------------------------
 $limit = Policy::rateLimitPerMin();
+// 2026-10-06 审计：昂贵/易滥用接口单独收紧阈值（handshake 每次 ECDH+HKDF+两次落库，
+// 成本远高于普通查询；login/register 与账号爆破/批量注册强相关），其余接口维持统一限额。
+if ($action === 'handshake') {
+    $limit = min($limit, (int) Config::get('security.hs_limit_per_min', 20));
+} elseif ($action === 'login') {
+    $limit = min($limit, (int) Config::get('security.login_limit_per_min', 30));
+} elseif ($action === 'register') {
+    $limit = min($limit, (int) Config::get('security.register_limit_per_min', 10));
+}
 if ($action !== '' && !RateLimit::byIp($action, $limit)) {
     Logger::log($action, 0, '请求过于频繁', ['raw' => $input]);
     Response::error(5001, '请求过于频繁，请稍后再试');

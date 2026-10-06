@@ -16,6 +16,9 @@ if (!$user) {
     Response::error(1001, '用户不存在');
 }
 
+// 2026-10-06 审计：跨租户操作修复 —— 租户管理员不可重置/踢除其他软件下的用户
+Tenant::requireTouchUser($admin, $userId);
+
 switch ($op) {
     case 'kick':
         $n = Session::kickUser($userId);

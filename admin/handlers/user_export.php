@@ -11,6 +11,8 @@ $now    = time();
 // 筛选条件
 $where  = ['1=1'];
 $params = [];
+// 2026-10-06 审计：导出外带修复 —— 租户管理员仅可导出自己软件范围下的用户（此前可整库导出）
+Tenant::applyPositional($where, $params);
 $keyword = Util::str($input, 'keyword', '');
 if ($keyword !== '') {
     $where[] = '(username LIKE ? OR nickname LIKE ? OR email LIKE ?)';

@@ -138,6 +138,10 @@ $softwareId = Util::int($input, 'software_id', 0);
 if ($softwareId > 0 && !Software::find($softwareId)) {
     Response::error(1001, '所选软件不存在');
 }
+// 2026-10-06 审计：租户管理员仅可为自己的软件配置发卡商品（此前可挂到任意软件）
+if ($softwareId > 0) {
+    Tenant::requireTouch($admin, $softwareId);
+}
 
 // 显示归属软件（按软件过滤商品用）：0=全部软件通用，N=仅该软件官网/商店显示。
 // 与挂卡 software_id 完全独立；列未就绪（未跑迁移）时忽略该字段，不影响保存。
@@ -145,6 +149,10 @@ $shopSwId = Util::int($input, 'shop_software_id', 0);
 $swColReady = Shop::hasShopSwCol();
 if ($swColReady && $shopSwId > 0 && !Software::find($shopSwId)) {
     Response::error(1001, '显示归属软件不存在');
+}
+// 2026-10-06 审计：显示归属软件同样须在租户范围内
+if ($swColReady && $shopSwId > 0) {
+    Tenant::requireTouch($admin, $shopSwId);
 }
 
 $data = [
@@ -206,6 +214,11 @@ if ($id === 0) {
 $old = Database::one("SELECT * FROM {$table} WHERE id = ?", [$id]);
 if (!$old) {
     Response::error(1004, '套餐不存在');
+}
+// 2026-10-06 审计：编辑发卡商品须校验归属软件在租户范围内（此前可改任意商品）
+Tenant::touchRow($admin, 'shop_plans', $old, 'software_id');
+if ((int) ($old['shop_software_id'] ?? 0) > 0) {
+    Tenant::requireTouch($admin, (int) $old['shop_software_id']);
 }
 
 Database::update('shop_plans', $data, 'id = :id', ['id' => $id]);

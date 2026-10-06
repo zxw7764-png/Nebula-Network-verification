@@ -5,6 +5,12 @@
 
 $op = Util::str($input, 'op', 'save');
 
+// 2026-10-06 审计：用户组为全局对象（nb_groups 无软件归属），租户管理员不可增删改，
+// 否则可修改其他租户用户的设备上限/配额。全局组仅平台管理员可管理。
+if (Tenant::isTenant($admin)) {
+    Response::error(4031, '用户组为全局配置，仅平台管理员可管理');
+}
+
 if ($op === 'delete') {
     $id = Util::int($input, 'id', 0);
     if ($id <= 1) {
