@@ -206,7 +206,8 @@ async function doUpdate(latest, btn) {
 function compareVersion(a, b) {
     const pa = (a || '0').replace(/^v/i, '').split('.').map(Number);
     const pb = (b || '0').replace(/^v/i, '').split('.').map(Number);
-    for (let i = 0; i < 3; i++) {
+    const n = Math.max(pa.length, pb.length);
+    for (let i = 0; i < n; i++) {
         const va = pa[i] || 0, vb = pb[i] || 0;
         if (va < vb) return -1;
         if (va > vb) return 1;

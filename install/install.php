@@ -560,6 +560,7 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
     <div class="head">
         <h1>Nebula 网络验证</h1>
         <p>安装向导 · 支持心跳 / 登录 / 激活码 / 设备绑定 / 版本校验</p>
+        <p style="margin-top:6px;font-size:12px"><a href="https://mmbr.serv00.net" target="_blank" rel="noopener" style="color:#8b93a7;text-decoration:none;border-bottom:1px dashed rgba(139,147,167,.5)">访问官方网站与文档 ↗</a></p>
     </div>
     <div class="body">
         <div class="steps">
@@ -653,7 +654,7 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
                     <div class="field">
                         <input name="license_key" placeholder="32 位授权码（可留空，稍后激活）" class="mono" style="letter-spacing:1px"
                                oninput="this.value=this.value.toLowerCase().replace(/[^0-9a-f]/g,'')" maxlength="32">
-                        <div class="tip">安装完成后将自动绑定当前域名并激活；未激活不影响使用，但后续无法在线获取新版本。可到官方门户免费获取试用授权码。</div>
+                        <div class="tip">安装完成后将自动绑定当前域名并激活；未激活不影响使用，但后续无法在线获取新版本。可到 <a href="https://mmbr.serv00.net" target="_blank" rel="noopener" style="color:#c4b5fd;text-decoration:underline">官方门户</a> 免费获取试用授权码。</div>
                     </div>
                     <div class="alert warn" style="margin-top:16px">
                         安全要求：管理员密码必须修改（不能留空或 admin888），后台目录名必须改名 —— 否则无法继续安装。

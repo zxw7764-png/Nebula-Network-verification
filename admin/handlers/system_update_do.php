@@ -26,7 +26,7 @@ if ($downloadUrl === '' || !preg_match('#^https://#i', $downloadUrl)) {
 if ($sha256 === '' || strlen($sha256) !== 64) {
     Response::error(1001, 'SHA-256 校验值不合法');
 }
-if ($targetVer === '' || !preg_match('/^\d+\.\d+\.\d+$/', $targetVer)) {
+if ($targetVer === '' || !preg_match('/^\d+\.\d+\.\d+(\.\d+)?$/', $targetVer)) {
     Response::error(1001, '版本号不合法');
 }
 
