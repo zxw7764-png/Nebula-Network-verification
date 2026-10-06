@@ -75,7 +75,18 @@ if ($op === 'activate') {
     }
     $cfg = (string) file_get_contents($configFile);
     if (!preg_match("/'license_key'\s*=>\s*'[^']*'/", $cfg)) {
-        Response::error(1001, 'config.php 缺少 license_key 配置项（请升级到官方完整安装包）');
+        // 老模板缺键：自动在 update_server 之后插入（免手动改配置）
+        if (!preg_match("/'update_server'\s*=>\s*'[^']*'/", $cfg)) {
+            Response::error(1001, 'config.php 缺少 update_server 配置，无法自动补授权键');
+        }
+        $cfg = preg_replace_callback(
+            "/('update_server'\s*=>\s*'[^']*')/",
+            static function ($m) {
+                return $m[1] . ",\n\n    // 授权码（后台系统更新页激活后自动写入；空白=未激活）\n    'license_key'   => ''";
+            },
+            $cfg,
+            1
+        );
     }
     $cfg = preg_replace_callback(
         "/'license_key'\s*=>\s*'[^']*'/",
