@@ -22,7 +22,7 @@ function kpis(items) {
 function panel(title, body, acts = '') {
     return `<section class="card" style="margin-bottom:0">
         <div class="card-head"><h3>${esc(title)}</h3>${acts ? `<div class="acts">${acts}</div>` : ''}</div>
-        <div class="card-body" style="min-height:232px;display:flex;flex-direction:column;justify-content:center">${body}</div>
+        <div class="card-body" style="min-height:236px">${body}</div>
     </section>`;
 }
 
@@ -124,10 +124,11 @@ async function load(el) {
         : chartEmpty('bi-cash-stack', '暂无充值数据', '近 ' + days + ' 天代理充值次数'),
         `<span class="text-hint">近 ${days} 天</span>`);
 
+    // 布局：图类在上（逐日活跃 / 代理充值走势），表与指标在下（留存队列 / 复购率）
     body.innerHTML = `
         ${kpi}
-        <div style="${COLS};margin-top:16px">${retPanel}${dauPanel}</div>
-        <div style="${COLS};margin-top:16px">${repPanel}${rcPanel}</div>`;
+        <div style="${COLS};margin-top:16px">${dauPanel}${rcPanel}</div>
+        <div style="${COLS};margin-top:16px">${repPanel}${retPanel}</div>`;
 }
 
 async function render() {

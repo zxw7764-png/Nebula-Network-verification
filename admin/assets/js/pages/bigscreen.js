@@ -23,7 +23,7 @@ function kpis(items) {
 function panel(title, body, acts = '') {
     return `<section class="card" style="margin-bottom:0">
         <div class="card-head"><h3>${esc(title)}</h3>${acts ? `<div class="acts">${acts}</div>` : ''}</div>
-        <div class="card-body" style="min-height:232px;display:flex;flex-direction:column;justify-content:center">${body}</div>
+        <div class="card-body" style="min-height:236px">${body}</div>
     </section>`;
 }
 
@@ -133,7 +133,7 @@ async function load(el) {
         </div>` : chartEmpty('bi-journal-text', '暂无操作记录'));
 
     const srv = d.server || {};
-    body.innerHTML = `
+        body.innerHTML = `
         ${kpi}
         <div style="${COLS};margin-top:16px">${onlinePanel}${curvePanel}</div>
         <div style="${COLS};margin-top:16px">${rankPanel}${distPanel}</div>
