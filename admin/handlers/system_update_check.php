@@ -80,8 +80,11 @@ if (!empty($data['license_required']) && empty($data['download_url'])) {
         . '。请在下方授权激活卡片配置授权码，激活后重试。');
 }
 
-// 缓存 6 小时
-Cache::set($cacheKey, $data, 21600);
+// 缓存 6 小时；但带授权门禁的响应内含「限时签名下载链接」（令牌默认 10 分钟有效），
+// 若一并缓存 6 小时，用户稍后点更新会因令牌过期而下载失败 —— 这类响应不缓存。
+if (empty($data['license_required'])) {
+    Cache::set($cacheKey, $data, 21600);
+}
 
 Response::ok([
     'current_version' => $currentVersion,

@@ -6,7 +6,6 @@
  */
 
 error_reporting(E_ALL);
-ini_set('display_errors', '1');
 date_default_timezone_set('Asia/Shanghai');
 
 session_start();
@@ -15,6 +14,9 @@ $root        = dirname(__DIR__);
 $configFile  = $root . '/config/config.php';
 $schemaFile  = __DIR__ . '/schema.sql';
 $installed   = is_file($root . '/install/install.lock');
+
+// 安全：生产（已安装）环境不把报错细节输出到浏览器；仅全新安装期开启便于排错
+ini_set('display_errors', $installed ? '0' : '1');
 
 $step = $_GET['step'] ?? '1';
 $msg  = '';
@@ -72,6 +74,37 @@ if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 
         exit;
     };
 
+    // 同源校验：必须是本站安装成功页发起的请求（轻量 CSRF 防护，
+    // 避免任意站点诱导已登录态或脚本化调用此接口）
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    foreach (['HTTP_ORIGIN', 'HTTP_REFERER'] as $hk) {
+        if (empty($_SERVER[$hk])) continue;
+        $h = strtolower((string) parse_url((string) $_SERVER[$hk], PHP_URL_HOST));
+        if ($h === '') continue;
+        if ($h !== $host && preg_replace('/^www\./', '', $h) !== preg_replace('/^www\./', '', $host)) {
+            $out(false, '请求来源不合法，请通过本站安装页操作');
+        }
+        break;
+    }
+
+    // 简易限流：每 IP 每 5 分钟最多 10 次，避免被批量试探授权码
+    $fp = @fopen(sys_get_temp_dir() . '/nb_act_' . md5((string) ($_SERVER['REMOTE_ADDR'] ?? 'x')) . '.cnt', 'c+');
+    if ($fp) {
+        if (flock($fp, LOCK_EX)) {
+            $raw = stream_get_contents($fp); $cnt = 0; $base = time();
+            if ($raw !== '' && $raw !== false) {
+                $d = explode('|', $raw); $base = (int) ($d[0] ?? time()); $cnt = (int) ($d[1] ?? 0);
+                if (time() - $base > 300) { $base = time(); $cnt = 0; }
+            }
+            $cnt++;
+            ftruncate($fp, 0); rewind($fp); fwrite($fp, $base . '|' . $cnt); fflush($fp);
+            flock($fp, LOCK_UN); fclose($fp);
+            if ($cnt > 10) {
+                $out(false, '操作过于频繁，请 5 分钟后再试');
+            }
+        } else { fclose($fp); }
+    }
+
     $key = strtolower(trim((string) ($_POST['license_key'] ?? '')));
     if (!preg_match('/^[0-9a-f]{32}$/', $key)) {
         $out(false, '授权码格式不正确（应为 32 位十六进制）');
@@ -83,6 +116,16 @@ if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 
         $out(false, 'config.php 中缺少 update_server 配置，无法激活');
     }
     $server = rtrim($mServer[1], '/');
+
+    // 已激活的站点：仅允许「用与当前 config 相同的授权码重试激活」
+    // （安装时自动激活可能失败，成功页需要能重试同一枚码）；
+    // 禁止用另一枚授权码顶替覆盖现有授权，防止他人把自己的码写进来。
+    // 更换授权请到后台「授权管理」操作。
+    if (preg_match("/'license_key'\s*=>\s*'([^']*)'/", $cfgSrc, $mCur)
+        && trim($mCur[1]) !== ''
+        && strtolower(trim($mCur[1])) !== $key) {
+        $out(false, '本站已激活其他授权，如需更换请在后台「授权管理」中操作');
+    }
 
     // 当前部署站域名（归一化：去端口、去 www.、转小写，与服务端规则一致）
     $domain = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
