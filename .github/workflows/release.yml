@@ -1,0 +1,90 @@
+name: Release（自动发版）
+
+# 触发：
+#   1) 推送 `v*` 标签（如 v2.66.0）→ 自动打包 + 上传远程版本服务器 + 创建 GitHub Release
+#   2) 手动 workflow_dispatch 指定版本号
+#
+# 必要 Secrets（GitHub 仓库 → Settings → Secrets and variables → Actions）：
+#   UPDATE_USER = 远程版本服务器上传账号（如 xiaomihu）
+#   UPDATE_PASS = 上传密码
+#
+# 注意：远程版本服务器不允许重复发布同一版本（版本已存在即拒绝）。
+#   发版前请确认远程 api/version.php 的 latest 低于本次版本号。
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（如 2.66.0）；留空则从 git tag 取'
+        required: false
+        default: ''
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 确定版本号
+        id: ver
+        run: |
+          V="${{ github.event.inputs.version }}"
+          if [ -z "$V" ]; then
+            V="${GITHUB_REF#refs/tags/v}"
+          fi
+          # 去掉可能的前导 v / 尾部空白
+          V="$(echo "$V" | sed -e 's/^v//' | tr -d '[:space:]')"
+          if [ -z "$V" ]; then
+            echo "错误：无法确定版本号"; exit 1
+          fi
+          echo "version=${V}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${V}" >> "$GITHUB_OUTPUT"
+
+      - name: 准备打包源（去掉制品/历史包，避免进更新包）
+        run: |
+          mkdir -p /tmp/srcpkg
+          cp -a "$(pwd)/." /tmp/srcpkg/
+          rm -rf /tmp/srcpkg/_pkg \
+                 /tmp/srcpkg/releases \
+                 /tmp/srcpkg/yanzheng \
+                 /tmp/srcpkg/yanzheng.zip \
+                 /tmp/srcpkg/update-system-releases
+          echo "打包源文件数: $(find /tmp/srcpkg -type f | wc -l)"
+
+      - name: 打包更新包（pack.py）
+        id: pkg
+        run: |
+          python3 --version
+          python3 update-system/pack.py "${{ steps.ver.outputs.version }}" /tmp/srcpkg "/tmp/update_${{ steps.ver.outputs.version }}.zip"
+          ls -la "/tmp/update_${{ steps.ver.outputs.version }}.zip"
+
+      - name: 上传远程版本服务器
+        env:
+          UU: ${{ secrets.UPDATE_USER }}
+          UP: ${{ secrets.UPDATE_PASS }}
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          if [ -z "$UU" ] || [ -z "$UP" ]; then
+            echo "错误：未配置 Secrets UPDATE_USER / UPDATE_PASS"; exit 1
+          fi
+          RSP=$(curl -s -u "${UU}:${UP}" \
+                -F "update_file=@/tmp/update_${V}.zip" \
+                -F "release_notes=CI 自动发版 v${V}" \
+                "https://mmbr.serv00.net/api/upload.php")
+          echo "上传响应: $RSP"
+          echo "$RSP" | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get('code')==0 else 1)"
+
+      - name: 创建 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          gh release create "v${V}" "/tmp/update_${V}.zip" \
+            --title "Nebula v${V}" \
+            --notes "CI 自动发版（更新包已上传远程版本服务器：https://mmbr.serv00.net/releases/${V}/update.zip）" \
+            -R "${{ github.repository }}"

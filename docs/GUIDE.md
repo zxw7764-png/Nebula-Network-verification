@@ -717,6 +717,11 @@ nonce 被重复使用。确保每次请求生成新的随机 nonce（≥8 位）
 
 版本发布链路：**改代码 → bump 版本号 → 写 CHANGELOG → 打包 → 上传远程版本服务器 → 推仓库 → SDK Release**。
 
+> **版本节奏约定（2.65.35 起）**：MINOR（如 2.66.0）= 新功能 / 协议 / 安全架构级改动；
+> PATCH（如 2.65.36）= bug / 安全补丁 / 小优化。**PATCH 永不抬高 `min_version`**（站点只弹普通更新提示）；
+> 只有「协议 / 信封 / 密钥派生」类 MINOR 才抬 `min_version` 触发强制更。
+> 完整决策表见 `.catpaw/skills/nebula-development/SKILL.md` §2.5。
+
 ### 1. 版本号与更新日志
 
 - 修改 `lib/bootstrap.php` 的 `NB_VERSION`（+1），确保仓库空白包与本地开发站两份同步。

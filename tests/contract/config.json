@@ -1,0 +1,10 @@
+{
+  "api_base": "http://127.0.0.1/api/index.php",
+  "app_key": "SWDEFAULT",
+  "machine_id": "contract-test-0001",
+  "device_name": "Contract Test Machine",
+  "os_info": "Windows 10",
+  "client_version": "2.65.35",
+  "resp_sign_keys_file": "../../config/resp_sign_keys.php",
+  "admin_api_base": "http://127.0.0.1/nb2d5bf1/index.php"
+}
