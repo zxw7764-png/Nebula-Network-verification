@@ -238,7 +238,7 @@ async function renderLicenseCard() {
             <div style="font-size:13px;color:var(--text-sub);margin-bottom:12px">
                 ${d.configured
                     ? `当前授权码：<span class="mono">${esc(d.masked)}</span> · 绑定域名：<span class="mono">${esc(d.domain || '-')}</span>`
-                    : '尚未配置授权激活码。未激活不影响系统使用，但后续开启更新门禁后将无法在线获取新版本。'}
+                    : '尚未配置授权激活码。未激活不影响系统使用，但后续将无法在线获取新版本。'}
                 授权过期或更换授权码时，在此重新填写即可完成激活（绑定当前域名）。
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
