@@ -99,7 +99,7 @@ if ($op === 'activate') {
     file_put_contents($configFile, $cfg);
 
     Audit::log($admin, 'license_activate', '系统授权',
-        '授权激活成功（绑定 ' . $domain . '）', null, ['domain' => $domain]);
+        '授权激活成功（绑定 ' . $domain . '）', [], ['domain' => $domain]);
 
     Response::ok(['domain' => $domain], '激活成功，已绑定 ' . $domain);
 }
