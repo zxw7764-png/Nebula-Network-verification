@@ -23,8 +23,8 @@ if ($op === 'create') {
     if (!preg_match('/^[a-zA-Z0-9_\x{4e00}-\x{9fa5}]{3,32}$/u', $username)) {
         Response::error(1001, '用户名需 3-32 位字母、数字、下划线或中文');
     }
-    if (strlen($password) < 6) {
-        Response::error(1001, '密码至少 6 位');
+    if (($issue = Util::passwordIssue($password)) !== null) {
+        Response::error(1001, $issue);
     }
     if (Database::value('SELECT id FROM ' . Database::t('users') . ' WHERE username = ?', [$username])) {
         Response::error(1001, '用户名已存在');

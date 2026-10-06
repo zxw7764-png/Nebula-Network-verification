@@ -61,9 +61,9 @@ foreach ($lines as $idx => $line) {
         if (count($errors) < 50) $errors[] = "第 {$lineNo} 行：用户名「{$username}」不合法（3-32位字母数字下划线）";
         continue;
     }
-    if (strlen($password) < 6) {
+    if (($pwIssue = Util::passwordIssue($password)) !== null) {
         $fail++;
-        if (count($errors) < 50) $errors[] = "第 {$lineNo} 行：密码少于 6 位";
+        if (count($errors) < 50) $errors[] = "第 {$lineNo} 行：{$pwIssue}";
         continue;
     }
     if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
