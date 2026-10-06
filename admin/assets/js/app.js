@@ -6,7 +6,7 @@ import { initTheme, toggleTheme, appliedTheme } from './core/theme.js';
 import { esc } from './core/util.js';
 
 const PAGES = [
-    "dashboard", "stat", "software", "user", "agent", "agent_code",
+    "dashboard", "bigscreen", "analytics", "stat", "software", "user", "agent", "agent_code",
     "card", "batch", "device", "device_ban", "session", "notice", "version", "client_notice",
     "group", "message", "feedback", "plan", "shop", "shop_setting", "shop_goods",
     "seller", "screenshot", "log", "files", "audit", "sec_report", "setting", "profile", "portal_web", "templates", "games",

@@ -24,6 +24,8 @@ Object.entries(COMPOSITES).forEach(([cid, tabs]) => {
 export const MENUS = [
     { group: '总览' },
     { id: 'dashboard',  name: '数据概览',   icon: 'bi-speedometer2', type: 'page' },
+    { id: 'bigscreen',  name: '数据大屏',   icon: 'bi-tv', type: 'page', perm: 'user.read' },
+    { id: 'analytics',  name: '留存复购',   icon: 'bi-graph-up-arrow', type: 'page', perm: 'user.read' },
     { id: 'stat_overview', name: 'API 统计', icon: 'bi-graph-up', type: 'page', perm: 'user.read' },
 
     { group: '业务管理' },
@@ -50,6 +52,8 @@ export const MENUS = [
 
 export const TITLES = {
     dashboard: '数据概览',
+    bigscreen: '数据大屏',
+    analytics: '留存复购',
     stat_overview: 'API 统计',
     admins:    '管理员',
     users:     '用户与设备',
@@ -134,6 +138,8 @@ function tabVisible(tid) {
 // 「未授权」空态，而不是卡在加载中。操作类接口被拦时由 api.js toast。
 const GUARD_OF_PAGE = {
     softwares:     { perm: 'settings.business' },   // software_list 下发 SDK 通信密钥
+    bigscreen:     { perm: 'user.read' },
+    analytics:     { perm: 'user.read' },
     setting:       { perm: 'settings.site' },
     templates:     { perm: 'settings.site' },
     admins:        { perm: 'admin.manage' },
