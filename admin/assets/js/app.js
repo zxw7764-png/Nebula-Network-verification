@@ -106,18 +106,64 @@ async function enterApp() {
 
     try {
         const res = await api('system_update_check', { force: 1 }, true);
-        if (res.code === 0 && res.data && res.data.latest && res.data.latest.force_update) {
+        if (res.code === 0 && res.data && res.data.latest) {
             const cur = res.data.current_version || '';
             const latest = res.data.latest.latest_version || '';
             if (cur && latest && compareVersion(cur, latest) < 0) {
-                showForceUpdateModal(cur, latest, res.data.latest);
-                return;
+                if (res.data.latest.force_update) {
+                    // 低于最低版本线（min_version）：强制封锁弹窗，后台不可用直至更新
+                    showForceUpdateModal(cur, latest, res.data.latest);
+                    return;
+                }
+                // 常规新版本：普通提示框（可关闭，不阻断后台使用；点击可跳转系统更新页）
+                showUpdateNoticeModal(cur, latest, res.data.latest);
             }
         }
     } catch (e) {
     }
 
     go('dashboard');
+}
+
+/** 常规更新提示框：检测到新版本但未低于最低版本线时弹出，可关闭/可跳转系统更新页 */
+function showUpdateNoticeModal(cur, latest, info) {
+    if (document.getElementById('updateNoticeModal')) return;
+    const notes = (info && info.release_notes) || [];
+    const overlay = document.createElement('div');
+    overlay.id = 'updateNoticeModal';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = `
+    <div style="max-width:440px;width:92%;border:1px solid rgba(96,165,250,.35);border-radius:14px;background:var(--card-bg,#1a1a2e);overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.6)">
+        <div style="padding:24px 24px 12px;text-align:center">
+            <div style="width:52px;height:52px;margin:0 auto 12px;border-radius:50%;background:rgba(96,165,250,.15);display:flex;align-items:center;justify-content:center">
+                <i class="bi bi-cloud-arrow-up" style="font-size:26px;color:#60a5fa"></i>
+            </div>
+            <h3 style="font-size:17px;margin-bottom:6px;color:var(--text,#e2e8f0)">发现系统新版本</h3>
+            <p style="font-size:13px;color:var(--text-sub,#94a3b8);line-height:1.7;margin-bottom:0">
+                当前 <b>v${esc(cur)}</b> → 新版本 <b style="color:#60a5fa">v${esc(latest)}</b><br>
+                可在「系统更新」页一键在线升级（自动备份 + 完整性校验）。
+            </p>
+        </div>
+        ${notes.length ? `<div style="margin:0 24px 12px;max-height:150px;overflow-y:auto;background:var(--bg-alt,#0f0f1a);border-radius:8px;padding:10px 14px">
+            <div style="font-size:12px;color:var(--text-sub,#64748b);margin-bottom:4px">v${esc(latest)} 更新内容</div>
+            <ul style="list-style:none;padding:0;margin:0">
+                ${notes.map(n => `<li style="padding:2px 0 2px 12px;position:relative;font-size:12.5px;color:var(--text-sub,#94a3b8);line-height:1.5">
+                    <span style="position:absolute;left:0;top:10px;width:4px;height:4px;border-radius:50%;background:var(--text-faint,#475569)"></span>${esc(n)}</li>`).join('')}
+            </ul>
+        </div>` : ''}
+        <div style="padding:0 24px 20px;display:flex;gap:10px">
+            <button class="btn ghost" id="noticeLaterBtn" style="flex:1;text-align:center;padding:10px;border-radius:8px;font-size:14px;cursor:pointer">稍后再说</button>
+            <button class="btn success" id="noticeGoUpdateBtn" style="flex:1.2;text-align:center;padding:10px;border-radius:8px;font-size:14px;cursor:pointer">前往系统更新</button>
+        </div>
+    </div>`;
+    document.body.appendChild(overlay);
+
+    const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    const laterBtn = overlay.querySelector('#noticeLaterBtn');
+    if (laterBtn) laterBtn.addEventListener('click', close);
+    const goBtn = overlay.querySelector('#noticeGoUpdateBtn');
+    if (goBtn) goBtn.addEventListener('click', () => { close(); go('system_update'); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 }
 
 function showSystemCheckError(msg) {
