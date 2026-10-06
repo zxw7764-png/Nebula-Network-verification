@@ -70,5 +70,3 @@ config/resp_sign_keys.php
 __pycache__/
 *.pyc
 
-# 开发者内部文档不入库（产品正式文档 docs/API*.md docs/ARCHITECTURE.md docs/TEMPLATE.md 必须建库）
-docs/GUIDE.md
