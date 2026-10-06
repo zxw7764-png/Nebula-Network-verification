@@ -4,7 +4,19 @@
 版本号遵循语义化版本（`主.次.修订`）。每次发版请在本文件顶部追加条目，并同步
 `lib/bootstrap.php` 的 `NB_VERSION`；发布到版本更新系统时，把对应条目整理为 `release_notes`。
 
-## [2.65.38] - 2026-10-06
+## [2.65.39] - 2026-10-06
+
+### 安全（三端 SDK 运行时安全策略对齐 C++）
+
+- **Python SDK 补齐服务端 runtime 策略层（对齐 C++/C#）**：
+  - 登录自动携带 `capabilities: {runtime_guard:true}` —— 服务端开启 `require_runtime_guard` 强制策略时才放行（此前 7002 被拒）；
+  - 新增 `nebula/protect.py`：`finite_detect()` ctypes 有限反调试/反VM·沙箱/时序自检（可靠不误报）+ `client.report_runtime_event()` 事件上报；
+  - 事件失败入队、随心跳补发（对齐 C++ heartbeat 前 flush）。
+- **C# SDK 补齐 `ReportRuntimeEvent`**：把 `RuntimeProtection.Scan()` 结果上报到 `runtime_security_event`，
+  网络失败入队、心跳前补发。
+- 三端保持：客户端自报 `risk_level/risk_score` 仅作 telemetry，处置等级由服务端 `RuntimeRiskEngine` 二次定级（防自报压缩处置）。
+
+## ## [2.65.38] - 2026-10-06
 
 ### 修复（系统更新 · 后台目录自动映射）
 
