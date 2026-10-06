@@ -195,7 +195,8 @@ function showSystemCheckError(msg) {
 function compareVersion(a, b) {
     const pa = (a || '0').replace(/^v/i, '').split('.').map(Number);
     const pb = (b || '0').replace(/^v/i, '').split('.').map(Number);
-    for (let i = 0; i < 3; i++) {
+    // 支持 4 段版本号：v主.次.修订.小修（如 2.66.0.1）——比较到最长段，缺位按 0 处理
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
         const va = pa[i] || 0, vb = pb[i] || 0;
         if (va < vb) return -1;
         if (va > vb) return 1;
