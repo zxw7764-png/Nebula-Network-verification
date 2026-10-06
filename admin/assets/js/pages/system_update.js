@@ -25,8 +25,10 @@ async function render() {
                     ${esc(res.msg || '检查更新失败')}
                 </div>
             </div>
-        </div>`;
+        </div>
+        <div id="licCardWrap" style="margin-top:16px"></div>`;
         document.getElementById('suRefresh').addEventListener('click', () => render());
+        renderLicenseCard();
         return;
     }
 
@@ -128,9 +130,11 @@ async function render() {
                 一键更新会自动下载、校验、备份并安装更新包，无需手动上传。
             </div>
         </div>
-    </div>`;
+    </div>
+    <div id="licCardWrap" style="margin-top:16px"></div>`;
 
     document.getElementById('suRefresh').addEventListener('click', () => render());
+    renderLicenseCard();
 
 
     const doBtn = document.getElementById('suDoUpdate');
@@ -208,4 +212,58 @@ function compareVersion(a, b) {
         if (va > vb) return 1;
     }
     return 0;
+}
+
+
+// ------------------------------------------------------------------
+// 授权激活卡片：查看当前授权状态 / 重新填写激活（过期、换码、补激活）
+// ------------------------------------------------------------------
+async function renderLicenseCard() {
+    const wrap = document.getElementById('licCardWrap');
+    if (!wrap) return;
+    const st = await api('license_manage', { op: 'status' }, true);
+    const d = (st.code === 0 && st.data) ? st.data : { configured: false, masked: '', domain: '' };
+
+    wrap.innerHTML = `
+    <div class="card">
+        <div class="card-head">
+            <h3>授权激活 ${d.configured ? tag('已配置', 'green') : tag('未激活', 'yellow')}</h3>
+        </div>
+        <div class="card-body">
+            <div style="font-size:13px;color:var(--text-sub);margin-bottom:12px">
+                ${d.configured
+                    ? `当前授权码：<span class="mono">${esc(d.masked)}</span> · 绑定域名：<span class="mono">${esc(d.domain || '-')}</span>`
+                    : '尚未配置授权激活码。未激活不影响系统使用，但后续开启更新门禁后将无法在线获取新版本。'}
+                授权过期或更换授权码时，在此重新填写即可完成激活（绑定当前域名）。
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <input id="licKeyInput" class="mono" placeholder="32 位授权码" maxlength="32"
+                       oninput="this.value=this.value.toLowerCase().replace(/[^0-9a-f]/g,'')"
+                       style="flex:1;min-width:220px;background:var(--bg-alt);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text)">
+                <button class="btn success sm" id="licActivateBtn">激活 / 重新激活</button>
+            </div>
+        </div>
+    </div>`;
+
+    document.getElementById('licActivateBtn').addEventListener('click', async (ev) => {
+        const btn = ev.currentTarget;
+        const key = (document.getElementById('licKeyInput').value || '').trim();
+        if (!key) { toast('请输入授权码', 'err'); return; }
+        btn.disabled = true; btn.textContent = '激活中...';
+        try {
+            const r = await api('license_manage', { op: 'activate', license_key: key }, true);
+            if (r.code === 0) {
+                toast(r.msg || '激活成功', 'ok');
+                renderLicenseCard();
+                // 激活后刷新更新检查结果
+                render();
+            } else {
+                btn.disabled = false; btn.textContent = '激活 / 重新激活';
+                toast(r.msg || '激活失败', 'err');
+            }
+        } catch (e) {
+            btn.disabled = false; btn.textContent = '激活 / 重新激活';
+            toast('激活请求失败：' + (e.message || '网络错误'), 'err');
+        }
+    });
 }

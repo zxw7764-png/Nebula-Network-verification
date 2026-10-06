@@ -225,6 +225,7 @@ final class AdminPermission
         'system_update_check'   => self::SETTINGS_INFRA,
         'system_update_save'    => self::SETTINGS_INFRA,
         'system_update_do'      => self::SETTINGS_INFRA,
+        'license_manage'        => self::SETTINGS_INFRA,
 
         // ---- Runtime Security（§37 §56） ----
         'rt_overview'           => self::RT_SECURITY_VIEW,
