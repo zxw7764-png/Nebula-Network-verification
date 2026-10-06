@@ -20,6 +20,37 @@ $step = $_GET['step'] ?? '1';
 $msg  = '';
 $err  = '';
 
+/**
+ * 调官方 update-system 授权 API 激活（安装自动激活与手动重试共用）
+ * @return array{ok:bool,msg:string}
+ */
+function nbActivateLicense(string $server, string $key, string $domain): array
+{
+    $ch = curl_init($server . '/api/license.php');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS     => json_encode(['action' => 'activate', 'license_key' => $key, 'domain' => $domain]),
+    ]);
+    $body    = curl_exec($ch);
+    $http    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr = curl_error($ch);
+    curl_close($ch);
+
+    if ($body === false || $http >= 400) {
+        return ['ok' => false, 'msg' => '无法连接授权服务器：' . ($curlErr ?: 'HTTP ' . $http)];
+    }
+    $resp = json_decode((string) $body, true);
+    if (!is_array($resp) || (int) ($resp['code'] ?? -1) !== 0) {
+        return ['ok' => false, 'msg' => (string) ($resp['msg'] ?? '授权服务器返回异常')];
+    }
+    return ['ok' => true, 'msg' => '激活成功，已绑定 ' . $domain];
+}
+
 // 安全守卫：已安装的系统直接拒绝一切提交（防止重装覆盖 config.php / 重建管理员）
 if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'activate_license') {
     http_response_code(403);
@@ -61,28 +92,10 @@ if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 
         $out(false, '无法识别当前部署域名，请通过正式域名访问安装页后重试');
     }
 
-    // 调用授权 API 激活
-    $ch = curl_init($server . '/api/license.php');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 15,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_POST           => true,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_POSTFIELDS     => json_encode(['action' => 'activate', 'license_key' => $key, 'domain' => $domain]),
-    ]);
-    $body   = curl_exec($ch);
-    $http   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlErr = curl_error($ch);
-    curl_close($ch);
-
-    if ($body === false || $http >= 400) {
-        $out(false, '无法连接授权服务器：' . ($curlErr ?: 'HTTP ' . $http) . '（可稍后重试，不影响系统使用）');
-    }
-    $resp = json_decode((string) $body, true);
-    if (!is_array($resp) || (int) ($resp['code'] ?? -1) !== 0) {
-        $out(false, '激活失败：' . (string) ($resp['msg'] ?? '授权服务器返回异常'));
+    // 调用授权 API 激活（公共函数）
+    $r = nbActivateLicense($server, $key, $domain);
+    if (!$r['ok']) {
+        $out(false, $r['msg'] . '（可稍后重试，不影响系统使用）');
     }
 
     // 写入 config.php（preg_replace_callback 纯字面量替换，与安装主流程同规）
@@ -99,7 +112,7 @@ if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 
     );
     file_put_contents($configFile, $cfgNew);
 
-    $out(true, '激活成功，已绑定 ' . $domain);
+    $out(true, $r['msg']);
 }
 
 
@@ -152,6 +165,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'pass' => (string) ($_POST['admin_pass'] ?? ''),
             ];
             $_SESSION['site_name'] = trim($_POST['site_name'] ?? 'Nebula 网络验证');
+
+            // 授权激活码（选填）：格式校验后暂存 session，安装完成时自动激活
+            $licKey = strtolower(trim((string) ($_POST['license_key'] ?? '')));
+            if ($licKey !== '' && !preg_match('/^[0-9a-f]{32}$/', $licKey)) {
+                $err = '授权激活码格式错误：应为 32 位十六进制（可留空稍后激活）';
+                $step = '1';
+            } else {
+                $_SESSION['license_key'] = $licKey;
+            }
 
             // 安全要求 1：必须修改后台目录名（不能保留默认的 admin）
             $adminPath = trim($_POST['admin_path'] ?? '');
@@ -384,9 +406,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $config = preg_replace_callback("/'entry_key'\s*=>\s*'[^']*'/", function ($m) use ($nbQ, $entryToken) { return "'entry_key' => '" . $nbQ($entryToken) . "'"; }, $config);
                 $config = preg_replace_callback("/'path'\s*=>\s*'admin'/",      function ($m) use ($nbQ, $adminPath) { return "'path'     => '" . $nbQ($adminPath) . "'"; }, $config);
 
+                // 授权激活码（第一页填写）：写入 config.php
+                $licKey = (string) ($_SESSION['license_key'] ?? '');
+                if ($licKey !== '' && preg_match("/'license_key'\s*=>\s*'[^']*'/", $config)) {
+                    $config = preg_replace_callback(
+                        "/'license_key'\s*=>\s*'[^']*'/",
+                        static function ($m) use ($nbQ, $licKey) { return "'license_key' => '" . $nbQ($licKey) . "'"; },
+                        $config
+                    );
+                }
+
                 file_put_contents($configFile, $config);
 
                 file_put_contents($root . '/install/install.lock', date('Y-m-d H:i:s'));
+
+                // 自动激活：安装完成立即绑定当前域名（失败不阻断，进入宽限模式）
+                $_SESSION['license_activation'] = null;
+                if ($licKey !== '' && preg_match("/'update_server'\s*=>\s*'([^']+)'/", $config, $mSrv)) {
+                    $domain = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+                    $domain = preg_replace('/:\d+$/', '', $domain);
+                    $domain = preg_replace('/^www\./', '', $domain);
+                    if (preg_match('/^[a-z0-9\-]+(\.[a-z0-9\-]+)+$/', $domain)) {
+                        $_SESSION['license_activation'] = nbActivateLicense(rtrim($mSrv[1], '/'), $licKey, $domain);
+                    } else {
+                        $_SESSION['license_activation'] = ['ok' => false, 'msg' => '无法识别部署域名，未自动激活'];
+                    }
+                }
 
                 $_SESSION['install_result'] = [
                     'admin'       => $adminUser,
@@ -604,6 +649,12 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
                         <input name="admin_path" value="nb<?= substr(bin2hex(random_bytes(4)), 0, 6) ?>" required pattern="[A-Za-z][A-Za-z0-9_-]{2,31}">
                         <div class="tip">⚠ 必须修改（不可用默认 admin）：3-32 位，字母开头，仅字母/数字/-/_。<br>同时请确保 nginx 配置中引用 /admin/ 的规则同步更新（安装程序会自动改写项目内的 nginx.htaccess）。</div>
                     </div>
+                    <h3 style="margin-top:24px">授权激活码（选填，推荐填写）</h3>
+                    <div class="field">
+                        <input name="license_key" placeholder="32 位授权码（可留空，稍后激活）" class="mono" style="letter-spacing:1px"
+                               oninput="this.value=this.value.toLowerCase().replace(/[^0-9a-f]/g,'')" maxlength="32">
+                        <div class="tip">安装完成后将自动绑定当前域名并激活；未激活不影响使用，但官方开启更新门禁后无法在线获取新版本。可到官方门户免费获取试用授权码。</div>
+                    </div>
                     <div class="alert warn" style="margin-top:16px">
                         安全要求：管理员密码必须修改（不能留空或 admin888），后台目录名必须改名 —— 否则无法继续安装。
                     </div>
@@ -698,18 +749,22 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
                 <li><span>密码</span><span><?= htmlspecialchars($result['pass']) ?></span></li>
             </ul>
 
-            <h3 style="margin-top:20px">🔑 授权激活（建议立即完成）</h3>
-            <div class="alert ok" id="licDone" style="display:none"></div>
-            <div class="alert err" id="licFail" style="display:none"></div>
-            <div class="alert warn" id="licHint">
-                输入官方签发的授权码完成激活（绑定当前域名）。<b>不激活不影响系统使用</b>，
-                但开启更新门禁后将无法在线获取新版本与安全补丁，建议尽快激活。
-            </div>
-            <div style="display:flex;gap:8px;margin-top:8px">
-                <input type="text" id="licKey" class="mono" placeholder="32 位授权码" style="flex:1;min-width:0"
-                       oninput="this.value=this.value.toLowerCase().replace(/[^0-9a-f]/g,'')">
-                <button type="button" id="licBtn" onclick="doActivate()" class="btn">激活</button>
-            </div>
+            <h3 style="margin-top:20px">🔑 授权状态</h3>
+            <?php $licAct = $_SESSION['license_activation'] ?? null; ?>
+            <?php if (is_array($licAct) && $licAct['ok']): ?>
+                <div class="alert ok">✅ <?= htmlspecialchars($licAct['msg']) ?>，授权码已写入 config.php。</div>
+            <?php else: ?>
+                <div class="alert warn" id="licHint">
+                    <?= is_array($licAct) ? '⚠ 自动激活未成功：' . htmlspecialchars($licAct['msg']) . '。' : '未填写授权码。' ?>
+                    <b>未激活不影响系统使用</b>，但官方开启更新门禁后无法在线获取新版本与安全补丁，建议尽快激活。
+                </div>
+                <div class="alert err" id="licFail" style="display:none"></div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                    <input type="text" id="licKey" class="mono" placeholder="32 位授权码" style="flex:1;min-width:0"
+                           oninput="this.value=this.value.toLowerCase().replace(/[^0-9a-f]/g,'')">
+                    <button type="button" id="licBtn" onclick="doActivate()" class="btn">重新激活</button>
+                </div>
+            <?php endif; ?>
 
             <h3 style="margin-top:20px">快捷入口（点击直达）</h3>
             <div class="link-cards">
@@ -770,8 +825,8 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
 function doActivate() {
     var key = (document.getElementById('licKey').value || '').trim();
     var btn = document.getElementById('licBtn');
-    var ok = document.getElementById('licDone'), fail = document.getElementById('licFail');
-    ok.style.display = fail.style.display = 'none';
+    var fail = document.getElementById('licFail');
+    fail.style.display = 'none';
     if (!key) { fail.textContent = '请输入授权码'; fail.style.display = 'block'; return; }
     btn.disabled = true; btn.textContent = '激活中...';
     var fd = new FormData();
@@ -780,18 +835,16 @@ function doActivate() {
     fetch(location.pathname, { method: 'POST', body: fd })
         .then(function (r) { return r.json(); })
         .then(function (r) {
-            btn.disabled = false; btn.textContent = '激活';
             if (r.ok) {
-                ok.textContent = '✅ ' + r.msg + '，可直接进入管理后台使用';
-                ok.style.display = 'block';
-                document.getElementById('licHint').style.display = 'none';
+                location.reload(); // 成功后刷新，页面顶部显示激活成功状态
             } else {
+                btn.disabled = false; btn.textContent = '重新激活';
                 fail.textContent = r.msg;
                 fail.style.display = 'block';
             }
         })
         .catch(function () {
-            btn.disabled = false; btn.textContent = '激活';
+            btn.disabled = false; btn.textContent = '重新激活';
             fail.textContent = '网络请求失败，请稍后重试';
             fail.style.display = 'block';
         });
