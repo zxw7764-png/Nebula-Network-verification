@@ -722,6 +722,10 @@ nonce 被重复使用。确保每次请求生成新的随机 nonce（≥8 位）
 > 只有「协议 / 信封 / 密钥派生」类 MINOR 才抬 `min_version` 触发强制更。
 > 完整决策表见 `.catpaw/skills/nebula-development/SKILL.md` §2.5。
 
+> ⚠️ **发版前必检**：① 本次版本号必须**高于** `https://mmbr.serv00.net/api/version.php` 返回的 `latest_version`
+>（远程不允许重复发布同一版本，上传即 400）；② `git log` 与 `CHANGELOG.md` 顶部逐条核对（提交/版本号/build 对齐）。
+> CI 自动发版已内置版本预检，不满足直接失败。
+
 ### 1. 版本号与更新日志
 
 - 修改 `lib/bootstrap.php` 的 `NB_VERSION`（+1），确保仓库空白包与本地开发站两份同步。

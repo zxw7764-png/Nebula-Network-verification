@@ -45,6 +45,24 @@ jobs:
           echo "version=${V}" >> "$GITHUB_OUTPUT"
           echo "tag=v${V}" >> "$GITHUB_OUTPUT"
 
+      - name: 版本预检（远程已存在禁止重复发布）
+        id: check
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          LATEST=$(curl -s "https://mmbr.serv00.net/api/version.php?product=nebula-verification&version=0.0.0&channel=stable" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('latest_version') or '')")
+          if [ -z "$LATEST" ]; then
+            echo "警告: 无法读取远程 latest（网络异常？），继续尝试（若版本重复上传会被拒）"
+            exit 0
+          fi
+          python3 - <<PY
+import sys
+cur = tuple(int(x) for x in "$V".split("."))
+lat = tuple(int(x) for x in "$LATEST".split("."))
+assert cur > lat, f"版本预检失败: 本次 v{cur} 不高于远程 latest v{lat}（版本已存在或更高，禁止重复发布）"
+print(f"版本预检通过: v{cur} > 远程 v{lat}")
+PY
+
       - name: 准备打包源（去掉制品/历史包，避免进更新包）
         run: |
           mkdir -p /tmp/srcpkg
@@ -88,3 +106,27 @@ jobs:
             --title "Nebula v${V}" \
             --notes "CI 自动发版（更新包已上传远程版本服务器：https://mmbr.serv00.net/releases/${V}/update.zip）" \
             -R "${{ github.repository }}"
+
+      - name: 创建 Gitee Release 并上传更新包
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "跳过：未配置 GITEE_TOKEN"
+            exit 0
+          fi
+          GITEE_REPO="xinia/online-verification"
+          RSP=$(curl -s -X POST -H "Content-Type: application/json" \
+            -d "$(python3 -c "import json; print(json.dumps({'tag_name':'v${V}','name':'Nebula v${V}','body':'CI 自动发版（更新包：https://mmbr.serv00.net/releases/${V}/update.zip）','target_commitish':'master'}))")" \
+            "https://gitee.com/api/v5/repos/${GITEE_REPO}/releases?access_token=${GITEE_TOKEN}")
+          RID=$(echo "$RSP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id') or '')")
+          if [ -z "$RID" ]; then
+            echo "Gitee Release 创建失败（同 tag 可能已存在）:"
+            echo "$RSP"
+            exit 1
+          fi
+          echo "Gitee Release id=${RID}"
+          UP=$(curl -s -X POST -F "file=@/tmp/update_${V}.zip" \
+            "https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/${RID}/attach_files?access_token=${GITEE_TOKEN}")
+          echo "Gitee 附件: $(echo "$UP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('name') or d)")"
