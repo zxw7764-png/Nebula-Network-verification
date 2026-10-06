@@ -653,7 +653,7 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
                     <div class="field">
                         <input name="license_key" placeholder="32 位授权码（可留空，稍后激活）" class="mono" style="letter-spacing:1px"
                                oninput="this.value=this.value.toLowerCase().replace(/[^0-9a-f]/g,'')" maxlength="32">
-                        <div class="tip">安装完成后将自动绑定当前域名并激活；未激活不影响使用，但后续开启更新门禁后无法在线获取新版本。可到官方门户免费获取试用授权码。</div>
+                        <div class="tip">安装完成后将自动绑定当前域名并激活；未激活不影响使用，但后续无法在线获取新版本。可到官方门户免费获取试用授权码。</div>
                     </div>
                     <div class="alert warn" style="margin-top:16px">
                         安全要求：管理员密码必须修改（不能留空或 admin888），后台目录名必须改名 —— 否则无法继续安装。
@@ -756,7 +756,7 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
             <?php else: ?>
                 <div class="alert warn" id="licHint">
                     <?= is_array($licAct) ? '⚠ 自动激活未成功：' . htmlspecialchars($licAct['msg']) . '。' : '未填写授权码。' ?>
-                    <b>未激活不影响系统使用</b>，但后续开启更新门禁后无法在线获取新版本与安全补丁，建议尽快激活。
+                    <b>未激活不影响系统使用</b>，但后续无法在线获取新版本与安全补丁，建议尽快激活。
                 </div>
                 <div class="alert err" id="licFail" style="display:none"></div>
                 <div style="display:flex;gap:8px;margin-top:8px">
