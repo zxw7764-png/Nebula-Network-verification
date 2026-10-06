@@ -23,11 +23,15 @@ if ($updateServer === '') {
 }
 
 // 构造请求参数（与 update-system api/version.php 的参数一致）
+// v2.66.0 起携带本站授权码 + 部署域名：更新服务器开启「更新门禁」时，
+// 无有效授权将拿不到下载地址（license_required=true）。
 $params = http_build_query([
     'product' => 'nebula-verification',
     'version' => $currentVersion,
     'build'   => 0,
     'channel' => 'stable',
+    'license_key' => (string) Config::get('license_key', ''),
+    'domain'      => strtolower((string) ($_SERVER['HTTP_HOST'] ?? '')),
 ]);
 
 $url = rtrim($updateServer, '/') . '/api/version.php?' . $params;
@@ -68,6 +72,12 @@ if ($body === false || $httpCode >= 400) {
 $data = json_decode($body, true);
 if (!is_array($data) || !($data['success'] ?? false)) {
     Response::error(1001, '版本更新服务返回数据格式错误');
+}
+
+// 授权门禁响应：服务器要求授权但本站未激活 / 授权无效 → 明确提示并透传原因
+if (!empty($data['license_required']) && empty($data['download_url'])) {
+    Response::error(1002, '获取更新需要有效授权：' . (string) ($data['license_msg'] ?? '未激活或授权无效')
+        . '。请在安装页或 config.php 的 license_key 中配置授权码，激活后重试。');
 }
 
 // 缓存 6 小时

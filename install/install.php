@@ -21,10 +21,87 @@ $msg  = '';
 $err  = '';
 
 // 安全守卫：已安装的系统直接拒绝一切提交（防止重装覆盖 config.php / 重建管理员）
-if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'activate_license') {
     http_response_code(403);
     exit('系统已安装，如需重装请先删除 install/install.lock');
 }
+
+// ------------------------------------------------------------------
+// 授权激活（v2.66.0 新增，安装成功页调用）
+// ------------------------------------------------------------------
+// 仅允许 install.lock 存在（安装已完成）后调用：
+// 输入授权码 → 调官方 update-system 的 api/license.php 激活并绑定当前域名
+// → 成功后写入 config/config.php 的 license_key。
+// 失败不阻断使用（宽限模式），后台「系统更新」会持续提示未激活。
+if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activate_license') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $out = static function (bool $ok, string $msg): void {
+        echo json_encode(['ok' => $ok, 'msg' => $msg], JSON_UNESCAPED_UNICODE);
+        exit;
+    };
+
+    $key = strtolower(trim((string) ($_POST['license_key'] ?? '')));
+    if (!preg_match('/^[0-9a-f]{32}$/', $key)) {
+        $out(false, '授权码格式不正确（应为 32 位十六进制）');
+    }
+
+    // 从 config.php 读取官方更新服务器地址
+    $cfgSrc = (string) @file_get_contents($configFile);
+    if (!preg_match("/'update_server'\s*=>\s*'([^']+)'/", $cfgSrc, $mServer) || trim($mServer[1]) === '') {
+        $out(false, 'config.php 中缺少 update_server 配置，无法激活');
+    }
+    $server = rtrim($mServer[1], '/');
+
+    // 当前部署站域名（归一化：去端口、去 www.、转小写，与服务端规则一致）
+    $domain = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    $domain = preg_replace('/:\d+$/', '', $domain);
+    $domain = preg_replace('/^www\./', '', $domain);
+    if (!preg_match('/^[a-z0-9\-]+(\.[a-z0-9\-]+)+$/', $domain)) {
+        $out(false, '无法识别当前部署域名，请通过正式域名访问安装页后重试');
+    }
+
+    // 调用授权 API 激活
+    $ch = curl_init($server . '/api/license.php');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS     => json_encode(['action' => 'activate', 'license_key' => $key, 'domain' => $domain]),
+    ]);
+    $body   = curl_exec($ch);
+    $http   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr = curl_error($ch);
+    curl_close($ch);
+
+    if ($body === false || $http >= 400) {
+        $out(false, '无法连接授权服务器：' . ($curlErr ?: 'HTTP ' . $http) . '（可稍后重试，不影响系统使用）');
+    }
+    $resp = json_decode((string) $body, true);
+    if (!is_array($resp) || (int) ($resp['code'] ?? -1) !== 0) {
+        $out(false, '激活失败：' . (string) ($resp['msg'] ?? '授权服务器返回异常'));
+    }
+
+    // 写入 config.php（preg_replace_callback 纯字面量替换，与安装主流程同规）
+    $nbQ = static function (string $v): string {
+        return str_replace(['\\', "'"], ['\\\\', "\\'"], $v);
+    };
+    if (!preg_match("/'license_key'\s*=>\s*'[^']*'/", $cfgSrc)) {
+        $out(false, 'config.php 缺少 license_key 配置项（请使用官方完整安装包）');
+    }
+    $cfgNew = preg_replace_callback(
+        "/'license_key'\s*=>\s*'[^']*'/",
+        static function ($m) use ($nbQ, $key) { return "'license_key' => '" . $nbQ($key) . "'"; },
+        $cfgSrc
+    );
+    file_put_contents($configFile, $cfgNew);
+
+    $out(true, '激活成功，已绑定 ' . $domain);
+}
+
 
 
 // ------------------------------------------------------------------
@@ -621,6 +698,19 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
                 <li><span>密码</span><span><?= htmlspecialchars($result['pass']) ?></span></li>
             </ul>
 
+            <h3 style="margin-top:20px">🔑 授权激活（建议立即完成）</h3>
+            <div class="alert ok" id="licDone" style="display:none"></div>
+            <div class="alert err" id="licFail" style="display:none"></div>
+            <div class="alert warn" id="licHint">
+                输入官方签发的授权码完成激活（绑定当前域名）。<b>不激活不影响系统使用</b>，
+                但开启更新门禁后将无法在线获取新版本与安全补丁，建议尽快激活。
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+                <input type="text" id="licKey" class="mono" placeholder="32 位授权码" style="flex:1;min-width:0"
+                       oninput="this.value=this.value.toLowerCase().replace(/[^0-9a-f]/g,'')">
+                <button type="button" id="licBtn" onclick="doActivate()" class="btn">激活</button>
+            </div>
+
             <h3 style="margin-top:20px">快捷入口（点击直达）</h3>
             <div class="link-cards">
                 <a class="link-card" href="<?= $home ?>">
@@ -676,5 +766,36 @@ h3 { font-size: 15px; margin-bottom: 12px; color: #f1f5f9; }
     </div>
 </div>
 <script src="../assets/input-filter.js?v=<?= time() ?>"></script>
+<script>
+function doActivate() {
+    var key = (document.getElementById('licKey').value || '').trim();
+    var btn = document.getElementById('licBtn');
+    var ok = document.getElementById('licDone'), fail = document.getElementById('licFail');
+    ok.style.display = fail.style.display = 'none';
+    if (!key) { fail.textContent = '请输入授权码'; fail.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = '激活中...';
+    var fd = new FormData();
+    fd.append('action', 'activate_license');
+    fd.append('license_key', key);
+    fetch(location.pathname, { method: 'POST', body: fd })
+        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            btn.disabled = false; btn.textContent = '激活';
+            if (r.ok) {
+                ok.textContent = '✅ ' + r.msg + '，可直接进入管理后台使用';
+                ok.style.display = 'block';
+                document.getElementById('licHint').style.display = 'none';
+            } else {
+                fail.textContent = r.msg;
+                fail.style.display = 'block';
+            }
+        })
+        .catch(function () {
+            btn.disabled = false; btn.textContent = '激活';
+            fail.textContent = '网络请求失败，请稍后重试';
+            fail.style.display = 'block';
+        });
+}
+</script>
 </body>
 </html>
