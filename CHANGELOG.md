@@ -4,6 +4,17 @@
 版本号遵循语义化版本（`主.次.修订`）。每次发版请在本文件顶部追加条目，并同步
 `lib/bootstrap.php` 的 `NB_VERSION`；发布到版本更新系统时，把对应条目整理为 `release_notes`。
 
+## [2.66.4.11] - 2026-10-10
+
+### 安全（更新授权门禁加固 · 采纳静态审计建议）
+
+- **发行包静态直链封禁**：`update-system/.htaccess` 整目录拒绝 `releases/`，并新增 `releases/.htaccess` 纵深防御（双层）。更新包只能经 `api/download.php` 限时令牌下载；Nginx 部署需在 server 块补 `location ^~ /releases/ { deny all; }`；
+- **门禁异常 fail-closed**：`api/version.php` 授权服务异常/DB 不可用时不再退回公开下载地址 —— 新增 `storage/license_gate.on` 粘性标志，门禁曾开启而状态不可读时直接拒绝下发 `download_url`（`License::gateEnabled()` 重构）；
+- **授权码改 POST 传输**：后台 `system_update_check` 不再把 license_key 拼查询字符串，重定向仅允许 HTTPS 且锁定最终主机必须为配置的更新服务器；`api/version.php` 同步支持 POST 读取；
+- **配置写入校验**：后台 `license_manage` 与安装器的 config.php 写入失败时明确报错（授权已在服务器绑定，需手动补写 license_key 或解绑重试），不再谎报激活成功；
+- **试用授权域名唯一约束**：`licenses.domain` 改可 NULL + 唯一索引 `uk_domain`（NULL=未绑定），并发「先查后插」不再可能为同一域名重复领取；`install/schema.sql` 已更新，存量库执行 `update-system/migrate_uk_domain.php`（幂等，CLI 或本机访问）；
+- update-system 版本 1.2.2 → 1.2.3。
+
 ## [2.66.4.10] - 2026-10-10
 
 ### 安全（登录时序加固）
