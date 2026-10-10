@@ -4,6 +4,17 @@
 版本号遵循语义化版本（`主.次.修订`）。每次发版请在本文件顶部追加条目，并同步
 `lib/bootstrap.php` 的 `NB_VERSION`；发布到版本更新系统时，把对应条目整理为 `release_notes`。
 
+## [2.66.4.9] - 2026-10-10
+
+### SDK 发行版（纯 DLL SDK v2.2 · 四端全家桶）
+
+- **新增第四种 SDK 形态：NebulaSDK 纯 DLL 黑盒**（`Nebula-DLL-SDK-v2.66.4.zip`，x86/x64 二进制分发，面向易语言/Delphi 等）：
+  - 完整 Nebula 3.1 协议封装（ECDH P-256 + AES-256-GCM + ES256 验签），纯 Windows CNG 实现、零第三方依赖，`__stdcall` 公开 API，调用方零密码学代码；
+  - **运行时安全策略对齐三端**：自动捕获 login/init/heartbeat 下发的 `runtime_policy`（`Nebula_GetRuntimePolicy`）；`Nebula_SecurityCheck` 有限自检并按服务端策略处置（REPORT/POPUP/TERMINATE/REVOKE_SESSION）；`Nebula_ReportRuntimeEvent` 事件上报（失败入队随心跳补发）；登录自动声明 `capabilities.runtime_guard`；
+  - 可选自动心跳线程 `Nebula_SetAutoHeartbeat`（默认关闭）；内置提示框 API + 反调试 + 敏感内存清零 + Release 加固。
+- **修复（v2.1）**：登录请求 `const char*` 实参被隐式转 `bool`（`"code": true`）导致登录必败（3001/1001）；Feature 解密密钥派生对齐生态（`|nebula-feature-aes/-mac`）；响应 sid 一致性校验。
+- **四端全家桶 Release**：tag `v2.66.4-dll-sdk-release`（GitHub + Gitee），DLL v2.2 + 三语言源码包（版本号统一 2.66.4）。
+
 ## [2.66.4.8] - 2026-10-06
 
 ### 优化（试用弹窗）
