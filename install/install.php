@@ -153,7 +153,10 @@ if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? 
         static function ($m) use ($nbQ, $key) { return "'license_key' => '" . $nbQ($key) . "'"; },
         $cfgSrc
     );
-    file_put_contents($configFile, $cfgNew);
+    if (@file_put_contents($configFile, $cfgNew) === false) {
+        $out(false, '授权已在服务器绑定成功，但写入 config/config.php 失败（磁盘满或权限不足）。'
+            . '请手动将 config.php 中 license_key 设置为：' . $key . '，或联系管理员解绑后重试');
+    }
 
     $out(true, $r['msg']);
 }
@@ -459,7 +462,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     );
                 }
 
-                file_put_contents($configFile, $config);
+                if (@file_put_contents($configFile, $config) === false) {
+                    $out(false, '写入 config/config.php 失败（磁盘满或权限不足），请检查目录权限后重试安装');
+                }
 
                 file_put_contents($root . '/install/install.lock', date('Y-m-d H:i:s'));
 
