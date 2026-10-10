@@ -1,0 +1,41 @@
+# ============================================================
+# 在线版本更新系统 - Apache 目录保护
+# ============================================================
+
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "no-referrer"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 敏感目录整目录拒绝（install/ 除外，安装向导需可访问）
+    RewriteRule ^(?:config|lib|partials|storage)/ - [F,L]
+    # install/ 只放行安装向导本身
+    RewriteRule ^install/install\.php$ - [L]
+    RewriteRule ^install/ - [F,L]
+
+    # 后台 handlers 目录：放行 .php 请求，拒绝其他（防目录浏览/敏感文件下载）
+    RewriteRule ^admin/handlers/.*\.php$ - [L]
+    RewriteRule ^admin/handlers/ - [F,L]
+
+    # 敏感文件：扩展名命中即拒绝，并覆盖 .bak_20261007 / .bak.20261006 这类
+    # 带日期后缀的备份名（此前用 \.bak$ 结尾匹配，挡不住带后缀的备份，
+    # 导致部署残留的 licenses.php.bak_* / upload.php.bak.* 可被公网下载）
+    RewriteRule \.(?:sql|log|md|lock|json|ini|sh|bak|old|orig|save|swp|tmp|pem|dist|sample)(?:[._-][A-Za-z0-9._-]*)?$ - [F,L]
+    # 编辑器临时文件
+    RewriteRule ~$ - [F,L]
+
+    # 发行包目录整目录拒绝：更新包必须经 api/download.php 令牌校验后流式输出，
+    # 直接访问 releases/{v}/update.zip 一律 403（Nginx 部署请参考 INSTALL.md 补 location 规则）
+    RewriteRule ^releases/ - [F,L]
+
+    # 根目录散落文件：发行 zip 归档、CLI 专用打包/测试脚本
+    RewriteRule ^[^/]+\.(?:zip|py)$ - [F,L]
+    RewriteRule ^gen_test_package\.php$ - [F,L]
+</IfModule>
