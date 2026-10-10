@@ -46,6 +46,19 @@ if ($clientVer !== '') {
     }
 }
 
+// §89 §90: 客户端能力检查（前移）—— 必须在创建会话 / 设备校验与绑定之前执行，
+// 否则能力不符的登录虽被拒绝，仍会留下会话记录、把设备 IP 刷写甚至占用绑定名额
+if (!RuntimeGuard::checkRuntimeGuardRequired($sw, $requestData)) {
+    Logger::log('login', 0, '客户端不支持 RuntimeGuard，被强制策略拒绝', [
+        'app_key'    => $sw['app_key'] ?? '',
+        'machine_id' => $machineId,
+    ]);
+    Response::send(7002, '当前软件要求运行时安全防护，请更新客户端版本', [
+        'need_relogin'           => true,
+        'runtime_guard_required' => true,
+    ]);
+}
+
 // 登录爆破防护
 $attemptLimit = (int) Config::get('policy.login_attempt_per_min', 10);
 if (!RateLimit::hit('login:' . Util::ip(), $attemptLimit, 60)) {
@@ -205,22 +218,9 @@ Logger::log('login', 1, '登录成功', [
 $grace = Grace::issue($user, $token, $machineId, true);
 
 // §32 §33 §86 §87 §88 §89 §90: Login 响应下发 Runtime Policy + 能力协商
-// §89 §90: 如果软件/全局策略要求 RuntimeGuard，客户端不支持时拒绝登录
+// （强制 RuntimeGuard 检查已前移到会话创建之前；此处仅做能力解析用于策略下发）
 $rtCapabilities = $requestData['capabilities'] ?? [];
 $rtGuardSupported = is_array($rtCapabilities) && !empty($rtCapabilities['runtime_guard']);
-
-// 强制 RuntimeGuard 检查
-if (!RuntimeGuard::checkRuntimeGuardRequired($sw, $requestData)) {
-    Logger::log('login', 0, '客户端不支持 RuntimeGuard，被强制策略拒绝', [
-        'user_id'   => $user['id'],
-        'username'  => $username,
-        'app_key'   => $sw['app_key'] ?? '',
-    ]);
-    Response::send(7002, '当前软件要求运行时安全防护，请更新客户端版本', [
-        'need_relogin'       => true,
-        'runtime_guard_required' => true,
-    ]);
-}
 
 $rtPolicyData = null;
 if ($rtGuardSupported) {
