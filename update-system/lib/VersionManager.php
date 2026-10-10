@@ -1012,4 +1012,45 @@ class VersionManager
         if ($bytes >= 1024) return round($bytes / 1024, 1) . ' KB';
         return $bytes . ' B';
     }
+
+    // ------------------------------------------------------------------
+    // 大版本轮换：新版本上架后，删除更新系统中「之前所有大版本」的
+    // release 记录与 releases/{v}/ 包文件。
+    // 规则（2026-10-10 起）：每次大版本更新，只保留当前大版本的版本线，
+    // 旧大版本（如 1.x 对 2.x）的记录与发行包一并清除，不再提供下载。
+    // ------------------------------------------------------------------
+    public static function prunePreviousMajors(string $keepVersion): array
+    {
+        $keepMajor = (int) explode('.', $keepVersion)[0];
+        $removed = [];
+        try {
+            $rows = DB::all('SELECT id, version FROM ' . DB::t('releases'));
+        } catch (\Throwable $e) {
+            return $removed;
+        }
+        foreach ($rows as $row) {
+            $v = (string) $row['version'];
+            if ((int) explode('.', $v)[0] === $keepMajor) continue;
+            // 先删发行包目录（releases/{v}/）
+            $dir = APP_ROOT . '/releases/' . $v;
+            if (is_dir($dir)) {
+                foreach (glob($dir . '/*') ?: [] as $f) {
+                    @is_dir($f) ? self::rrmdir($f) : @unlink($f);
+                }
+                @rmdir($dir);
+            }
+            DB::exec('DELETE FROM ' . DB::t('releases') . ' WHERE id = ?', [(int) $row['id']]);
+            $removed[] = $v;
+        }
+        return $removed;
+    }
+
+    /** 递归删除目录（供 prunePreviousMajors 使用） */
+    private static function rrmdir(string $dir): void
+    {
+        foreach (glob($dir . '/*') ?: [] as $f) {
+            is_dir($f) ? self::rrmdir($f) : @unlink($f);
+        }
+        @rmdir($dir);
+    }
 }
