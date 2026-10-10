@@ -96,7 +96,15 @@ if ($op === 'activate') {
         },
         $cfg
     );
-    file_put_contents($configFile, $cfg);
+    // 写入结果必须检查：授权服务器侧已完成域名绑定，若本地配置写失败
+    // （磁盘满/权限问题），后台不能谎报"激活成功"——否则运维以为配置
+    // 已持久化，实际 update_server 检查时仍是无授权状态
+    if (@file_put_contents($configFile, $cfg) === false) {
+        Response::error(5000,
+            '授权已在服务器绑定成功，但写入本地 config/config.php 失败（磁盘满或权限不足）。'
+            . '请手动在 config.php 中将 license_key 设置为：' . $key
+            . ' ，或联系管理员解绑后重试');
+    }
 
     Audit::log($admin, 'license_activate', '系统授权',
         '授权激活成功（绑定 ' . $domain . '）', [], ['domain' => $domain]);
