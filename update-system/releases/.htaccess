@@ -1,0 +1,13 @@
+# ============================================================
+# releases/ 防护（纵深防御第二层）
+# 更新包必须经 api/download.php 令牌校验后下载，
+# 本目录禁止一切直接 HTTP 访问。
+# （Nginx 不读取 .htaccess，请在 server 块加：location ^~ /releases/ { deny all; }）
+# ============================================================
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
