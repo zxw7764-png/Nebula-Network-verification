@@ -762,8 +762,11 @@ curl -u xiaomihu:zxweq967423 \
 
 ### 4. SDK 发行版（Release）
 
-- 三语言 SDK 以 Release zip 分发：`Nebula-CPP-SDK-v2.65.34.zip` / `Nebula-CSharp-SDK-v2.65.34.zip` / `Nebula-Python-SDK-v2.65.34.zip`；
-- 发布到 GitHub（Release 附件）与 Gitee（`attach_files` 接口上传附件）双平台，tag 形如 `v2.65.34-sdk-release`；
+- 四端 SDK 以 Release zip 分发（同一 tag 下挂全部附件）：
+  - `Nebula-DLL-SDK-v2.66.4.zip` —— 纯 DLL 黑盒 SDK（x86/x64 dll + lib + `NebulaSDK.h` + 使用文档），面向易语言/Delphi 等零密码学实现场景；
+  - `Nebula-CPP-SDK-2.66.4.zip` / `Nebula-CSharp-SDK-2.66.4.zip` / `Nebula-Python-SDK-2.66.4.zip` —— 三语言源码 SDK；
+- 发布到 GitHub（Release 附件）与 Gitee（`attach_files` 接口上传附件）双平台，tag 形如 `v2.66.4-dll-sdk-release`（当前最新）；
+- DLL 版与三端能力对齐：runtime_policy 策略缓存、`Nebula_SecurityCheck` 有限自检+策略处置、`Nebula_ReportRuntimeEvent` 事件上报（失败入队随心跳补发）、可选自动心跳 `Nebula_SetAutoHeartbeat`；
 - 详见 `.catpaw/skills/nebula-development/SKILL.md` 的发布规则（唯一权威）。
 
 ## 许可
