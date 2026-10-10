@@ -20,7 +20,7 @@ define('NB_START', microtime(true));
 
 // 后台前端静态资源版本号（用于缓存刷新，改前端后递增即可）
 if (!defined('NB_VERSION')) {
-    define('NB_VERSION', '2.66.4.10');
+    define('NB_VERSION', '2.66.4.11');
 }
 
 // ------------------------------------------------------------------
