@@ -1,0 +1,1967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>开发文档 · Nebula 网络验证</title>
+<meta name="description" content="Nebula 网络验证开发文档中心：C++ / C# / Python SDK 接入指南、客户端加固指南与 HTTP 接口协议。">
+<link rel="stylesheet" href="assets/css/style.css?v=20261003b">
+<link rel="stylesheet" href="assets/css/docs.css?v=20260929b">
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="assets/img/logo.png">
+</head>
+<body class="docs-page">
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></symbol>
+</svg>
+
+<header class="nav scrolled" id="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.php">
+      <span class="brand-logo brand-logo-img"><img src="assets/img/logo.png" alt="Nebula Logo"></span>
+      <span class="brand-name">Nebula<span class="brand-sub">网络验证</span></span>
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.php"><svg class="icon"><use href="#i-home"/></svg> 官网首页</a>
+      <a href="#d1-h0" data-doc-link="d1">SDK 接入</a>
+      <a href="#d2-h0" data-doc-link="d2">加固指南</a>
+      <a href="#d3-h0" data-doc-link="d3">接口协议</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-primary" href="https://gitee.com/xinia/online-verification" target="_blank" rel="noopener">获取项目</a>
+    </div>
+    <button class="nav-burger" id="tocToggle" aria-label="打开目录">
+      <svg class="icon" id="burgerIcon"><use href="#i-menu"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="docs-wrap">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-search">
+      <svg class="icon"><use href="#i-search"/></svg>
+      <input type="text" id="tocSearch" placeholder="搜索目录…" autocomplete="off">
+    </div>
+    <div class="doc-tabs" id="docTabs">
+<button class="doc-tab" data-doc="d1" type="button"><svg class="icon"><use href="#i-book"/></svg>SDK 接入指南</button>
+<button class="doc-tab" data-doc="d2" type="button"><svg class="icon"><use href="#i-book"/></svg>客户端加固指南</button>
+<button class="doc-tab" data-doc="d3" type="button"><svg class="icon"><use href="#i-book"/></svg>HTTP 接口协议</button>
+<button class="doc-tab" data-doc="d4" type="button"><svg class="icon"><use href="#i-book"/></svg>C# SDK 接入</button>
+<button class="doc-tab" data-doc="d5" type="button"><svg class="icon"><use href="#i-book"/></svg>Python SDK 接入</button>
+    </div>
+    <div class="toc-blocks" id="tocBlocks">
+<nav class="toc" id="toc-d1" data-doc="d1"><a class="toc-l1" href="#d1-h0" data-doc="d1">Nebula C++ SDK 接入文档</a>
+<a class="toc-l2" href="#d1-h1" data-doc="d1">1. 概述</a>
+<a class="toc-l2" href="#d1-h2" data-doc="d1">2. 环境要求</a>
+<a class="toc-l2" href="#d1-h3" data-doc="d1">3. 五分钟接入</a>
+<a class="toc-l3" href="#d1-h4" data-doc="d1">方式 A：内置配置区一行接入（推荐）</a>
+<a class="toc-l3" href="#d1-h5" data-doc="d1">方式 B：构造时手动传参</a>
+<a class="toc-l2" href="#d1-h6" data-doc="d1">4. Client 构造参数</a>
+<a class="toc-l2" href="#d1-h7" data-doc="d1">5. 流程 API</a>
+<a class="toc-l3" href="#d1-h8" data-doc="d1">5.1 init · 初始化</a>
+<a class="toc-l3" href="#d1-h9" data-doc="d1">5.2 login · 登录</a>
+<a class="toc-l3" href="#d1-h10" data-doc="d1">5.3 heartbeat · 心跳保活</a>
+<a class="toc-l3" href="#d1-h11" data-doc="d1">5.4 logout · 登出</a>
+<a class="toc-l2" href="#d1-h12" data-doc="d1">6. 内置提示与自定义 UI</a>
+<a class="toc-l3" href="#d1-h13" data-doc="d1">自定义提示 UI</a>
+<a class="toc-l3" href="#d1-h14" data-doc="d1">弹窗公告（每次登录提示）</a>
+<a class="toc-l3" href="#d1-h15" data-doc="d1">立即下发公告（看过即不再显示）</a>
+<a class="toc-l3" href="#d1-h16" data-doc="d1">纯校验（不要弹窗）</a>
+<a class="toc-l2" href="#d1-h17" data-doc="d1">7. 完整性自校验（防篡改）</a>
+<a class="toc-l2" href="#d1-h18" data-doc="d1">8. 设备与指纹（自动上报，无需接入方处理）</a>
+<a class="toc-l2" href="#d1-h19" data-doc="d1">9. 业务 API（登录后）</a>
+<a class="toc-l2" href="#d1-h20" data-doc="d1">10. 离线宽限（可选）</a>
+<a class="toc-l2" href="#d1-h21" data-doc="d1">11. 自动更新（可选 · 全自动下载 + 替换 + 重启）</a>
+<a class="toc-l3" href="#d1-h22" data-doc="d1">更新策略</a>
+<a class="toc-l3" href="#d1-h23" data-doc="d1">三步式 API（想自己控制时机时用）</a>
+<a class="toc-l3" href="#d1-h24" data-doc="d1">安全设计（重要）</a>
+<a class="toc-l3" href="#d1-h25" data-doc="d1">为什么必须"退出后才替换"</a>
+<a class="toc-l3" href="#d1-h26" data-doc="d1">接入建议</a>
+<a class="toc-l2" href="#d1-h27" data-doc="d1">12. 编译与常见问题</a>
+<a class="toc-l2" href="#d1-h28" data-doc="d1">13. 客户端加固（可选 · 默认全部关闭）</a>
+<a class="toc-l3" href="#d1-h29" data-doc="d1">13.1 授权门卫（可选）：内置登录判定保护</a><a class="toc-l2" href="#d1-h30" data-doc="d1">附：Python SDK 接入要点</a></nav>
+<nav class="toc" id="toc-d2" data-doc="d2"><a class="toc-l1" href="#d2-h0" data-doc="d2">Nebula SDK 客户端加固指南（壳标记 · 代码混淆 · 反调试 · 反虚拟机）</a>
+<a class="toc-l2" href="#d2-h1" data-doc="d2">0. 30 秒上手</a>
+<a class="toc-l3" href="#d2-h2" data-doc="d2">0.1 开关一览</a>
+<a class="toc-l3" href="#d2-h3" data-doc="d2">0.2 三种打开方式</a>
+<a class="toc-l3" href="#d2-h4" data-doc="d2">0.3 怎么知道有没有生效</a>
+<a class="toc-l3" href="#d2-h5" data-doc="d2">0.4 推荐组合</a>
+<a class="toc-l2" href="#d2-h6" data-doc="d2">1. ① 壳标记（VMProtect / Themida / 自定义壳）</a>
+<a class="toc-l3" href="#d2-h7" data-doc="d2">1.1 它做了什么</a>
+<a class="toc-l3" href="#d2-h8" data-doc="d2">1.2 建议你自己再标哪些函数</a>
+<a class="toc-l3" href="#d2-h9" data-doc="d2">1.3 怎么让壳真的生效（VMProtect 为例）</a>
+<a class="toc-l3" href="#d2-h10" data-doc="d2">1.4 宏名对不上怎么办（Enigma / Obsidium / 老版本 Themida）</a>
+<a class="toc-l3" href="#d2-h11" data-doc="d2">1.5 加壳的坑（务必看）</a>
+<a class="toc-l3" href="#d2-h12" data-doc="d2">1.6 报 C3861「找不到标识符 VMProtectBegin…/VMProtectEnd」怎么修</a>
+<a class="toc-l2" href="#d2-h13" data-doc="d2">2. ② 核心代码混淆</a>
+<a class="toc-l3" href="#d2-h14" data-doc="d2">2.1 字符串加密（`NEBULA_STR` / `NEBULA_WSTR`）</a>
+<a class="toc-l3" href="#d2-h15" data-doc="d2">2.2 间接调用（打散调用图）</a>
+<a class="toc-l3" href="#d2-h16" data-doc="d2">2.3 不透明谓词 / 虚假分支</a>
+<a class="toc-l3" href="#d2-h17" data-doc="d2">2.4 编译期建议</a>
+<a class="toc-l3" href="#d2-h18" data-doc="d2">2.5 运行时多样性（`NEBULA_RUNTIME_DIVERSE`）</a>
+<a class="toc-l2" href="#d2-h19" data-doc="d2">3. ③ 运行时防护（反调试 / 反虚拟机沙箱 / 自检）</a>
+<a class="toc-l3" href="#d2-h20" data-doc="d2">3.1 三个等级各查什么</a>
+<a class="toc-l3" href="#d2-h21" data-doc="d2">3.2 怎么用</a>
+<a class="toc-l3" href="#d2-h22" data-doc="d2">3.3 `Report` 字段</a>
+<a class="toc-l3" href="#d2-h23" data-doc="d2">3.4 动作策略（`NEBULA_PROTECT_ACTION`）</a>
+<a class="toc-l3" href="#d2-h24" data-doc="d2">3.4.1 setProtectAction 会「隐式启用检测」（重要）</a>
+<a class="toc-l3" href="#d2-h25" data-doc="d2">3.4.2 宽松 / 严格策略（防误伤：加速器 / 隐身 VM）</a>
+<a class="toc-l3" href="#d2-h26" data-doc="d2">3.4.3 虚拟机识别的兜底检测（抓"隐身 VM"）</a>
+<a class="toc-l3" href="#d2-h27" data-doc="d2">3.5 代码补丁自检（`guardCode`）</a>
+<a class="toc-l3" href="#d2-h28" data-doc="d2">3.6 后台巡检</a>
+<a class="toc-l3" href="#d2-h29" data-doc="d2">3.7 误报怎么收场</a>
+<a class="toc-l2" href="#d2-h30" data-doc="d2">4. 与服务端风控的关系（重要）</a>
+<a class="toc-l2" href="#d2-h31" data-doc="d2">5. 兼容性 / 常见问题</a>
+<a class="toc-l2" href="#d2-h32" data-doc="d2">6. 一页速查</a></nav>
+<nav class="toc" id="toc-d3" data-doc="d3"><a class="toc-l1" href="#d3-h0" data-doc="d3">Nebula 网络验证 · 接口文档</a>
+<a class="toc-l2" href="#d3-h2" data-doc="d3">一、通信协议</a>
+<a class="toc-l3" href="#d3-h3" data-doc="d3">1.1 请求格式</a>
+<a class="toc-l3" href="#d3-h4" data-doc="d3">1.2 加密参数</a>
+<a class="toc-l3" href="#d3-h5" data-doc="d3">1.2.1 会话级签名密钥（k 字段）</a>
+<a class="toc-l3" href="#d3-h6" data-doc="d3">1.3 响应格式</a>
+<a class="toc-l3" href="#d3-h7" data-doc="d3">1.3.1 明文白名单接口</a>
+<a class="toc-l3" href="#d3-h8" data-doc="d3">1.4 业务状态码</a>
+<a class="toc-l2" href="#d3-h9" data-doc="d3">二、客户端接口</a>
+<a class="toc-l3" href="#d3-h10" data-doc="d3">2.1 init · 初始化</a>
+<a class="toc-l3" href="#d3-h11" data-doc="d3">2.2 register · 注册</a>
+<a class="toc-l3" href="#d3-h12" data-doc="d3">2.3 login · 登录</a>
+<a class="toc-l3" href="#d3-h13" data-doc="d3">2.4 heartbeat · 心跳</a>
+<a class="toc-l3" href="#d3-h14" data-doc="d3">2.5 activate · 激活卡密</a>
+<a class="toc-l3" href="#d3-h15" data-doc="d3">2.6 unbind · 解绑设备</a>
+<a class="toc-l3" href="#d3-h16" data-doc="d3">2.7 devices · 设备列表</a>
+<a class="toc-l3" href="#d3-h17" data-doc="d3">2.8 userinfo · 用户信息</a>
+<a class="toc-l3" href="#d3-h18" data-doc="d3">2.9 notice · 公告</a>
+<a class="toc-l3" href="#d3-h19" data-doc="d3">2.10 version · 版本校验</a>
+<a class="toc-l3" href="#d3-h20" data-doc="d3">2.11 online · 在线人数</a>
+<a class="toc-l3" href="#d3-h21" data-doc="d3">2.12 download · 客户端下载地址（官网）</a>
+<a class="toc-l3" href="#d3-h22" data-doc="d3">2.13 logout · 退出</a>
+<a class="toc-l3" href="#d3-h23" data-doc="d3">2.14 设备指纹（可选）</a>
+<a class="toc-l3" href="#d3-h24" data-doc="d3">2.15 限流与枚举防护</a>
+<a class="toc-l3" href="#d3-h25" data-doc="d3">2.16 离线宽限协议</a>
+<a class="toc-l3" href="#d3-h31" data-doc="d3">2.17 官网互动接口</a>
+<a class="toc-l2" href="#d3-h32" data-doc="d3">三、管理后台接口</a>
+<a class="toc-l3" href="#d3-h33" data-doc="d3">3.1 认证方式</a>
+<a class="toc-l3" href="#d3-h35" data-doc="d3">3.2 接口清单</a>
+<a class="toc-l3" href="#d3-h40" data-doc="d3">3.3 角色权限</a>
+<a class="toc-l3" href="#d3-h41" data-doc="d3">3.3.1 批量操作接口说明</a>
+<a class="toc-l3" href="#d3-h46" data-doc="d3">3.3.2 审计日志</a>
+<a class="toc-l3" href="#d3-h47" data-doc="d3">3.4 示例：管理员登录</a>
+<a class="toc-l3" href="#d3-h48" data-doc="d3">3.5 示例：生成卡密</a>
+<a class="toc-l2" href="#d3-h49" data-doc="d3">四、代理商后台接口（`/agent/`）</a>
+<a class="toc-l3" href="#d3-h50" data-doc="d3">4.1 认证方式</a>
+<a class="toc-l3" href="#d3-h51" data-doc="d3">4.2 接口清单</a>
+<a class="toc-l3" href="#d3-h52" data-doc="d3">4.3 代理商注册（激活码）</a>
+<a class="toc-l3" href="#d3-h53" data-doc="d3">4.4 代理商充值卡密（续费 / 加量）</a>
+<a class="toc-l3" href="#d3-h54" data-doc="d3">4.5 控量模式（`nb_agents.charge_mode`）与按卡类型计费</a>
+<a class="toc-l3" href="#d3-h55" data-doc="d3">4.6 生成卡密请求示例</a>
+<a class="toc-l3" href="#d3-h56" data-doc="d3">4.7 归属性</a>
+<a class="toc-l3" href="#d3-h57" data-doc="d3">4.8 相关系统设置</a>
+<a class="toc-l2" href="#d3-h58" data-doc="d3">五、发卡网前台接口（`/shop/`）</a>
+<a class="toc-l2" href="#d3-h59" data-doc="d3">六、安全说明</a></nav>
+<nav class="toc" id="toc-d4" data-doc="d4"><a class="toc-l1" href="#d4-h0" data-doc="d4">Nebula C# SDK 接入文档</a>
+<a class="toc-l2" href="#d4-h1" data-doc="d4">1. 概述</a>
+<a class="toc-l2" href="#d4-h2" data-doc="d4">2. 快速开始</a>
+<a class="toc-l2" href="#d4-h5" data-doc="d4">3. 配置（SdkConfig.cs）</a>
+<a class="toc-l2" href="#d4-h6" data-doc="d4">4. 核心接口</a>
+<a class="toc-l2" href="#d4-h7" data-doc="d4">5. 运行时安全防护</a>
+<a class="toc-l2" href="#d4-h8" data-doc="d4">6. 壳保护集成</a>
+<a class="toc-l2" href="#d4-h9" data-doc="d4">7. 防护差异与建议</a></nav>
+<nav class="toc" id="toc-d5" data-doc="d5"><a class="toc-l1" href="#d5-h0" data-doc="d5">Nebula Python SDK 接入文档</a>
+<a class="toc-l2" href="#d5-h1" data-doc="d5">1. 概述</a>
+<a class="toc-l2" href="#d5-h2" data-doc="d5">2. 环境要求</a>
+<a class="toc-l2" href="#d5-h3" data-doc="d5">3. 五分钟接入</a>
+<a class="toc-l2" href="#d5-h4" data-doc="d5">4. 目录结构</a>
+<a class="toc-l2" href="#d5-h5" data-doc="d5">5. 独立使用 SDK（不带界面）</a>
+<a class="toc-l2" href="#d5-h6" data-doc="d5">6. 内置提示与自定义 UI</a>
+<a class="toc-l2" href="#d5-h7" data-doc="d5">7. 公告</a>
+<a class="toc-l2" href="#d5-h8" data-doc="d5">8. 完整性自校验与自动更新</a>
+<a class="toc-l2" href="#d5-h9" data-doc="d5">9. 功能密钥 NF1</a>
+<a class="toc-l2" href="#d5-h10" data-doc="d5">10. 打包与测试</a>
+<a class="toc-l2" href="#d5-h11" data-doc="d5">11. 防护差异与自行加固</a></nav>
+    </div>
+  </aside>
+
+  <main class="doc-main" id="top">
+<article class="doc" id="doc-d1" data-doc="d1">
+<div class="doc-body">
+<div class="dl-note"><span><strong>SDK 现为定向分发，不提供公开下载。</strong>C++ / Python / C# 三套协议同规格 SDK（含完整接入文档与示例工程）请联系官方获取；本页文档可供自行依据 HTTP 协议对接 · 2026-10-01 更新（Nebula 3.1 协议）</span></div>
+<h1 id="d1-h0">Nebula C++ SDK 接入文档</h1>
+<blockquote><p>📚 本文属 Nebula 文档中心，主索引见 <a href="#top">../README.md</a>；相关文档：<a class="md-link" data-goto="d2" href="#d2-h0">SDK 加固指南</a> · <a class="md-link" data-goto="d3" href="#d3-h0">API 接口</a></p></blockquote>
+<blockquote><p>适用对象：<code>sdk/nebula_sdk.hpp</code>（header-only 伞头，内部按职责拆分为 <code>sdk/nebula/</code> 下 23 个子头）<br>协议版本：<strong>Nebula 3.1</strong>（ECDH P-256 会话握手 + AES-256-GCM，与 <code>docs/API.md</code> 严格对齐）</p></blockquote>
+<hr>
+<h2 id="d1-h1">1. 概述</h2>
+<p>Nebula C++ SDK 是 Nebula 网络验证系统的 Windows 客户端接入库，<strong>header-only、零第三方依赖</strong>（仅 Windows 系统库）。内置：</p>
+<ul class="md-list">
+<li><strong>通信协议（Nebula 3.1）</strong>：ECDH P-256 会话握手 + AES-256-GCM 加密信封 + seq 单调防重放，通信密钥全部由握手临时协商——客户端<strong>零静态对称机密</strong>，堆扫描 / dump 也拿不到任何可用密钥
+</li>
+<li><strong>响应防伪造</strong>：服务端用私钥对每条响应额外签名（<strong>ES256</strong>，环境不支持时自动回落 <strong>RS256</strong>），客户端用内置公钥验签——逆向出全部对称密钥也无法伪造响应
+</li>
+<li><strong>完整流程</strong>：init（初始化）→ login（登录，三种方式自动适配）→ heartbeat（心跳保活）→ logout（登出）
+</li>
+<li><strong>业务接口</strong>：激活、设备列表、设备解绑、用户信息、公告、版本检查、在线人数
+</li>
+<li><strong>内置提示（开箱即用）</strong>：版本过期 / 发现新版本 / 服务器维护 / 被踢下线 / 完整性校验失败，全部由 SDK 弹中文提示窗，接入方<strong>零 UI 代码</strong>
+</li>
+<li><strong>可完全自定义</strong>：一行 <code>setUiHandler</code> 接管所有提示，用你自己的 UI 呈现
+</li>
+<li><strong>完整性自校验（防篡改）</strong>：客户端启动时自动比对自身 exe 的哈希与大小，被修改即拒绝运行
+</li>
+<li><strong>设备指纹</strong>：自动采集真实电脑主机名（<code>GetComputerNameW</code>）与硬件指纹（主板/CPU/硬盘/BIOS/GPU 序列号 + 主网卡 MAC，WMI 实现），登录时自动上报，支持虚拟机识别与漂移容忍
+</li>
+<li><strong>离线宽限</strong>：断网时用服务端签发的票据本地验签，宽限期内可继续使用
+</li>
+</ul>
+<h2 id="d1-h2">2. 环境要求</h2>
+<div class="tbl"><table><thead><tr><th>项目</th><th>要求</th></tr></thead><tbody><tr><td>操作系统</td><td>Windows 7 及以上（仅 Windows）</td></tr><tr><td>工具链</td><td>Visual Studio / MSVC（C++17）</td></tr><tr><td>链接库</td><td>全部为系统库，头文件内已 <code>#pragma comment</code> 自动链接：<code>winhttp</code> <code>bcrypt</code> <code>advapi32</code> <code>crypt32</code> <code>iphlpapi</code> <code>wbemuuid</code></td></tr></tbody></table></div>
+<blockquote><p>建议 MSVC 打开 <code>/utf-8</code> 编译选项（属性 → C/C++ → 命令行），保证源码中文常量按 UTF-8 处理。</p></blockquote>
+<h2 id="d1-h3">3. 五分钟接入</h2>
+<h3 id="d1-h4">方式 A：内置配置区一行接入（推荐）</h3>
+<p>打开 <strong><code>sdk/nebula/client/config.hpp</code></strong>（SDK 中★唯一需要修改的文件★）的顶部「接入方配置区」，把四项改成你自己软件的值（前三项在后台「软件管理」行点「复制」获取，响应验签公钥在「系统设置 → 系统 → 响应签名公钥 → 复制 C++ 代码」）：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>namespace nebula { namespace cfg {
+inline const std::string kApiUrl   = NEBULA_STR(<span class="str">"http://your-domain.com/api/index.php"</span>); <span class="cmt">// ① API 入口</span>
+inline const SecureString kAppKey  { NEBULA_STR(<span class="str">"SWXXXXXXXX"</span>) };                          <span class="cmt">// ② 软件标识</span>
+inline const std::string kRespSignPubKey = NEBULA_STR(<span class="str">"-----BEGIN PUBLIC KEY-----\n..."</span>);  <span class="cmt">// ③ 响应验签公钥（必填）</span>
+inline const std::string kTlsCertSha256  = NEBULA_STR(<span class="str">""</span>);                                 <span class="cmt">// ④ 证书指纹（可选）</span>
+} }</code></pre></figure>
+<blockquote><p><strong>③ 是必填项</strong>：留空则所有请求直接失败（故意设计，不给"不校验"留口子）。<strong>④ 只在 <code>https://</code> 生效</strong>：填了它 SDK 会同时拒绝 <code>http://</code> 地址。所有值一律写在 <code>NEBULA_STR("...")</code> 里，开启混淆后编译期即被加密。<strong>协议 3.1 起 AES_KEY / SIGN_SALT 已彻底移除</strong>——通信密钥由 ECDH 握手临时协商，客户端不再持有任何静态对称机密。</p></blockquote>
+<p>之后入口处一行工厂调用即可：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>#include <span class="str">"nebula_sdk.hpp"</span>   <span class="cmt">// 只需这一个入口（内部自动包含 nebula/ 下各子头）</span>
+
+auto c = nebula::createDefaultClient(/*machine_id*/ <span class="str">""</span>, /*os_info*/ <span class="str">"Windows"</span>, /*client_version*/ <span class="str">"1.0.1"</span>);</code></pre></figure>
+<blockquote><p>子头分布在 <code>sdk/nebula/</code> 下，请<strong>连同整个 <code>nebula/</code> 目录一起拷进工程</strong>，不要只拷伞头。</p></blockquote>
+<h3 id="d1-h5">方式 B：构造时手动传参</h3>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>#include <span class="str">"nebula_sdk.hpp"</span>
+
+int main()
+{
+    <span class="cmt">// 1. 创建客户端（Options 结构体，字段见第 4 节）</span>
+    nebula::Client::Options o;
+    o.api_url        = <span class="str">"http://api.example.com/api/index.php"</span>;
+    o.app_key        = <span class="str">"SWXXXXXXXX"</span>;      <span class="cmt">// 软件的 app_key（必填，标识所属软件）</span>
+    o.machine_id     = <span class="str">""</span>;                 <span class="cmt">// machine_id，留空自动生成稳定机器码</span>
+    o.os_info        = <span class="str">"Windows"</span>;          <span class="cmt">// 操作系统标识，随登录上报</span>
+    o.client_version = <span class="str">"1.0.1"</span>;             <span class="cmt">// 客户端版本号，随 init/login/heartbeat 上报</span>
+    <span class="cmt">// o.response_sign_public_key 默认取 cfg::kRespSignPubKey</span>
+    nebula::Client c(o);
+
+    <span class="cmt">// 2. 初始化：拿会话密钥、登录方式、公告、版本策略</span>
+    auto ir = c.init();
+    if (!ir.ok) return 1;                     <span class="cmt">// ir.msg 有失败原因</span>
+
+    <span class="cmt">// 3. 内置提示（可选，见第 6 节）：版本过期/维护中/完整性校验失败自动弹窗</span>
+    if (!c.enforceSelfIntegrity()) return 1;  <span class="cmt">// exe 被篡改 → SDK 弹窗，退出</span>
+    if (!c.versionAlert())          return 1; <span class="cmt">// 版本过低（强制更新）→ SDK 弹窗，退出</span>
+    c.maintainAlert();                        <span class="cmt">// 维护中 → SDK 弹窗（仍可尝试登录，服务端兜底 6002）</span>
+
+    <span class="cmt">// 4. 登录（按服务端下发的登录方式自动组装：password / username_code / code 卡密直登）</span>
+    auto lr = c.login(<span class="str">"账号或卡密"</span>, <span class="str">"密码或激活码"</span>);
+    if (!lr.ok) return 1;                     <span class="cmt">// lr.code / lr.msg 有错误码与原因</span>
+
+    <span class="cmt">// 5. 心跳保活（默认间隔用 init 下发的 heartbeat_interval）</span>
+    c.startHeartbeat(lr.token, [&amp;c](int code, const std::string&amp; msg,
+                                     const nebula::HeartbeatInfo&amp; hb) {
+        if (hb.kick || hb.need_relogin || hb.force_offline)
+            c.kickAlert(msg);                 <span class="cmt">// 被踢 / 顶号 → SDK 弹窗，随后应回登录界面</span>
+    });
+
+    <span class="cmt">// ... 你的主程序业务 ...</span>
+
+    <span class="cmt">// 6. 退出前停心跳并登出</span>
+    c.stopHeartbeat();
+    c.logout(lr.token);
+    return 0;
+}</code></pre></figure>
+<h2 id="d1-h6">4. Client 构造参数</h2>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>nebula::Client::Options o;
+o.api_url    = <span class="str">"http://api.example.com/api/index.php"</span>;
+o.app_key    = <span class="str">"SWDEFAULT"</span>;
+o.machine_id = <span class="str">""</span>;                 <span class="cmt">// 留空自动生成稳定机器码</span>
+o.os_info    = <span class="str">"Windows"</span>;
+o.client_version = <span class="str">"1.0.1"</span>;        <span class="cmt">// 每次发版必须更新</span>
+nebula::Client c(o);</code></pre></figure>
+<div class="tbl"><table><thead><tr><th>参数</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>api_url</code></td><td>✔</td><td>API 入口，如 <code>http://api.example.com/api/index.php</code>（<code>?action=xx</code> 形式）</td></tr><tr><td><code>app_key</code></td><td>✔</td><td>软件标识（如 <code>SWDEFAULT</code>）。<strong>必填</strong>：没有默认通用软件，账号/卡密/设备均按软件隔离</td></tr><tr><td><code>response_sign_public_key</code></td><td>✔</td><td>响应验签公钥，默认取 <code>cfg::kRespSignPubKey</code>；未配置则 SDK 拒绝连接</td></tr><tr><td><code>machine_id</code></td><td></td><td>稳定机器码，留空自动生成</td></tr><tr><td><code>os_info</code></td><td></td><td>操作系统标识，随登录上报</td></tr><tr><td><code>client_version</code></td><td></td><td>客户端版本号。<strong>每次发版必须更新</strong>，服务端据此做版本拦截、更新提示与完整性自校验</td></tr><tr><td><code>tls_cert_sha256</code></td><td></td><td>服务端证书 SHA256 指纹（https 防中间人，可选）</td></tr></tbody></table></div>
+<blockquote><p><strong>3.1 协议已移除 AES_KEY / SIGN_SALT</strong>：通信密钥由 ECDH P-256 握手临时协商，客户端不再持有任何跨会话对称机密，<code>aes_key</code> / <code>sign_salt</code> 为 3.0 遗留字段（已废弃，不再使用）。</p></blockquote>
+<h2 id="d1-h7">5. 流程 API</h2>
+<h3 id="d1-h8">5.1 init · 初始化</h3>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>nebula::Client::InitResult ir = c.init();</code></pre></figure>
+<p>请求白名单接口（主盐签名，无需会话密钥）。成功后 <code>ir.ok = true</code>，并返回：</p>
+<div class="tbl"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>site_name</code></td><td>站点名称</td></tr><tr><td><code>heartbeat_interval</code></td><td>建议心跳间隔（秒）</td></tr><tr><td><code>register_enable</code> / <code>maintain_mode</code></td><td>是否开放注册 / 维护模式</td></tr><tr><td><code>login_method</code></td><td>登录方式：<code>password</code> / <code>username_code</code> / <code>code</code>（卡密直登），login 会自动适配</td></tr><tr><td><code>need_update</code> / <code>force_update</code> / <code>latest</code> / <code>min_ver</code> / <code>update_url</code> / <code>update_note</code></td><td>版本策略</td></tr><tr><td><code>file_hash</code> / <code>file_size</code></td><td>最新版安装包的哈希与字节数（下载更新包后比对用）</td></tr><tr><td><code>self_file_hash</code> / <code>self_file_size</code></td><td><strong>客户端自身版本</strong>登记的哈希与字节数（完整性自校验用，仅客户端版本 == 最新版时下发；未登记为 <code>""</code> / <code>0</code>）</td></tr><tr><td><code>notices</code></td><td>公告列表（<code>id</code> / <code>title</code> / <code>content</code> / <code>type</code> / <code>type_text</code>）</td></tr><tr><td><code>grace_enable</code> / <code>grace_seconds</code> / <code>grace_public_key</code></td><td>离线宽限配置</td></tr></tbody></table></div>
+<h3 id="d1-h9">5.2 login · 登录</h3>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>nebula::Client::LoginResult lr = c.login(account, secret);</code></pre></figure>
+<p>按 init 下发的 <code>login_method</code> 自动组装：</p>
+<div class="tbl"><table><thead><tr><th>方式</th><th>account</th><th>secret</th></tr></thead><tbody><tr><td><code>password</code></td><td>用户名</td><td>密码</td></tr><tr><td><code>username_code</code></td><td>用户名</td><td>激活码</td></tr><tr><td><code>code</code>（卡密直登）</td><td>卡密</td><td>任意（自动置空）</td></tr></tbody></table></div>
+<p>成功时 <code>lr.ok = true</code>：<code>lr.token</code>（后续所有接口的凭证）、<code>lr.user</code>（<code>user_id</code> / <code>username</code> / <code>vip_expire</code> / <code>vip_text</code> / <code>points</code> / <code>max_devices</code> / <code>group_id</code>…）、<code>lr.account_created</code>（卡密直登自动建号时为 true）。失败时 <code>lr.code</code> / <code>lr.msg</code>，错误码见 <code>docs/API.md</code> 1.4（本地码：<code>-1</code> 网络 / <code>-2</code> 验签解密 / <code>-3</code> HTTP）。</p>
+<h3 id="d1-h10">5.3 heartbeat · 心跳保活</h3>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>c.startHeartbeat(token, callback, interval_ms = 0);   <span class="cmt">// 0 = 用 init 下发的间隔</span>
+c.stopHeartbeat();</code></pre></figure>
+<p>回调在 <strong>SDK 内部心跳线程</strong>执行（不要在其中操作 UI 句柄），签名 <code>(int code, std::string msg, HeartbeatInfo hb)</code>。<code>HeartbeatInfo</code>：</p>
+<div class="tbl"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>remain</code></td><td>会员剩余秒数</td></tr><tr><td><code>online</code></td><td>是否在线</td></tr><tr><td><code>kick</code></td><td>被强制下线（后台踢出，status=3）</td></tr><tr><td><code>force_offline</code></td><td>顶号下线（他处登录，status=2）</td></tr><tr><td><code>need_relogin</code></td><td>会话失效，需重新登录</td></tr><tr><td><code>need_activate</code></td><td>账号过期待激活</td></tr><tr><td><code>grace_ticket</code></td><td>最新离线宽限票据（SDK 已自动缓存）</td></tr></tbody></table></div>
+<p>收到 <code>kick / force_offline / need_relogin</code> 时应停止业务并回登录界面；提示可用 <code>c.kickAlert(msg)</code>（第 6 节）。</p>
+<h3 id="d1-h11">5.4 logout · 登出</h3>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>c.logout(token);   <span class="cmt">// 服务端销毁会话；成功后 Client 状态回到 READY</span></code></pre></figure>
+<h2 id="d1-h12">6. 内置提示与自定义 UI</h2>
+<p>SDK 把所有用户可见提示内置为四个方法，<strong>默认直接弹出中文提示窗</strong>（<code>MessageBoxW</code> + UTF-16，中文不乱码），接入方零 UI 代码：</p>
+<div class="tbl"><table><thead><tr><th>方法</th><th>时机</th><th>默认行为</th><th>返回值</th></tr></thead><tbody><tr><td><code>bool enforceSelfIntegrity()</code></td><td>init 后</td><td>exe 被篡改时弹「程序文件已被修改，请从官方渠道重新下载」</td><td><code>false</code> = 校验失败，应退出程序</td></tr><tr><td><code>bool versionAlert()</code></td><td>init 后</td><td>强制更新：弹「当前版本过低（当前版本），请升级到 X 后使用」；可选更新：弹「发现新版本 X，建议尽快升级」</td><td>强制更新时 <code>false</code>，应中止登录</td></tr><tr><td><code>void maintainAlert()</code></td><td>init 后</td><td>弹「服务器维护中，请稍后再试」</td><td>—（登录仍由服务端 6002 兜底）</td></tr><tr><td><code>void kickAlert(msg)</code></td><td>心跳被踢 / 顶号</td><td>弹服务端下线原因（<code>msg</code> 为空时弹默认文案）</td><td>—</td></tr></tbody></table></div>
+<h3 id="d1-h13">自定义提示 UI</h3>
+<p>不想用默认弹窗时，init 之前设置处理器，SDK 全部提示改为回调（不再弹默认窗）：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>c.setUiHandler([](const char* kind, const std::string&amp; msg) {
+    <span class="cmt">// kind: </span><span class="str">"integrity"</span> 完整性校验失败 / <span class="str">"version"</span> 版本更新
+    <span class="cmt">//       </span><span class="str">"maintain"</span> 维护中   / <span class="str">"kick"</span> 被踢下线
+    <span class="cmt">// msg:  UTF-8 中文文案，可用返回值自行渲染任意 UI</span>
+});</code></pre></figure>
+<p>回调在调用线程执行；不设置则始终走默认弹窗。</p>
+<h3 id="d1-h14">弹窗公告（每次登录提示）</h3>
+<p>后台类型选 <strong>弹窗公告</strong> 发布（type=2）。登录后一行调用，SDK 拉取并逐条弹窗展示（无已读机制，每次登录都会提示）；设置了 <code>setUiHandler</code> 时回调 <code>kind="popup"</code>：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>c.popupNotices();</code></pre></figure>
+<blockquote><p>公告栏（登录窗口滚动公告）只显示 <strong>列表公告</strong>（type=4，init 直接下发）；弹窗/立即公告走 notice 接口由上述方法处理。</p></blockquote>
+<h3 id="d1-h15">立即下发公告（看过即不再显示）</h3>
+<p>后台「软件管理 → 客户端公告」选择类型 <strong>立即公告</strong> 发布（type=3）。SDK 按公告 ID 在本地（<code>%APPDATA%\NebulaSDK\notices_&lt;app_key&gt;.txt</code>，按软件区分）记录已读，用户确认过后不再显示。</p>
+<p><strong>方式 A：一行内置（推荐）</strong></p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code><span class="cmt">// 登录成功后调用：拉取未读立即公告 → 逐条弹窗（标题+内容）→ 确认后自动标记已读</span>
+<span class="cmt">// 设置了 setUiHandler 时改为回调 kind=</span><span class="str">"flash"</span>（每条一次，msg = 标题\n\n内容），回调返回即视为已读
+c.flashNotices();</code></pre></figure>
+<p><strong>心跳自动下发（默认开启）</strong></p>
+<p>程序运行期间新发布的立即公告，会随下一次心跳自动下发并由 SDK 弹出（同样看过即不再显示），无需接入方写任何代码。不想要自动弹出时：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>c.setAutoFlash(false);   <span class="cmt">// 关闭后 hb.flash_notices 原样交给心跳回调，自行展示与 markNoticeRead</span></code></pre></figure>
+<p>心跳回调里可用 <code>hb.flash_notices</code>（本轮服务端下发的立即公告）与 <code>c.isNoticeRead(id)</code> 自行过滤。</p>
+<blockquote><p>调试 / 强制重发：<code>c.clearNoticeReads()</code> 清空本地已读记录，全部立即公告会重新弹出。</p></blockquote>
+<p><strong>方式 B：完全自定义 UI</strong></p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>auto list = c.fetchFlashNotices();     <span class="cmt">// 只拉未读的立即公告，不弹窗不标记</span>
+for (auto&amp; n : list) {
+    <span class="cmt">// ……用你自己的 UI 展示 n.title / n.content……</span>
+    c.markNoticeRead(n.id);            <span class="cmt">// 用户确认一条后标记，之后不再下发显示</span>
+}</code></pre></figure>
+<blockquote><p>已读记录按软件（app_key）隔离，30 天前的旧记录自动清理。</p></blockquote>
+<h3 id="d1-h16">纯校验（不要弹窗）</h3>
+<p>需要完全自己处理提示时，可用 namespace 级函数拿到原因字符串：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>std::string err = nebula::verifySelfIntegrity(ir.self_file_hash, ir.self_file_size);
+<span class="cmt">// err 为空 = 通过；非空 = 失败原因（自己决定怎么提示）</span></code></pre></figure>
+<h2 id="d1-h17">7. 完整性自校验（防篡改）</h2>
+<p><strong>原理</strong>：客户端启动时计算<strong>自身 exe</strong> 的 MD5/SHA256 与字节数，与服务端「版本管理」里登记的值比对，不一致即判定被篡改。</p>
+<p><strong>启用方式（后台操作，无需改代码）</strong>：</p>
+<ol class="md-list">
+<li>编译发布客户端后，计算 exe 的哈希与大小：
+<ul class="md-list">
+<li>哈希：<code>certutil -hashfile 你的程序.exe SHA256</code>（64 位 hex；填 32 位 MD5 也可，SDK 自动按长度识别算法）
+</li>
+<li>大小：文件属性里的字节数
+</li>
+</ul>
+</li>
+<li>后台「软件管理 → 版本管理」发布<strong>该版本号</strong>的记录，填入文件哈希与文件大小并发布
+</li>
+<li>客户端启动调用 <code>c.enforceSelfIntegrity()</code> 即自动比对
+</li>
+</ol>
+<p><strong>规则</strong>：</p>
+<ul class="md-list">
+<li>仅当客户端版本号 == 最新已发布版本时才下发校验数据（旧版本客户端跳过校验，由强制更新机制引导升级）
+</li>
+<li>该版本未登记哈希/大小 → 服务端下发空值，客户端跳过校验，不会误拦
+</li>
+<li>⚠️ 哈希/大小必须是<strong>该版本 exe 的真实值</strong>：每次重新编译 exe 都会变化，发版前必须重新登记，否则新包会被自己的校验拦下
+</li>
+</ul>
+<h2 id="d1-h18">8. 设备与指纹（自动上报，无需接入方处理）</h2>
+<ul class="md-list">
+<li><strong>设备名</strong>：构造 Client 时自动取真实电脑主机名（<code>GetComputerNameW</code> → UTF-8）
+</li>
+<li><strong>硬件指纹 device_fp</strong>：首次登录时自动懒采集——主板 / CPU / 硬盘 / BIOS 序列号与 GPU 名称（WMI，MD5 前 16 位 hex）+ 主网卡裸 MAC（供虚拟机 OUI 识别），已过滤 OEM 占位值
+</li>
+<li>后台「设备管理」可查看指纹完整度、识别虚拟机、按指纹做漂移容忍绑定
+</li>
+</ul>
+<h2 id="d1-h19">9. 业务 API（登录后）</h2>
+<div class="tbl"><table><thead><tr><th>方法</th><th>对应接口</th><th>说明</th></tr></thead><tbody><tr><td><code>c.activate(token, code)</code></td><td>activate</td><td>激活卡密 / 续费（<code>lr</code> 后调用）</td></tr><tr><td><code>c.devices(token)</code></td><td>devices</td><td>当前账号的设备列表</td></tr><tr><td><code>c.unbindDevice(token, machine_id="", password="", all=false)</code></td><td>unbind</td><td>解绑设备：缺省解当前设备；<code>all=true</code> 解绑全部；需要密码校验时传 <code>password</code></td></tr><tr><td><code>c.userinfo(token)</code></td><td>userinfo</td><td>刷新用户信息（点数 / 到期 / 设备上限等）</td></tr><tr><td><code>c.getNotices(id=0)</code></td><td>notice</td><td>拉取公告（白名单接口）</td></tr><tr><td><code>c.checkVersion(version, channel="stable")</code></td><td>version</td><td>手动版本检查（白名单接口）</td></tr><tr><td><code>c.online()</code></td><td>online</td><td>当前在线人数（白名单接口）</td></tr></tbody></table></div>
+<p>返回值统一为 <code>nebula::Response</code>：<code>code</code>（0 成功）、<code>msg</code>、<code>raw</code>（解密后的业务 JSON 原文，自行取字段）。</p>
+<h2 id="d1-h20">10. 离线宽限（可选）</h2>
+<p>服务端开启离线宽限后，登录 / 心跳响应会持续下发签名票据（SDK 自动缓存）。客户端断网时用缓存票据本地 ES256 验签：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>auto gr = c.checkOffline(c.graceTicket(), lr.token);
+if (gr.ok) {
+    <span class="cmt">// gr.remain_sec = 宽限剩余秒数，允许继续使用</span>
+} else {
+    <span class="cmt">// gr.code: -1 验签失败 / -2 格式错误 / -3 机器码或会话不匹配</span>
+    <span class="cmt">//          -4 已到期   / -5 未启用</span>
+}</code></pre></figure>
+<h2 id="d1-h21">11. 自动更新（可选 · 全自动下载 + 替换 + 重启）</h2>
+<p>服务端「版本管理」发布新版本后，SDK 可<strong>全自动</strong>完成升级：检测 → 下载 → 校验 → 覆盖自身 exe → 重启。接入方只需在启动时调一行。</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>auto ir = c.init();                       <span class="cmt">// 必须先 init（版本信息随 init 下发）</span>
+if (!ir.ok) return 1;
+
+auto up = c.autoUpdate();                 <span class="cmt">// 检测 → 下载 → 校验 → 替换 → 本进程退出重启</span>
+if (up.state == nebula::UpdateState::Applied) return 0;   <span class="cmt">// 即将重启，别再往下走</span>
+if (up.state == nebula::UpdateState::Failed) { /* up.msg 是原因，可提示手动下载 */ }
+<span class="cmt">// 其余情况（NoUpdate / NeedConfirm）继续正常启动流程</span></code></pre></figure>
+<h3 id="d1-h22">更新策略</h3>
+<div class="tbl"><table><thead><tr><th>服务端「版本管理」设置</th><th>SDK 行为</th></tr></thead><tbody><tr><td>强制更新（<code>force_update</code>）</td><td>自动下载、替换、<strong>免确认重启</strong>（服务端本就不让旧版继续用）</td></tr><tr><td>可选更新</td><td>默认只弹提示（<code>NeedConfirm</code>）；想自动处理则设 <code>Options::auto_update_optional = true</code></td></tr><tr><td>无新版本</td><td>直接返回 <code>NoUpdate</code>，零网络开销</td></tr></tbody></table></div>
+<h3 id="d1-h23">三步式 API（想自己控制时机时用）</h3>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>auto r = c.downloadUpdate();              <span class="cmt">// 只下载+校验，拿到本地路径</span>
+if (r.state == nebula::UpdateState::Downloaded) {
+    <span class="cmt">// ...你的业务：等用户保存数据 / 等空闲时机...</span>
+    std::string err = c.applyDownloadedUpdate(r);   <span class="cmt">// 替换并重启</span>
+    if (!err.empty()) { /* 失败原因 */ }
+}</code></pre></figure>
+<h3 id="d1-h24">安全设计（重要）</h3>
+<div class="tbl"><table><thead><tr><th>机制</th><th>说明</th></tr></thead><tbody><tr><td><strong>强制哈希校验</strong></td><td>服务端未登记 <code>file_hash</code> 时<strong>直接拒绝更新</strong>——否则等于给中间人留了投毒通道</td></tr><tr><td><strong>替换前二次校验</strong></td><td>下载到替换之间再验一次 hash，防 TOCTOU 掉包</td></tr><tr><td><strong>默认只接受 https</strong></td><td>更新地址为 <code>http://</code> 时拒绝；本地/内网测试可开 <code>Options::allow_insecure_update</code></td></tr><tr><td><strong>同目录落盘</strong></td><td>更新包与脚本都放在 exe 同目录，保证 <code>move</code> 不跨卷</td></tr><tr><td><strong>可选 TLS 指纹锁定</strong></td><td>复用 <code>kTlsCertSha256</code>，与业务请求同一套校验</td></tr></tbody></table></div>
+<blockquote><p>校验不通过<strong>绝不替换</strong>，会删除临时文件并返回 <code>Failed</code>。</p></blockquote>
+<h3 id="d1-h25">为什么必须"退出后才替换"</h3>
+<p>Windows 不允许覆盖正在运行的 exe（映像被占用，无法解除）。SDK 的做法是：生成一个 <code>nebula_upd_&lt;随机&gt;.bat</code> → 由它轮询等待本进程退出 → <code>move /Y</code> 覆盖 → <code>start</code> 启动新版 → 自删。脚本用 <code>SW_HIDE</code> 隐藏窗口启动，用户无感知。</p>
+<h3 id="d1-h26">接入建议</h3>
+<ul class="md-list">
+<li><strong>放在启动流程最前面</strong>（<code>init</code> 之后、登录之前），避免用户登录完再被打断
+</li>
+<li>强制更新时 <code>autoUpdate()</code> 会直接结束进程，<strong>返回值应视为"不会返回"的正常路径</strong>
+</li>
+<li>编译期可整体关闭：工程预处理器加 <code>NEBULA_AUTO_UPDATE=0</code>（连代码都不编译进去）
+</li>
+</ul>
+<h2 id="d1-h27">12. 编译与常见问题</h2>
+<ul class="md-list">
+<li><strong>拷贝方式</strong>：把 <code>nebula_sdk.hpp</code> + <code>nebula_protect.hpp</code> + <code>nebula/</code> 目录一起放进工程，<code>#include "nebula_sdk.hpp"</code> 即可，系统库自动链接（<code>winhttp</code> <code>bcrypt</code> <code>advapi32</code> <code>crypt32</code> <code>iphlpapi</code> <code>wbemuuid</code> <code>user32</code> <code>oleaut32</code>）
+</li>
+<li><strong>中文乱码</strong>：提示窗全部走宽字符 API；建议 MSVC 开 <code>/utf-8</code>
+</li>
+<li><strong>URL 形式</strong>：支持 <code>&lt;base&gt;?action=xx</code> 与 <code>&lt;base&gt;/index.php?action=xx</code> 两种入口写法
+</li>
+<li><strong>超时设置</strong>：<code>c.setTimeouts(连接毫秒, 接收毫秒)</code>，默认 8000 / 15000
+</li>
+<li><strong>心跳线程</strong>：回调在 SDK 线程执行，不要在其中直接操作 SFML / 窗口句柄，先设标志位
+</li>
+<li><strong>错误码</strong>：业务码完整表见 <code>docs/API.md</code> 1.4（1001 参数 / 1004 软件无效 / 2001 密码 / 2002 封禁 / 3001-3008 卡密 / 4001-4005 设备 / 5001-5004 频率与签名 / 6001 版本过低 / 6002 维护中）
+</li>
+</ul>
+<h2 id="d1-h28">13. 客户端加固（可选 · 默认全部关闭）</h2>
+<p>加固实现位于 <strong><code>sdk/nebula/protect/</code></strong>（<code>shell.hpp</code> / <code>obfuscate.hpp</code> / <code>runtime.hpp</code>），由伞头自动包含，提供三类加固能力：</p>
+<div class="tbl"><table><thead><tr><th>能力</th><th>开关宏（默认关闭）</th><th>说明</th></tr></thead><tbody><tr><td>壳标记</td><td><code>NEBULA_SHELL_ENABLE 1</code></td><td>在 <code>post()</code> 的加密签名段、<code>checkOffline()</code> 的验签段插入 VMProtect / Themida 标记，加壳时直接虚化这些函数</td></tr><tr><td>核心代码混淆</td><td><code>NEBULA_OBF_STRINGS 1</code></td><td><code>NEBULA_STR("...")</code> 编译期字符串加密、间接调用、不透明谓词</td></tr><tr><td>运行时防护</td><td>`NEBULA_PROTECT_LEVEL 1</td><td>2</td><td>3`</td><td>反调试（API/PEB/NT/硬件断点/窗口/时序）+ 反虚拟机沙箱 + API 劫持与代码补丁自检</td></tr></tbody></table></div>
+<p><strong>不定义任何宏 → 完全等价于不加固版本（零开销、零风险）</strong>；一键全开：</p>
+<figure class="code"><figcaption><span>CODE</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>项目属性 → C/C++ → 预处理器 → NEBULA_HARDEN=1</code></pre></figure>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>auto c = nebula::createDefaultClient();
+c-&gt;setProtectAction(2);                        <span class="cmt">// 命中即降级（0只记录/1只回调/2降级/3弹窗退出）</span>
+c-&gt;setProtectCallback([](const nebula::protect::Report&amp; r){
+    OutputDebugStringA((r.summary() + <span class="str">" | "</span> + r.detail()).c_str());   <span class="cmt">// 建议上报到自己的服务端</span>
+});
+c-&gt;enableProtection(0, 5000);                  <span class="cmt">// 启动自检 + 每 5 秒后台巡检</span></code></pre></figure>
+<p>开启 <code>NEBULA_PROTECT_LEVEL&gt;=1</code> 后，<code>Client::init()</code> 会自动先自检再连服务端；默认策略是<strong>只回调上报，不打断正常用户</strong>。</p>
+<blockquote><p>完整操作手册（各等级查什么、权重与误报风险、加壳步骤与坑、误报收场办法）见 <strong><a class="md-link" data-goto="d2" href="#d2-h0">SDK_PROTECTION.md</a></strong>。</p></blockquote>
+<h3 id="d1-h29">13.1 授权门卫（可选）：内置登录判定保护</h3>
+<p>SDK 提供可选的<strong>内置登录判定</strong> <code>Client::loginAndGuard()</code>：把「发起登录 → 判定成功/失败」整段收进 SDK，并在壳虚拟化区路由回调，接入层不再暴露一眼可 patch 的裸 <code>if(jz/jnz)</code> 分支。<strong>判定代码（<code>lr.ok</code>）真正实现在 SDK 内部。可用可不用，不改变任何协议与业务逻辑。</strong></p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>c.loginAndGuard(account, secret,
+    [&amp;](nebula::Client::LoginResult&amp; lr){ StartMain(std::move(c)); },  <span class="cmt">// 成功 → 进主界面</span>
+    [&amp;](nebula::Client::LoginResult&amp; lr){ ShowLoginFailed(lr.msg); }); <span class="cmt">// 失败 → 提示</span></code></pre></figure>
+<ul class="md-list">
+<li><strong>想用</strong>：判定跳转被壳虚拟化（需 <code>NEBULA_SHELL_ENABLE=1</code> + VMP 加壳），patch 难度明显提高。
+</li>
+<li><strong>不用</strong>：完全可跳过，保留原有的 <code>LoginResult lr = c.login(...); if(lr.ok)</code> 即可——未定义 <code>NEBULA_SHELL_ENABLE</code> 时 <code>NEBULA_MARK_*</code> 是空宏，此调用零开销、等价于直接把 <code>lr.ok</code> 走分支。
+</li>
+</ul>
+<hr>
+<h2 id="d1-h30">附：Python SDK 接入要点</h2>
+<p>除 C++ 外，官方同步提供 <strong>Python SDK</strong>（定向分发获取）：<code>nebula/</code> 是纯协议实现（无 UI 依赖，可单独引用），<code>nebula/ui/</code> 内置与官方规格一致的 Pygame 桌面登录界面（440×420 无边框登录窗 + 800×500 主窗），三种登录方式、公告、心跳、被踢回登与 C++ 版同规格。</p>
+<ul class="md-list">
+<li><strong>环境</strong>：Python 3.10 ~ 3.13，<code>pip install pygame cryptography</code>（Python 3.14 暂不可用：pygame 尚无对应预编译包）
+</li>
+<li><strong>接入</strong>：只改 <code>nebula/config.py</code> 一个文件——API 地址、app_key、响应签名公钥、证书指纹（可选）；未配置公钥时 SDK 拒绝连接（防伪造服务器设计）。3.1 协议已移除 aes_key / sign_salt，通信密钥由 ECDH 握手临时协商</li>
+<li><strong>运行</strong>：<code>python main.py</code> 启动内置登录示例，启动即后台 init，登录界面按服务器下发的登录方式自动适配；包内另附已编译的 <code>Nebula.exe</code>（PyInstaller 打包），解压即可直接运行体验
+</li>
+<li><strong>内置能力</strong>：完整性自校验、自动更新（下载 → hash+size 校验 → 替换 → 重启）、弹窗/立即公告、版本/维护/被踢提示、功能密钥 NF1 数据包（<code>nebula/feature.py</code>）
+</li>
+<li><strong>防护差异（重要）</strong>：Python 版不具备 C++ 版的壳保护（VMProtect / Themida 标记）与原生级防篡改加固，仅保留协议层安全（加密信封 + 响应验签 + 功能密钥 NF1）；且 PyInstaller 打包的程序易被反编译提取 <code>.pyc</code>。对防护强度要求高的软件，建议选用 C++ SDK
+</li>
+<li><strong>可自行加固</strong>：① <strong>Nuitka</strong> 编译为原生代码（显著提高反编译门槛，优于纯 PyInstaller 分发）② <strong>PyArmor</strong> 脚本加密混淆 ③ 核心算法写成 <strong>C/C++ 扩展</strong>（<code>.pyd</code>），可再过壳 ④ <strong>关键判定移至服务端</strong>，客户端只收结果不做本地判定 ⑤ 用足 SDK 已内置能力：完整性自校验（后台登记 <code>file_hash</code>）+ 功能密钥 NF1（核心数据封包分发，运行时才解密）
+</li>
+</ul>
+<figure class="code"><figcaption><span>PY</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>from nebula import create_default_client, feature
+
+client = create_default_client()
+if client.init().ok:
+    lr = client.login(<span class="str">"用户名"</span>, <span class="str">"密码"</span>)     <span class="cmt"># 登录方式按后台配置自动适配</span>
+    if lr.ok:
+        client.start_heartbeat(lr.token, lambda hb: print(hb.remain_text))
+        <span class="cmt"># 功能密钥：解密随程序分发的核心数据（NF1 数据包）</span>
+        data, err = feature.open_pack(open(<span class="str">"core.dat"</span>, <span class="str">"rb"</span>).read(), lr.feature_key)</code></pre></figure>
+</div>
+</article>
+<article class="doc" id="doc-d2" data-doc="d2">
+<div class="doc-body">
+<h1 id="d2-h0">Nebula SDK 客户端加固指南（壳标记 · 代码混淆 · 反调试 · 反虚拟机）</h1>
+<blockquote><p>📚 本文属 Nebula 文档中心，主索引见 <a href="#top">../README.md</a>；配套文档：<a class="md-link" data-goto="d1" href="#d1-h0">C++ SDK 接入文档</a> · <a class="md-link" data-goto="d3" href="#d3-h0">API 接口</a></p></blockquote>
+<blockquote><p><strong>一句话结论：全部默认关闭。</strong> 不定义任何宏时，<code>nebula/protect/</code> 下的加固代码几乎不编译进目标文件，行为 / 协议 / 性能与<strong>不加加固的版本完全一致</strong>。想开启，只需在工程预处理器里加一行<code>NEBULA_HARDEN=1</code>（或按需单独开某一项）。</p><p>本文是<strong>给接入方看的操作手册</strong>：每一项怎么开、开在哪、开完怎么验证、误报怎么收场。</p></blockquote>
+<hr>
+<h2 id="d2-h1">0. 30 秒上手</h2>
+<h3 id="d2-h2">0.1 开关一览</h3>
+<div class="tbl"><table><thead><tr><th>开关宏</th><th>默认</th><th>作用</th><th>对应文件能力</th></tr></thead><tbody><tr><td><code>NEBULA_PROTECT_LEVEL</code></td><td><code>0</code></td><td>运行时防护等级：<code>1</code> 基础 / <code>2</code> 标准 / <code>3</code> 严格</td><td>反调试、反虚拟机/沙箱、API 劫持、代码补丁自检</td></tr><tr><td><code>NEBULA_OBF_STRINGS</code></td><td><code>0</code></td><td>核心代码混淆</td><td>字符串编译期加密、间接调用、不透明谓词</td></tr><tr><td><code>NEBULA_SHELL_ENABLE</code></td><td><code>0</code></td><td>壳标记（VMProtect / Themida · WinLicense / 自定义）</td><td>在核心函数里插入壳的标记，让加壳工具保护这段代码</td></tr><tr><td><code>NEBULA_RUNTIME_DIVERSE</code></td><td><code>0</code></td><td>运行时多样性</td><td><code>SecureString</code> 每次启动随机密钥、不透明谓词每次启动随机形态（<code>=0</code> 时退化为固定密钥 + 固定谓词，零开销）</td></tr></tbody></table></div>
+<p>辅助宏：</p>
+<div class="tbl"><table><thead><tr><th>宏</th><th>默认</th><th>说明</th></tr></thead><tbody><tr><td><code>NEBULA_HARDEN</code></td><td><code>0</code></td><td><strong>一键全开</strong>：等于 <code>LEVEL=3</code> + 混淆 + 壳标记 + 运行时多样性</td></tr><tr><td><code>NEBULA_PROTECT_ACTION</code></td><td><code>1</code></td><td>命中后的动作：<code>0</code> 只记录 / <code>1</code> 回调上报 / <code>2</code> 降级 / <code>3</code> 弹窗退出</td></tr><tr><td><code>NEBULA_TIMING_THRESHOLD_MS</code></td><td><code>50.0</code></td><td>时序异常阈值（毫秒）</td></tr><tr><td><code>NEBULA_QUIET</code></td><td>—</td><td>定义后关闭"加固未启用"的编译期提醒</td></tr><tr><td><code>NEBULA_SHELL_NO_AUTOLINK</code></td><td>—</td><td>定义后不自动链接壳的 .lib（自己手动加）</td></tr></tbody></table></div>
+<h3 id="d2-h3">0.2 三种打开方式</h3>
+<p><strong>方式 A：一键全开（发布版推荐）</strong></p>
+<figure class="code"><figcaption><span>CODE</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>项目属性 → C/C++ → 预处理器 → 预处理器定义，加一项：
+NEBULA_HARDEN=1</code></pre></figure>
+<p><strong>方式 B：在包含 SDK 之前定义</strong></p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>#define NEBULA_HARDEN 1        <span class="cmt">// 必须在 #include 之前</span>
+#include <span class="str">"nebula_sdk.hpp"</span></code></pre></figure>
+<p><strong>方式 C：只开其中一两项（例如先只上反调试）</strong></p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>#define NEBULA_PROTECT_LEVEL 2 <span class="cmt">// 只要运行时防护</span>
+#include <span class="str">"nebula_sdk.hpp"</span>      <span class="cmt">// 混淆与壳标记保持关闭</span></code></pre></figure>
+<h3 id="d2-h4">0.3 怎么知道有没有生效</h3>
+<ul class="md-list">
+<li>编译时：三项全关会在输出窗口打印一条提醒 （<code>Nebula SDK: 客户端加固当前【未启用】(默认)…</code>），开了就没了。不想看提醒就定义 <code>NEBULA_QUIET=1</code>。
+</li>
+<li>运行时：<code>enableProtection()</code> 会返回一份 <code>Report</code>；也可以打开 DebugView 看 <code>[Nebula] 环境正常（风险分 0）</code> 这类输出。
+</li>
+</ul>
+<h3 id="d2-h5">0.4 推荐组合</h3>
+<div class="tbl"><table><thead><tr><th>场景</th><th>建议</th></tr></thead><tbody><tr><td>开发 / 自测</td><td><strong>全关</strong>（默认），方便断点调试</td></tr><tr><td>内测发版</td><td><code>NEBULA_PROTECT_LEVEL=1</code>（基础反调试，误报极低）+ 混淆</td></tr><tr><td>正式发版</td><td><code>NEBULA_HARDEN=1</code>，动作设 <code>2</code>（降级）或 <code>3</code>（退出）</td></tr><tr><td>强对抗（有人专门破）</td><td><code>NEBULA_HARDEN=1</code> + VMProtect 虚拟化核心函数 + Obfuscator-LLVM 再叠一层</td></tr></tbody></table></div>
+<blockquote><p>⚠️ <strong>自己调试的时候记得关掉。</strong> 开着 <code>LEVEL&gt;=1</code> 在 VS 里按 F5 会被自己写的检测命中（这是正常的，说明它工作正常）。</p></blockquote>
+<hr>
+<h2 id="d2-h6">1. ① 壳标记（VMProtect / Themida / 自定义壳）</h2>
+<h3 id="d2-h7">1.1 它做了什么</h3>
+<p><code>nebula_protect.hpp</code> 在 SDK 的<strong>核心函数</strong>里插入了统一的标记宏。开启后：</p>
+<ul class="md-list">
+<li>装了 <strong>VMProtect</strong> → 标记展开为 <code>VMProtectBeginVirtualization/Mutation/Ultra</code> + <code>VMProtectEnd</code>， 加壳时 VMProtect 会把这段代码<strong>虚拟化/变异</strong>；
+</li>
+<li>装了 <strong>Themida / WinLicense</strong> → 展开为 <code>VM_START / VM_END / MUTATE_*</code>；
+</li>
+<li>什么都没装 / 没开启 → 展开为<strong>空宏</strong>，对代码零影响。
+</li>
+</ul>
+<p><strong>SDK 已经内置标记的位置</strong>（开箱即用，不用自己动手）：</p>
+<div class="tbl"><table><thead><tr><th>位置</th><th>强度</th><th>原因</th></tr></thead><tbody><tr><td><code>Client::post()</code> 的加密 + 签名段</td><td><code>MUTATE</code>（变异）</td><td>每次请求都走，用虚拟化太慢</td></tr><tr><td><code>Client::checkOffline()</code> 的 ES256 验签 + 机器码/会话绑定校验</td><td><code>VM</code>（虚拟化）</td><td>调用频率低，是"本地授权判定"的核心</td></tr></tbody></table></div>
+<h3 id="d2-h8">1.2 建议你自己再标哪些函数</h3>
+<p>接在自己的业务里（用同一套宏即可）：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>std::string MyApp::verifyLicense() {
+    NEBULA_MARK_VM_BEGIN();          <span class="cmt">// 虚拟化：最强，只给最关键的函数</span>
+    auto gr = client_-&gt;checkOffline(ticket, token);
+    NEBULA_MARK_VM_END();
+
+    NEBULA_MARK_MUTATE_BEGIN();      <span class="cmt">// 变异：性能好，适合常调用的函数</span>
+    updateUiState(gr.ok);
+    NEBULA_MARK_MUTATE_END();
+    return gr.msg;
+}</code></pre></figure>
+<div class="tbl"><table><thead><tr><th>宏</th><th>强度</th><th>用在哪</th></tr></thead><tbody><tr><td><code>NEBULA_MARK_ULTRA_BEGIN/END()</code></td><td>最强最慢</td><td>全程序只标 1~2 处，例如"卡密校验总入口"</td></tr><tr><td><code>NEBULA_MARK_VM_BEGIN/END()</code></td><td>强（虚拟化）</td><td>授权判定、密钥派生、关键常量比较</td></tr><tr><td><code>NEBULA_MARK_MUTATE_BEGIN/END()</code></td><td>中（只变异指令）</td><td>高频函数（网络收发、状态机）</td></tr><tr><td><code>NEBULA_MARK_SCOPE_BEGIN/END()</code></td><td>仅划范围</td><td>Themida 这类按区域处理的壳</td></tr></tbody></table></div>
+<h3 id="d2-h9">1.3 怎么让壳真的生效（VMProtect 为例）</h3>
+<ol class="md-list">
+<li>打开 <code>NEBULA_SHELL_ENABLE=1</code>，编译出 <code>MyApp.exe</code>（带标记）。
+</li>
+<li>VMProtect 里打开该 exe → 左侧 <code>Functions</code> 会<strong>自动列出所有带标记的函数</strong>。
+</li>
+<li>勾选需要的项 → 设置 <code>Compilation Type</code>：<code>Virtualization</code> / <code>Mutation</code> / <code>Ultra</code>。
+</li>
+<li>需要"防补丁"就开 <code>Options → Check image CRC</code>（对应 <code>VMProtectIsValidImageCRC()</code>）。
+</li>
+<li>点 <code>Compile</code> 生成加壳后的 exe。
+</li>
+<li>⚠️ 加壳后的 exe <strong>哈希变了</strong>，如果后台「版本管理」登记了 <code>self_file_hash</code>， 必须把加壳后 exe 的哈希/大小<strong>重新登记</strong>，否则会被 SDK 的完整性自校验拦下。
+</li>
+</ol>
+<p>Themida / WinLicense：同样道理，打开 exe 后在 <code>Protection Options</code> 里会看到<code>VM_START / MUTATE_*</code> 标记出来的区域，勾上 <code>Virtualize</code> / <code>Mutate</code> 即可。</p>
+<h3 id="d2-h10">1.4 宏名对不上怎么办（Enigma / Obsidium / 老版本 Themida）</h3>
+<p>有些壳没有统一的标记头文件，或宏名不一样（如 <code>SECURE_BEGIN/SECURE_END</code>）。用<strong>自定义 HOOK</strong> 接管：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>#define NEBULA_SHELL_FORCE_HOOK 1
+#define NEBULA_SHELL_HOOK_VM_BEGIN()     SECURE_BEGIN
+#define NEBULA_SHELL_HOOK_VM_END()       SECURE_END
+#define NEBULA_SHELL_HOOK_MUTATE_BEGIN() MUTATE_BEGIN
+#define NEBULA_SHELL_HOOK_MUTATE_END()   MUTATE_END
+#define NEBULA_SHELL_ENABLE 1
+#include <span class="str">"nebula_sdk.hpp"</span></code></pre></figure>
+<p>Enigma Protector 这类<strong>只能靠 GUI 选函数</strong>的壳：<code>NEBULA_SHELL_ENABLE</code> 可以不开，反正标记是空的；直接在 Enigma 里按函数名勾选 <code>Client::post</code>、<code>checkOffline</code> 等即可。</p>
+<h3 id="d2-h11">1.5 加壳的坑（务必看）</h3>
+<div class="tbl"><table><thead><tr><th>坑</th><th>说明</th></tr></thead><tbody><tr><td><strong>别保护 IAT / 导入表完整性</strong></td><td>SDK 依赖 WinHTTP + bcrypt 的系统 DLL。若壳开了"导入表保护/加密"且配置不当，会出现网络请求失败、加密失败 —— 表现为"登录永远失败"，很难查。</td></tr><tr><td><strong>别把整个 exe 全虚拟化</strong></td><td>只虚拟化标记出来的核心函数。全量虚拟化会让启动慢十倍、内存暴涨。</td></tr><tr><td><strong>杀软误报</strong></td><td>加壳 + 反调试组合极易被国产杀软报毒。发布前务必过一遍主流杀软与云端沙箱，否则用户装了就被删。</td></tr><tr><td><strong>标记段里尽量别放 <code>return</code></strong></td><td>个别壳版本对"标记区内提前返回"支持不好（虚化后行为异常）。若要严格，把 <code>BEGIN/END</code> 收紧到不含 <code>return</code> 的语句块。</td></tr><tr><td><strong>保留一个未加壳版本</strong></td><td>用来排查线上崩溃（加壳后崩溃栈基本没意义）。</td></tr><tr><td><strong>不要把 <code>NEBULA_MARK_*</code> 用在 <code>return</code> 之后</strong></td><td>标记必须成对且在同一函数体内，且 <code>BEGIN</code> 要能走到对应的 <code>END</code>（多个提前返回时，每个出口都要补 <code>END</code>）。SDK 内部已按此写；自己加标记时注意。</td></tr></tbody></table></div>
+<h3 id="d2-h12">1.6 报 C3861「找不到标识符 VMProtectBegin…/VMProtectEnd」怎么修</h3>
+<p>这是<strong>接入配置问题</strong>，不是 SDK bug。逐条排查：</p>
+<div class="tbl"><table><thead><tr><th>症状</th><th>原因</th><th>修法</th></tr></thead><tbody><tr><td>报 <code>"VMProtectBeginVirtualization": 找不到标识符</code></td><td>开了 <code>NEBULA_SHELL_ENABLE=1</code> 但工程「附加包含目录」里没有 <code>VMProtectSDK.h</code> 所在目录</td><td>把 <code>sdk/vmp</code>（含 <code>VMProtectSDK.h</code> + <code>.lib</code>）加进 <strong>附加包含目录</strong>；链接器「附加库目录」也要指向它</td></tr><tr><td>立刻 fatal：<code>无法打开包括文件 "VMProtectSDK.h"</code></td><td>同上，包含目录缺失</td><td>同上</td></tr><tr><td>LNK1104 <code>无法打开文件 VMProtectSDK64.lib</code></td><td>头文件找到了，但链接器找不到 <code>.lib</code></td><td>链接器 → 常规 → <strong>附加库目录</strong> 加 <code>sdk/vmp</code>；或定义 <code>NEBULA_SHELL_NO_AUTOLINK</code> 后自己手动加入该 <code>.lib</code></td></tr><tr><td>报 <code>NEBULA_MARK_VM_BEGIN</code> 本身找不到</td><td>该文件用了标记宏但没有（直接/间接）包含 <code>protect/shell.hpp</code></td><td>只需 <code>#include "nebula_sdk.hpp"</code>，或至少 <code>#include "nebula/protect/shell.hpp"</code></td></tr></tbody></table></div>
+<p><strong>历史修复说明</strong>（当前版本已包含，无需处理）：</p>
+<ul class="md-list">
+<li><code>nebula/client/client.hpp</code> 用了标记宏却没自包含 <code>protect/shell.hpp</code> → 单独引用该头时报 <code>NEBULA_MARK_*</code> 未定义。
+</li>
+<li><code>protect/shell.hpp</code> 曾在 <code>namespace nebula::protect</code> <strong>内部</strong> include 壳 SDK 头， 导致 VMProtect 的全局 C 函数被裹进命名空间，宏在 <code>nebula::client</code> 里展开就找不到 → 已改为<strong>全局作用域 include</strong>。
+</li>
+</ul>
+<p><strong>自定义壳（Enigma / 魔改 Themida）</strong>：如果宏名对不上，用 §1.4 的 <code>NEBULA_SHELL_FORCE_HOOK</code>接管即可，此时不需要 <code>VMProtectSDK.h</code>，也就不会遇到上述链接问题。</p>
+<hr>
+<h2 id="d2-h13">2. ② 核心代码混淆</h2>
+<h3 id="d2-h14">2.1 字符串加密（<code>NEBULA_STR</code> / <code>NEBULA_WSTR</code>）</h3>
+<p>开启 <code>NEBULA_OBF_STRINGS=1</code> 后，明文字符串在<strong>编译期</strong>被拆成密文写进 <code>.rdata</code>，运行时按需解密：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code><span class="cmt">// 开启后：exe 里搜不到 http://api.example.com/api/index.php 这种明文</span>
+auto url  = NEBULA_STR(<span class="str">"http://api.example.com/api/index.php"</span>);
+auto note = NEBULA_WSTR(L<span class="str">"Nebula 安全提示"</span>);
+
+<span class="cmt">// 关闭时：等价于 std::string(s) / std::wstring(s)，零开销</span></code></pre></figure>
+<p><strong>规则</strong>：</p>
+<ul class="md-list">
+<li>只能传<strong>字面量</strong>，不能传变量、<code>std::string</code> 或宏拼接结果；
+</li>
+<li>每个字面量用 <code>__LINE__ + __COUNTER__</code> 生成独立密钥，同一句话在两处出现也是两份密文；
+</li>
+<li>它防的是 <code>strings</code> / IDA 字符串窗口的<strong>顺手一搜</strong>，不是密码学强度（<code>enc</code> 数组本身就是密钥线性变换）。 想更彻底：把密钥换成运行时值（<code>nebula::obf::runtimeNoise()</code> 之类）或直接上壳的字符串加密 （VMProtect 的 <code>VMProtectDecryptStringA</code>）。
+</li>
+</ul>
+<p><strong>接入方配置区已默认接好</strong>：<code>nebula/client/config.hpp</code> 顶部 <code>namespace nebula::cfg</code> 的 <code>kApiUrl / kAppKey</code>（以及 <code>kRespSignPubKey / kTlsCertSha256</code>）本来就是 <code>NEBULA_STR("...")</code> 包着的，你只替换引号里的字符串即可 —— <strong>不要把 <code>NEBULA_STR(...)</code> 拆掉</strong>，拆了就会以明文躺在 exe 里。（协议 3.1 起客户端不含任何静态对称密钥，配置区天然干净。）</p>
+<p><strong>发布前自查（值得花 30 秒）</strong>：拿编译好的 exe 搜一下自己的密钥</p>
+<figure class="code"><figcaption><span>BAT</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>findstr /C:<span class="str">"4c7623658c80afe3"</span> 你的程序.exe</code></pre></figure>
+<p>搜不到 = 混淆生效；搜到 = 没生效（多半是这个字符串没写成 <code>NEBULA_STR(...)</code>，或者工程预处理器里没定义 <code>NEBULA_OBF_STRINGS=1</code>）。</p>
+<h3 id="d2-h15">2.2 间接调用（打散调用图）</h3>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code><span class="cmt">// 敏感调用不走</span><span class="str">"直接调用"</span>，编译器无法内联、静态分析看不到调用关系
+nebula::obf::vcall(MyApp::checkCard, code);
+auto r = nebula::obf::vcallR(SomeClass::verify, arg1, arg2);</code></pre></figure>
+<h3 id="d2-h16">2.3 不透明谓词 / 虚假分支</h3>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>if (!NEBULA_OPAQUE_TRUE() &amp;&amp; NEBULA_OPAQUE_TRUE()) {
+    NEBULA_DEAD_BRANCH();     <span class="cmt">// 永远走不到，但静态分析看不出</span>
+}</code></pre></figure>
+<blockquote><p>老实说：这几个谓词在 <code>/O2</code> 下<strong>未必</strong>被保留，它只是免费的一层。真正的控制流保护请交给壳（VMProtect 的 Mutation）或 <strong>Obfuscator-LLVM</strong>（<code>-fla -bcf -sub -sobf</code>）。</p></blockquote>
+<h3 id="d2-h17">2.4 编译期建议</h3>
+<ul class="md-list">
+<li>发布版用 <code>/O2 /GL</code>（+ <code>/LTCG</code>），让优化把间接调用和谓词搅得更乱；
+</li>
+<li><strong>不要</strong>用 <code>/Ob0</code>、不要开 <code>/RTC1</code>、不要用 <code>/ZI</code>（这些会把调试检查与调试信息留在包里）；
+</li>
+<li>发布包<strong>不要带 <code>.pdb</code></strong>；
+</li>
+<li>更狠：Clang + Obfuscator-LLVM 编一遍，再叠壳。
+</li>
+</ul>
+<h3 id="d2-h18">2.5 运行时多样性（<code>NEBULA_RUNTIME_DIVERSE</code>）</h3>
+<blockquote><p><strong>一句话</strong>：让敏感数据的<strong>内存形态</strong>和判定代码的<strong>反汇编形态</strong>随每次进程启动而改变，破解者无法用固定的字符串特征或固定的字节码特征做批量匹配 / 一键绕过。</p></blockquote>
+<div class="tbl"><table><thead><tr><th>取值</th><th>行为</th></tr></thead><tbody><tr><td><code>0</code>（默认）</td><td><code>SecureString</code> 用固定编译期密钥（仍防 SSO 静态区明文），不透明谓词为固定恒真/恒假（零开销、可复现）</td></tr><tr><td><code>1</code></td><td><code>SecureString</code> 每次启动用 <code>runtimeRandByte()</code> 生成的随机密钥逐字节混淆；不透明谓词每次启动取不同随机操作数，但表达式恒等于 true/false</td></tr></tbody></table></div>
+<p><strong>它干什么</strong>：</p>
+<ol class="md-list">
+<li><strong><code>SecureString</code> 随机密钥</strong>：同一 exe 每次启动，<code>cfg</code> 静态区里 <code>kAppKey</code> 的密文形态都不同 （见 <a href="nebula/core/secure_string.hpp"><code>nebula/core/secure_string.hpp</code></a> 的 <code>SecureString</code>），拆包者无法用固定密文反查明文。
+</li>
+<li><strong>不透明谓词随机形态</strong>：<code>obf::opaqueTrue/False</code> 每次启动装配不同形态的恒真/恒假表达式， 关闭时退化为固定 <code>return true; / return false;</code>。合并进 <code>if (!OBF_OPAQUE_TRUE() &amp;&amp; ...)</code> 干扰分支。
+</li>
+</ol>
+<p><strong>怎么开</strong>（三选一，等价）：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>#define NEBULA_HARDEN 1              <span class="cmt">// 方式 A：一键全开，自动带上多样性</span>
+#define NEBULA_RUNTIME_DIVERSE 1     <span class="cmt">// 方式 B：只开多样性、别的不动</span>
+#include <span class="str">"nebula_sdk.hpp"</span></code></pre></figure>
+<p><strong>要不要开</strong>：发布版建议开（成本只有每次启动多一次随机源初始化，量级可忽略）；开发 / 自测建议关，保持可复现、方便断点。关闭时多样性相关代码为<strong>零开销</strong>。</p>
+<blockquote><p>说明：真随机源（<code>runtimeRandByte</code>）用「高分辨率性能计数器 + 进程 PID + 时钟纳秒」做种子，只依赖标准库 + Windows，不写可执行内存，不与壳 / DEP / 杀软冲突。</p></blockquote>
+<hr>
+<h2 id="d2-h19">3. ③ 运行时防护（反调试 / 反虚拟机沙箱 / 自检）</h2>
+<h3 id="d2-h20">3.1 三个等级各查什么</h3>
+<div class="tbl"><table><thead><tr><th>检查项</th><th>等级</th><th>权重</th><th>误报风险</th></tr></thead><tbody><tr><td><code>IsDebuggerPresent</code></td><td>1</td><td>100（铁证）</td><td>无</td></tr><tr><td><code>PEB.BeingDebugged</code></td><td>1</td><td>100（铁证）</td><td>无</td></tr><tr><td><code>PEB.NtGlobalFlag</code> 调试堆标志</td><td>1</td><td>45</td><td>极低</td></tr><tr><td>进程堆 <code>ForceFlags</code> 异常</td><td>1</td><td>35</td><td>极低</td></tr><tr><td><code>CheckRemoteDebuggerPresent</code></td><td>2</td><td>100（铁证）</td><td>无</td></tr><tr><td><code>ProcessDebugPort</code> / <code>DebugObjectHandle</code></td><td>2</td><td>100（铁证）</td><td>无</td></tr><tr><td><code>ProcessDebugFlags == 0</code></td><td>2</td><td>80（铁证）</td><td>无</td></tr><tr><td>线程硬件断点 <code>Dr0-Dr7</code></td><td>2</td><td>70</td><td>低（少数反外挂/杀软会设置）</td></tr><tr><td>调试/逆向工具进程（x64dbg、IDA、Cheat Engine…）</td><td>2</td><td>60</td><td>低</td></tr><tr><td>调试器窗口（OllyDbg、x64dbg、System Informer…）</td><td>3</td><td>60</td><td>低</td></tr><tr><td>关键代码执行时序异常</td><td>3</td><td>30</td><td>中（慢机器/降频会偏慢，故阈值给得很宽松）</td></tr><tr><td>frida 等注入框架模块</td><td>2</td><td>70</td><td>无</td></tr><tr><td>关键 API 首字节被改（inline hook）</td><td>2</td><td>20 / 45（≥2 个）</td><td>中（杀软/监控软件 hook 属正常）</td></tr><tr><td>受保护代码段被改写（<code>guardCode</code>）</td><td>2</td><td>90</td><td>无</td></tr><tr><td><code>CPUID</code> hypervisor 位</td><td>1</td><td>30</td><td>高（<strong>Hyper-V/WSL2/VBS/云电脑都会置位</strong>，所以只计分不单独判定）</td></tr><tr><td>注册表虚拟机痕迹</td><td>1</td><td>35</td><td>无</td></tr><tr><td>BIOS/主板厂商字段</td><td>1</td><td>40</td><td>低（云主机也会命中，属于期望行为）</td></tr><tr><td>网卡 MAC OUI 属虚拟网卡</td><td>1</td><td>45</td><td>低</td></tr><tr><td>虚拟机增强工具进程</td><td>2</td><td>30</td><td>无</td></tr><tr><td>虚拟机/沙箱模块（SbieDll、Cuckoo 等）</td><td>2</td><td>30 / 60</td><td>无</td></tr><tr><td>WDAG 隔离环境账号</td><td>2</td><td>60</td><td>无（这就是沙箱）</td></tr><tr><td>虚拟机驱动文件痕迹</td><td>3</td><td>25</td><td>无</td></tr><tr><td>机器配置异常偏低</td><td>3</td><td>15</td><td><strong>中</strong>（老电脑/轻量服务器会命中）</td></tr><tr><td>开机时间 &lt; 5 分钟</td><td>3</td><td>20</td><td><strong>中</strong>（自动化沙箱特征，但用户刚开机也会命中）</td></tr></tbody></table></div>
+<p><strong>判定规则</strong>：</p>
+<ul class="md-list">
+<li><code>debugged</code>：命中任一"铁证"（100 分档）<strong>或</strong>弱线索累计 ≥ 90 分；
+</li>
+<li><code>virtualized</code>：虚拟机线索累计 ≥ 60 分（所以单独一个 CPUID 位不会误判）；
+</li>
+<li><code>sandboxed</code>：命中沙箱特征（Sandboxie / Cuckoo / WDAG）；
+</li>
+<li><code>hooked</code>：命中注入模块或 ≥2 个关键 API 被改写；
+</li>
+<li><code>clean</code>：以上全部没命中。
+</li>
+</ul>
+<h3 id="d2-h21">3.2 怎么用</h3>
+<p><strong>方式 A：SDK 自动（推荐）</strong></p>
+<p>开了 <code>NEBULA_PROTECT_LEVEL&gt;=1</code> 后，<code>Client::init()</code> 会<strong>自动先自检再连服务端</strong>。默认策略 <code>action=1</code>（只回调上报），不会打断正常用户。</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>auto c = nebula::createDefaultClient(machineId, <span class="str">"Windows"</span>, <span class="str">"1.0.1"</span>);
+
+<span class="cmt">// 想在启动时就巡检、并把结果上报到自己的服务器：</span>
+c-&gt;setProtectAction(2);                    <span class="cmt">// 命中即</span><span class="str">"降级"</span>（拒绝后续 init/业务）
+c-&gt;setProtectCallback([](const nebula::protect::Report&amp; r) {
+    OutputDebugStringA(r.summary().c_str());
+    <span class="cmt">// sendToMyServer(r.score, r.detail());   // ← 上报服务端，便于运营侧观察</span>
+    <span class="cmt">// 也可以直接去看 nebula.protect.Report 的字段自行处理</span>
+});
+auto r = c-&gt;enableProtection(0 /*沿用编译期等级*/, 5000 /*每 5 秒后台巡检*/);
+if (!r.clean) { /* 按 r.debugged / r.virtualized / r.sandboxed / r.hooked 自行处理 */ }</code></pre></figure>
+<p><strong>方式 B：完全手动</strong></p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>nebula::protect::setEnabled(true);
+nebula::protect::setLevel(2);                       <span class="cmt">// 运行时降级（不能超过编译期上限）</span>
+nebula::protect::setCallback(myReporter);
+nebula::protect::Report r = nebula::protect::scan();
+if (!r.clean) {
+    log(<span class="str">"%s｜%s"</span>, r.summary().c_str(), r.detail().c_str());
+}</code></pre></figure>
+<h3 id="d2-h22">3.3 <code>Report</code> 字段</h3>
+<div class="tbl"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>clean</code></td><td>是否一切正常</td></tr><tr><td><code>debugged</code> / <code>virtualized</code> / <code>sandboxed</code> / <code>hooked</code></td><td>四个分类结论</td></tr><tr><td><code>score</code></td><td>累计风险分（建议直接上报服务端，用于观察趋势）</td></tr><tr><td><code>flags</code></td><td>命中位掩码（<code>F_*</code> 常量，可精确判断命中了哪一项）</td></tr><tr><td><code>reasons</code></td><td>命中的具体项（中文，可直接打日志/上报）</td></tr><tr><td><code>summary()</code> / <code>detail()</code></td><td>一行摘要 / 明细字符串</td></tr><tr><td><code>at</code></td><td>检测时间（Unix 秒）</td></tr></tbody></table></div>
+<h3 id="d2-h23">3.4 动作策略（<code>NEBULA_PROTECT_ACTION</code>）</h3>
+<div class="tbl"><table><thead><tr><th>值</th><th>行为</th><th>建议</th></tr></thead><tbody><tr><td><code>0</code></td><td>只记录（什么都不做，<code>enforce()</code> 返回 true）</td><td>灰度观察期</td></tr><tr><td><code>1</code></td><td><strong>回调上报</strong>（默认）。有回调就调，没回调就什么都不做</td><td>内测 / 上线初期</td></tr><tr><td><code>2</code></td><td>回调 + 置「降级」态：<code>init()</code> 会中止，<code>protect::degraded()</code> 为真</td><td>正式版推荐</td></tr><tr><td><code>3</code></td><td>回调 + 弹窗提示 + <code>ExitProcess(0xE0000001)</code></td><td>只对"铁证类"命中才用，慎用</td></tr></tbody></table></div>
+<blockquote><p><strong>强烈建议不要一上来就用 3。</strong> 云电脑、虚拟机里的真实付费用户、杀软的 hook 都会造成误伤。先用 <code>1</code> 收集一段时间，看命中的都是谁，再决定要不要收紧。</p></blockquote>
+<h3 id="d2-h24">3.4.1 setProtectAction 会「隐式启用检测」（重要）</h3>
+<p><code>Client::setProtectAction(act)</code> 只要传入 <code>act&gt;0</code>，就会同时把检测等级提到编译期上限并打开 <code>enabled</code> 开关。<strong>不要只调它而不调其它</strong>——它本身就是"开启检测 + 设处置"一行到位：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>c-&gt;setProtectAction(3);   <span class="cmt">// 等级提到 NEBULA_PROTECT_LEVEL 上限 + 启用扫描 + 铁证弹窗退出</span></code></pre></figure>
+<p>（老版本只 <code>setAction</code>，会让扫描被 <code>enabled()=false</code> 短路、检测根本没执行——已修复。）</p>
+<h3 id="d2-h25">3.4.2 宽松 / 严格策略（防误伤：加速器 / 隐身 VM）</h3>
+<p>默认<strong>宽松策略</strong>，避免把"挂加速器产生的 hook、跑在 VM/沙箱"的正常用户误拦：</p>
+<ul class="md-list">
+<li>只有<strong>真实调试铁证（<code>debugged</code>）</strong>才按 <code>action&gt;=2</code> 处置；
+</li>
+<li><code>hook / VM / 沙箱</code> 等<strong>疑似环境</strong>只回调记录、不退出、不降级。
+</li>
+</ul>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code><span class="cmt">// 想恢复旧行为（任何异常都按 action 处置，含 VM 拦截）：</span>
+nebula::protect::setSuspiciousPolicy(true);</code></pre></figure>
+<h3 id="d2-h26">3.4.3 虚拟机识别的兜底检测（抓"隐身 VM"）</h3>
+<p>针对 <code>SMBIOS.reflectHost</code>（反射厂商/型号/序列号后仍伪装成真机）的 VMware：</p>
+<ul class="md-list">
+<li>在查 <code>SystemManufacturer</code> / <code>SystemProductName</code> 之外，<strong>又补了 <code>BIOSVendor</code> 与 <code>BIOSVersion</code></strong>。 这两个字段 reflectHost 默认<strong>不反射</strong>，隐身 VMware 的 BIOS 版本前缀仍带 <code>VMW</code>（如 <code>VMW71.00V.0</code>），可被兜底命中；
+</li>
+<li><code>vmDriverFile</code> 新增 <code>vmci.sys</code> / <code>vmxnet.sys</code> / <code>vmx_svga.sys</code> / <code>vmmemctl.sys</code> / <code>vsock.sys</code>。
+</li>
+</ul>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>if (nebula::protect::setSuspiciousPolicy(true)) <span class="cmt">// 严格模式：让隐身 VM 也直接拦截（谨慎）</span>
+    c-&gt;setProtectAction(3);</code></pre></figure>
+<h3 id="d2-h27">3.5 代码补丁自检（<code>guardCode</code>）</h3>
+<p>把关键函数的地址与长度登记进去，之后每次 <code>scan()</code> 都会比对哈希：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code><span class="cmt">// 程序启动时登记一次（长度填函数大概的字节数，宁可小一点）</span>
+nebula::protect::guardCode((const void*)&amp;MyApp::checkLicense, 256);
+
+<span class="cmt">// 之后 scan() 会自动带上 F_TAMPER 判定；</span>
+<span class="cmt">// 也可以单独查：</span>
+bool ok = nebula::protect::verifyGuardedCode();</code></pre></figure>
+<h3 id="d2-h28">3.6 后台巡检</h3>
+<p><code>enableProtection(0, 5000)</code> 会起一个后台线程每 5 秒查一次（&lt;1 秒会被钳到 1 秒）。它在进程退出前需要停止 —— <code>Client</code> 析构里已经自动调用 <code>stopWatchdog()</code>，所以<strong>正常创建/销毁 Client 就不用管</strong>。手写用法：</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>nebula::protect::startWatchdog(5000, myCallback);
+nebula::protect::stopWatchdog();</code></pre></figure>
+<h3 id="d2-h29">3.7 误报怎么收场</h3>
+<div class="tbl"><table><thead><tr><th>现象</th><th>处理</th></tr></thead><tbody><tr><td>虚拟机/VPS 用户体验受影响</td><td><code>setLevel(1)</code> 降级；或 <code>setAction(1)</code> 只收集不处置</td></tr><tr><td>开机时间 / 低配检出错杀</td><td>用 <code>flags</code> 精确判断，忽略 <code>F_ENV_WEAK</code> 类命中</td></tr><tr><td>杀软 hook 被当成劫持</td><td>忽略"只有 1 个 API 被改"（权重 20，不构成 <code>hooked</code>）</td></tr><tr><td>想临时全关</td><td><code>nebula::protect::setEnabled(false)</code></td></tr></tbody></table></div>
+<hr>
+<h2 id="d2-h30">4. 与服务端风控的关系（重要）</h2>
+<p><strong>客户端加固只能"抬高成本"，永远不能"保证安全"。</strong></p>
+<p>真正做判定与处置的必须是服务端：</p>
+<ul class="md-list">
+<li>请求侧风控：<code>lib/Guard.php</code>（web / shop / agent / 后台四端已接入）；
+</li>
+<li>协议侧：ECDH 会话（sid）+ seq 单调防重放 + 时间窗 + 每次会话独立密钥；
+</li>
+<li>业务侧：卡密绑定、设备数上限、离线宽限票据。
+</li>
+</ul>
+<p>推荐做法：客户端把 <code>Report</code> 摘要（不是全部细节）随业务请求上报给你自己的服务端日志，运营侧看"有多少用户的 <code>score</code> 异常"，而不是让客户端自己决定封号。</p>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>c-&gt;setProtectCallback([](const nebula::protect::Report&amp; r) {
+    <span class="cmt">// 只上报脱敏后的结论，别把检测细节全发出去（等于给破解者做校验清单）</span>
+    reportToServer(r.score, r.debugged, r.virtualized, r.sandboxed, r.hooked);
+});</code></pre></figure>
+<hr>
+<h2 id="d2-h31">5. 兼容性 / 常见问题</h2>
+<div class="tbl"><table><thead><tr><th>问题</th><th>答案</th></tr></thead><tbody><tr><td>会不会影响协议、加解密、老客户端？</td><td><strong>不会。</strong> 加固只影响客户端自身，协议一个字节都没动；服务端不需要任何改动。</td></tr><tr><td>不开启时有没有性能损耗？</td><td>没有。所有检测代码都在 <code>#if</code> 里，全关时几乎不编译进目标文件。</td></tr><tr><td>需要什么编译环境？</td><td>C++17（SDK 本来就要求），MSVC 2017+；<strong>建议加 <code>/utf-8</code></strong>（本文件注释是中文）。</td></tr><tr><td>需要额外头文件/库吗？</td><td>不开启加固时不需要。开启壳标记后需要壳自带的 SDK 头 + lib（会自动链接，可用 <code>NEBULA_SHELL_NO_AUTOLINK</code> 关掉自动链接）。</td></tr><tr><td>加固代码放哪？</td><td>加固实现位于 <code>sdk/nebula/protect/</code>（<code>shell.hpp</code> / <code>obfuscate.hpp</code> / <code>runtime.hpp</code>），由 <code>nebula_sdk.hpp</code> 自动包含。整个 <code>nebula/</code> 目录需随伞头一起拷进工程。</td></tr><tr><td>只改一个文件行不行？</td><td>行。<code>NEBULA_HARDEN=1</code> 写在工程预处理器里，源码不用动。</td></tr><tr><td>云端沙箱/VPS 用户怎么办？</td><td>见 3.7；建议对虚拟化类命中只上报不处置。</td></tr><tr><td>加壳后登录一直失败？</td><td>90% 是壳保护了 IAT/导入表，或虚拟化了 <code>Client::post</code>。把范围收小、关掉导入表保护试试。</td></tr><tr><td>加壳后提示"客户端被篡改"？</td><td>加壳改变了 exe 哈希 → 去后台「版本管理」重新登记哈希与大小。</td></tr></tbody></table></div>
+<hr>
+<h2 id="d2-h32">6. 一页速查</h2>
+<figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code><span class="cmt">// ============ 1. 工程预处理器定义（不改代码就能开） ============</span>
+<span class="cmt">// NEBULA_HARDEN=1                 一键全开（等级3 + 混淆 + 壳标记）</span>
+<span class="cmt">// NEBULA_PROTECT_LEVEL=1|2|3      只要运行时防护</span>
+<span class="cmt">// NEBULA_OBF_STRINGS=1            只要字符串混淆</span>
+<span class="cmt">// NEBULA_SHELL_ENABLE=1           只要壳标记</span>
+<span class="cmt">// NEBULA_RUNTIME_DIVERSE=1        只要运行时多样性（SecureString 随机密钥 + 谓词随机形态）</span>
+<span class="cmt">// NEBULA_PROTECT_ACTION=0|1|2|3   命中后的动作（默认 1 = 只回调上报）</span>
+
+<span class="cmt">// ============ 2. main() 里启动 ============</span>
+auto c = nebula::createDefaultClient();
+c-&gt;setProtectAction(2);                                  <span class="cmt">// 命中即降级</span>
+c-&gt;setProtectCallback([](const nebula::protect::Report&amp; r){
+    OutputDebugStringA((r.summary() + <span class="str">" | "</span> + r.detail()).c_str());
+});
+c-&gt;enableProtection(0, 5000);                            <span class="cmt">// 自检 + 每 5 秒巡检</span>
+nebula::protect::guardCode((const void*)&amp;MyVerifier, 256); <span class="cmt">// 可选：补丁自检</span>
+
+<span class="cmt">// ============ 3. 业务代码里打壳标记 ============</span>
+NEBULA_MARK_VM_BEGIN();  /* 最关键的一段 */  NEBULA_MARK_VM_END();
+auto s = NEBULA_STR(<span class="str">"敏感字符串"</span>);           <span class="cmt">// 混淆后的字面量</span></code></pre></figure>
+<hr>
+</div>
+</article>
+<article class="doc" id="doc-d3" data-doc="d3">
+<div class="doc-body">
+<h1 id="d3-h0">Nebula 网络验证 · 接口文档</h1>
+<p>所有客户端接口统一入口：</p>
+<figure class="code"><figcaption><span>CODE</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>POST http://&lt;域名&gt;/api/index.php?action=&lt;接口名&gt;</code></pre></figure>
+<p>（配置了 <code>.htaccess</code> 后也可用 <code>POST http://&lt;域名&gt;/api/&lt;接口名&gt;</code>）</p>
+<blockquote><h3 id="d3-h1">不想手写协议？</h3><p><code>sdk/</code> 目录提供<strong>零依赖的 C++ SDK</strong>（header-only），把 <code>sdk/nebula/</code> 目录 + <code>nebula_sdk.hpp</code> 一起拖进项目即可，<br>无需 OpenSSL / libcurl（用系统自带的 <code>bcrypt.dll</code> / <code>winhttp.dll</code>，仅 Windows + MSVC）。配置只需改一个文件：<code>sdk/nebula/client/config.hpp</code>。</p><figure class="code"><figcaption><span>CPP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>#include <span class="str">"nebula_sdk.hpp"</span>
+
+auto c = nebula::createDefaultClient(<span class="str">"machine_id"</span>, <span class="str">"Windows"</span>, <span class="str">"1.0.1"</span>);
+c-&gt;init();
+auto lr = c-&gt;login(<span class="str">"用户名"</span>, <span class="str">"密码"</span>);
+c-&gt;startHeartbeat(lr.token, /* 心跳回调 */, 60000);</code></pre></figure><p>本文档描述的是<strong>协议层</strong>细节，适合需要自行实现客户端（其他语言 / 特殊需求）的场景。</p></blockquote>
+<hr>
+<h2 id="d3-h2">一、通信协议（Nebula 3.1）</h2>
+<blockquote><p>3.1 的核心设计：ECDH P-256 临时握手协商会话密钥，客户端<strong>不持有任何静态对称机密</strong>——逆向者即使 dump 出整个进程内存，也拿不到可用于伪造请求的密钥。</p></blockquote>
+<h3 id="d3-h3">1.1 会话握手（handshake）</h3>
+<p>客户端启动后（或会话失效时）先调用 <code>action=handshake</code> 建立会话。请求为<strong>明文 JSON</strong>（完整性由响应的 ES256 签名保证）：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"app_key"</span></span>: <span class="str">"SWxxxx"</span>,
+  <span class="key"><span class="str">"eph_pub"</span></span>: <span class="str">"&lt;base64(客户端临时 ECDH P-256 公钥, 65字节 uncompressed)&gt;"</span>,
+  <span class="key"><span class="str">"nc"</span></span>:      <span class="str">"&lt;base64(客户端随机数 16 字节)&gt;"</span>,
+  <span class="key"><span class="str">"ts"</span></span>:      1726000000,
+  <span class="key"><span class="str">"mhash"</span></span>:   <span class="str">"&lt;sha256(machine_id) hex&gt;"</span>
+}</code></pre></figure>
+<div class="tbl"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>eph_pub</code></td><td>客户端每次握手<strong>临时生成</strong>的 ECDH P-256 公钥（会话结束即丢弃，私钥永不出内存）</td></tr><tr><td><code>nc</code></td><td>客户端 16 字节随机数，参与密钥派生与签名绑定（防重放 / 防 MITM 换钥）</td></tr><tr><td><code>mhash</code></td><td>机器码的 SHA256 哈希（不传原值，服务端仅用于「同机单会话」清理）</td></tr><tr><td><code>ts</code></td><td>秒级时间戳，服务端校验时差窗口</td></tr></tbody></table></div>
+<p>响应（外层含 ES256 防伪签名，业务数据在 <code>data</code> 层）：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>:  0,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"proto"</span></span>:   31,
+    <span class="key"><span class="str">"sid"</span></span>:     <span class="str">"&lt;32位hex会话ID&gt;"</span>,
+    <span class="key"><span class="str">"eph_pub"</span></span>: <span class="str">"&lt;base64(服务端临时 ECDH 公钥)&gt;"</span>,
+    <span class="key"><span class="str">"ns"</span></span>:      <span class="str">"&lt;base64(服务端随机数 16 字节)&gt;"</span>,
+    <span class="key"><span class="str">"ts_s"</span></span>:    1726000000,
+    <span class="key"><span class="str">"sign"</span></span>:    <span class="str">"&lt;base64(ES256 签名)&gt;"</span>,
+    <span class="key"><span class="str">"sig_kid"</span></span>: <span class="str">"&lt;密钥标识&gt;"</span>,
+    <span class="key"><span class="str">"sig_algo"</span></span>: <span class="str">"ES256"</span>
+  }
+}</code></pre></figure>
+<p><code>sign</code> 的签名对象为 <code>sid | eph_pub_S | ns | nc | ts_s</code>——绑定双方临时公钥与 nonce，握手响应不可重放、不可篡改、不可中间人换钥。客户端验签通过后计算会话密钥：</p>
+<div class="tbl"><table><thead><tr><th>项目</th><th>值</th></tr></thead><tbody><tr><td>共享密钥</td><td><code>shared = ECDH(客户端临时私钥, 服务端临时公钥)</code> 的 X 坐标（32 字节，大端）</td></tr><tr><td>加密密钥</td><td><code>sk_enc = HKDF-SHA256(shared, salt=nc‖ns, info="nebula31-enc", 32)</code></td></tr><tr><td>MAC 密钥</td><td><code>sk_mac = HKDF-SHA256(shared, salt=nc‖ns, info="nebula31-mac", 32)</code></td></tr><tr><td>IV 前缀</td><td><code>sha256(nc‖ns)</code> 前 4 字节（双方独立可算，无需下发）</td></tr></tbody></table></div>
+<blockquote><p>服务端握手接口独立频控（10 次/分钟）；同一 <code>mhash</code> 旧会话自动清理。会话有效期由服务端控制，<code>5002</code> 即重新握手。</p></blockquote>
+<h3 id="d3-h4">1.2 业务请求信封</h3>
+<p>除明文白名单外，所有业务请求统一 3.1 信封：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"proto"</span></span>:  31,
+  <span class="key"><span class="str">"sid"</span></span>:    <span class="str">"&lt;32位hex会话ID&gt;"</span>,
+  <span class="key"><span class="str">"seq"</span></span>:    42,
+  <span class="key"><span class="str">"t"</span></span>:      1726000000,
+  <span class="key"><span class="str">"data"</span></span>:   <span class="str">"&lt;base64(iv[12] + AES-256-GCM密文 + tag[16])&gt;"</span>,
+  <span class="key"><span class="str">"mac"</span></span>:    <span class="str">"&lt;HMAC-SHA256 hex&gt;"</span>,
+  <span class="key"><span class="str">"app_key"</span></span>: <span class="str">"SWxxxx"</span>
+}</code></pre></figure>
+<div class="tbl"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>data</code></td><td>业务参数 JSON 序列化后加密：<code>base64(iv[12] + GCM密文 + tag[16])</code>。IV = <code>iv_prefix(4) ‖ seq 大端(8)</code>——<strong>seq 严格递增，IV 永不重复</strong></td></tr><tr><td><code>mac</code></td><td><code>hex(HMAC-SHA256(sk_mac, sid|seq|t|sha256(data)))</code>，绑定会话/序号/时间，防字段换序重放</td></tr><tr><td><code>seq</code></td><td>会话内单调递增序号；服务端原子 UPDATE 校验，重复 → <code>5004</code> 重放拒绝</td></tr><tr><td><code>t</code></td><td>秒级时间戳（客户端已按握手 <code>ts_s</code> 校准时钟），窗口 60 秒</td></tr><tr><td><code>sid</code></td><td>会话 ID；无效 / 过期 → <code>5002</code>，客户端应重新握手</td></tr><tr><td><code>app_key</code></td><td><strong>软件标识（必填）</strong>；握手与会话均按 app_key 归属，账号/卡密/设备等数据均按软件隔离。未携带或无效 → <code>1004</code></td></tr></tbody></table></div>
+<h3 id="d3-h5">1.2.1 安全性质</h3>
+<ul class="md-list">
+<li><strong>零静态机密</strong>：AES_KEY / SIGN_SALT 已随 3.0 移除，客户端编译产物中不存在任何长期对称密钥；逆向 dump 堆内存最多拿到当次会话的临时密钥（会话结束即作废）
+</li>
+<li><strong>前向隔离</strong>：每次握手重新生成双方临时密钥对，一个会话泄露不影响其他会话
+</li>
+<li><strong>防重放</strong>：GCM 认证加密（密文+tag 不可篡改）+ seq 单调递增 + HMAC 绑定 sid|seq|t 三重防线
+</li>
+<li><strong>防伪造服务器</strong>：握手与业务响应均带服务端长期 ES256 私钥签名（公钥 pin 在客户端），hosts 劫持 / 假服务器直接失效
+</li>
+</ul>
+<h3 id="d3-h6">1.3 响应格式</h3>
+<p>业务响应使用<strong>同一会话的 GCM 信封</strong>（IV 与请求对称，用请求的 seq），外层附带 ES256 防伪签名与明文 <code>code</code>：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"proto"</span></span>:  31,
+  <span class="key"><span class="str">"sid"</span></span>:    <span class="str">"&lt;会话ID&gt;"</span>,
+  <span class="key"><span class="str">"data"</span></span>:   <span class="str">"&lt;base64(iv[12] + GCM密文 + tag[16])&gt;"</span>,
+  <span class="key"><span class="str">"code"</span></span>:   0,
+  <span class="key"><span class="str">"sig"</span></span>:      <span class="str">"&lt;base64(ES256 签名)&gt;"</span>,
+  <span class="key"><span class="str">"sig_kid"</span></span>:  <span class="str">"&lt;密钥标识&gt;"</span>,
+  <span class="key"><span class="str">"sig_algo"</span></span>: <span class="str">"ES256"</span>
+}</code></pre></figure>
+<p><code>sig</code> / <code>sig_kid</code> / <code>sig_algo</code> 为<strong>响应防伪签名</strong>（服务端长期私钥签名，客户端内置公钥验签）：</p>
+<div class="tbl"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>sig</code></td><td>base64(对字符串 <code>data | sid</code> 的签名)；私钥仅存服务端，逆向出客户端全部内容也无法伪造响应</td></tr><tr><td><code>sig_kid</code></td><td>签名密钥标识（服务端轮换密钥时用于选公钥）</td></tr><tr><td><code>sig_algo</code></td><td><code>ES256</code>（ECDSA P-256，默认）或 <code>RS256</code>（RSA-2048，运行环境不支持 EC 时自动回落）</td></tr></tbody></table></div>
+<blockquote><p>校验顺序：先验 <code>sig</code>（防伪造服务器）→ 再 GCM 解密 <code>data</code>（tag 自带完整性）。该签名与离线宽限票据签名共用一对密钥（<code>config/grace_keys.php</code>），客户端需在 <code>nebula/client/config.hpp</code> 的 <code>kRespSignPubKey</code> 填入对应公钥（<strong>必填</strong>）。</p></blockquote>
+<p>解密 <code>data</code> 后得到业务响应：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>:  <span class="str">"登录成功"</span>,
+  <span class="key"><span class="str">"time"</span></span>: 1726000000,
+  <span class="key"><span class="str">"data"</span></span>: { }
+}</code></pre></figure>
+<h3 id="d3-h7">1.3.1 明文白名单接口</h3>
+<p>以下接口<strong>无敏感数据</strong>，支持明文直接调用（不带 3.1 信封）：</p>
+<div class="tbl"><table><thead><tr><th>接口</th><th>说明</th></tr></thead><tbody><tr><td><code>handshake</code></td><td>ECDH 会话握手（明文请求，响应带 ES256 签名，见 1.1 节）</td></tr><tr><td><code>notice</code></td><td>获取公告列表</td></tr><tr><td><code>version</code></td><td>版本校验</td></tr><tr><td><code>online</code></td><td>在线人数</td></tr></tbody></table></div>
+<blockquote><p><strong>注意：<code>init</code> 不在白名单</strong>——3.1 起 init 必须先完成握手、走 GCM 会话信封（配置/公告/版本策略属敏感下发内容）。</p></blockquote>
+<p>这一组白名单接口同时还满足：不要求会话、不受最低版本强制更新拦截、<br>不计入每日调用配额、维护模式下照常放行。</p>
+<p><strong>响应一律加密</strong>（不论请求是明文还是 GCM 信封）：</p>
+<ul class="md-list">
+<li>所有接口（含白名单接口、错误响应）都返回加密信封
+</li>
+<li>白名单接口只是允许<strong>请求</strong>侧不带信封，响应侧始终加密，防止响应被中间人直接读取
+</li>
+</ul>
+<p>客户端解析响应时无需区分请求方式，统一按 1.3 节的信封流程验签 + 解密即可。</p>
+<blockquote><p>白名单在 <code>config/config.php</code> 的 <code>security.plain_whitelist</code> 中配置（handshake 恒为公开）。<br>其余接口在 <code>enforce_crypto = true</code>（默认）时<strong>必须</strong>携带完整 3.1 信封，<br>否则返回 <code>1001 缺少必要字段 sid/seq/data</code>。</p></blockquote>
+<h3 id="d3-h8">1.4 业务状态码</h3>
+<div class="tbl"><table><thead><tr><th>code</th><th>含义</th></tr></thead><tbody><tr><td>0</td><td>成功</td></tr><tr><td>1001</td><td>参数错误</td></tr><tr><td>1002</td><td>未登录 / 令牌无效</td></tr><tr><td>1003</td><td>令牌过期</td></tr><tr><td>1004</td><td>app_key 无效或软件已停用（卡密直登模式下调用注册也返回此码）</td></tr><tr><td>2001</td><td>用户名或密码错误</td></tr><tr><td>2002</td><td>账号已被封禁</td></tr><tr><td>2003</td><td>账号被锁定</td></tr><tr><td>2004</td><td>账号已过期，需激活</td></tr><tr><td>3001</td><td>卡密不存在</td></tr><tr><td>3002</td><td>卡密已被使用</td></tr><tr><td>3003</td><td>卡密已作废</td></tr><tr><td>3004</td><td>卡密已过期</td></tr><tr><td>3005</td><td>激活码尚未绑定账号</td></tr><tr><td>3006</td><td>该激活码已绑定其他账号（用户名与绑定账号不一致）</td></tr><tr><td>3007</td><td>该用户名已被注册，不能再绑定此激活码</td></tr><tr><td>4001</td><td>设备数量超限</td></tr><tr><td>4002</td><td>设备未绑定 / 已被解绑</td></tr><tr><td>4003</td><td>缺少机器码</td></tr><tr><td>4004</td><td>设备已被拉黑</td></tr><tr><td>4005</td><td>设备指纹异常，已拒绝登录（疑似伪造机器码 / 模拟器虚拟机）</td></tr><tr><td>4006</td><td>异地登录已拦截（已绑定设备换了 IP，需后台开启「异地登录拦截」）</td></tr><tr><td>5001</td><td>请求过于频繁</td></tr><tr><td>5002</td><td>请求 MAC 校验失败 / 会话无效或已过期 / 解密失败（客户端应重新握手）</td></tr>
+<tr><td>5003</td><td>请求已过期</td></tr>
+<tr><td>5004</td><td>重放请求（seq 重复 / nonce 重放）</td></tr><tr><td>6001</td><td>版本过低需强制更新</td></tr><tr><td>6002</td><td>服务器维护中</td></tr><tr><td>9999</td><td>服务器内部错误</td></tr></tbody></table></div>
+<hr>
+<h2 id="d3-h9">二、客户端接口</h2>
+<h3 id="d3-h10">2.1 init · 初始化</h3>
+<p>拉取服务器配置、公告、版本信息。<strong>建议客户端启动第一步调用。</strong></p>
+<p><strong>请求参数</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td>client_ver</td><td>string</td><td>否</td><td>客户端当前版本，如 <code>1.0.0</code></td></tr><tr><td>machine_id</td><td>string</td><td>否</td><td>机器码</td></tr></tbody></table></div>
+<p><strong>响应示例</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"ok"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"server_time"</span></span>: 1726000000,
+    <span class="key"><span class="str">"site_name"</span></span>: <span class="str">"Nebula 网络验证"</span>,
+    <span class="key"><span class="str">"heartbeat_interval"</span></span>: 60,
+    <span class="key"><span class="str">"session_ttl"</span></span>: 3600,
+    <span class="key"><span class="str">"register_enable"</span></span>: true,
+    <span class="key"><span class="str">"maintain_mode"</span></span>: false,
+    <span class="key"><span class="str">"grace"</span></span>: {
+      <span class="key"><span class="str">"enable"</span></span>: true,
+      <span class="key"><span class="str">"seconds"</span></span>: 3600,
+      <span class="key"><span class="str">"max_seconds"</span></span>: 7200,
+      <span class="key"><span class="str">"algorithm"</span></span>: <span class="str">"ES256"</span>,
+      <span class="key"><span class="str">"kid"</span></span>: <span class="str">"3f9a1c2b"</span>,
+      <span class="key"><span class="str">"public_key"</span></span>: <span class="str">"-----BEGIN PUBLIC KEY-----\nMFkw...\n-----END PUBLIC KEY-----"</span>,
+      <span class="key"><span class="str">"ticket_prefix"</span></span>: <span class="str">"G1"</span>,
+      <span class="key"><span class="str">"usage"</span></span>: <span class="str">"心跳失败时，本地用 public_key 验签后可在 until 前离线运行"</span>
+    },
+    <span class="key"><span class="str">"crypto"</span></span>: { <span class="key"><span class="str">"proto"</span></span>: 31, <span class="key"><span class="str">"algo"</span></span>: <span class="str">"AES-256-GCM"</span>, <span class="key"><span class="str">"kex"</span></span>: <span class="str">"ECDH-P256"</span>, <span class="key"><span class="str">"sign"</span></span>: <span class="str">"ES256"</span> },
+    <span class="key"><span class="str">"version"</span></span>: {
+      <span class="key"><span class="str">"client_ver"</span></span>: <span class="str">"1.0.0"</span>,
+      <span class="key"><span class="str">"latest"</span></span>: <span class="str">"1.1.0"</span>,
+      <span class="key"><span class="str">"min"</span></span>: <span class="str">"1.0.0"</span>,
+      <span class="key"><span class="str">"need_update"</span></span>: true,
+      <span class="key"><span class="str">"force_update"</span></span>: false,
+      <span class="key"><span class="str">"update_url"</span></span>: <span class="str">"https://example.com/app.exe"</span>,
+      <span class="key"><span class="str">"update_note"</span></span>: <span class="str">"修复若干问题"</span>
+    },
+    <span class="key"><span class="str">"notices"</span></span>: [
+      { <span class="key"><span class="str">"id"</span></span>: 1, <span class="key"><span class="str">"title"</span></span>: <span class="str">"欢迎使用"</span>, <span class="key"><span class="str">"content"</span></span>: <span class="str">"系统已上线"</span>, <span class="key"><span class="str">"type"</span></span>: 4 }
+    ]
+  }
+}</code></pre></figure>
+<blockquote><p><code>notices</code> 仅下发 <strong>列表公告</strong>（type=4，公告栏展示用，按归属软件过滤）；弹窗公告（type=2）与立即公告（type=3）由客户端经 <code>notice</code> 接口配合 SDK <code>popupNotices()</code> / <code>flashNotices()</code> 处理。</p></blockquote>
+<div class="tbl"><table><thead><tr><th><code>data.grace</code> 字段</th><th>说明</th></tr></thead><tbody><tr><td><code>enable</code></td><td>服务端是否开启离线宽限</td></tr><tr><td><code>seconds</code> / <code>max_seconds</code></td><td>单次宽限时长 / 硬上限（秒）</td></tr><tr><td><code>algorithm</code></td><td>票据签名算法，固定 <code>ES256</code>（ECDSA P-256）</td></tr><tr><td><code>kid</code></td><td>密钥标识，轮换后变化；客户端可据此发现需要重新拉取公钥</td></tr><tr><td><code>public_key</code></td><td><strong>验签公钥</strong>（PEM），客户端缓存后本地验签，无需联网</td></tr><tr><td><code>ticket_prefix</code></td><td>票据固定前缀（<code>G1</code>），用于快速识别</td></tr><tr><td><code>usage</code></td><td>用法提示文案</td></tr></tbody></table></div>
+<blockquote><p>离线宽限票据的完整使用方式见 <a href="#216-离线宽限协议">2.16 离线宽限协议</a>。</p></blockquote>
+<hr>
+<h3 id="d3-h11">2.2 register · 注册</h3>
+<blockquote><p>登录方式为 <code>code</code>（卡密直登）时本接口<strong>自动关闭</strong>，返回 <code>1004 当前仅支持激活码登录，无需注册</code>。<br>官网侧（<code>/web/api.php?action=register</code>）行为一致。</p></blockquote>
+<p><strong>请求参数</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td>username</td><td>string</td><td>是</td><td>3-32 位字母/数字/下划线/中文</td></tr><tr><td>password</td><td>string</td><td>是</td><td>6-64 位</td></tr><tr><td>email</td><td>string</td><td>否</td><td>邮箱</td></tr></tbody></table></div>
+<p><strong>响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{ <span class="key"><span class="str">"code"</span></span>: 0, <span class="key"><span class="str">"msg"</span></span>: <span class="str">"注册成功"</span>, <span class="key"><span class="str">"data"</span></span>: { <span class="key"><span class="str">"user_id"</span></span>: 10, <span class="key"><span class="str">"username"</span></span>: <span class="str">"testuser"</span> } }</code></pre></figure>
+<hr>
+<h3 id="d3-h12">2.3 login · 登录</h3>
+<blockquote><p><strong>登录方式由后台「系统设置 → 登录方式」单选决定</strong>，客户端按 <code>init</code> 下发的<br><code>data.login</code> 规格（<code>method</code> / <code>fields</code>）直接提交对应字段。<br>三种方式<strong>互斥</strong>，不存在「一次请求塞多个字段、服务端猜」的兼容逻辑：<br>字段与该方式不匹配时直接返回 <code>1001</code>。</p></blockquote>
+<p><code>init</code> 下发的登录规格：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code><span class="key"><span class="str">"login"</span></span>: {
+  <span class="key"><span class="str">"method"</span></span>: <span class="str">"password"</span>,
+  <span class="key"><span class="str">"label"</span></span>: <span class="str">"用户名 + 密码"</span>,
+  <span class="key"><span class="str">"need_username"</span></span>: true,
+  <span class="key"><span class="str">"need_password"</span></span>: true,
+  <span class="key"><span class="str">"need_code"</span></span>: false,
+  <span class="key"><span class="str">"fields"</span></span>: [<span class="str">"username"</span>, <span class="str">"password"</span>]
+}</code></pre></figure>
+<div class="tbl"><table><thead><tr><th>method</th><th>含义</th><th>必填字段</th></tr></thead><tbody><tr><td><code>password</code></td><td>用户名 + 密码</td><td><code>username</code>, <code>password</code></td></tr><tr><td><code>username_code</code></td><td>用户名 + 激活码</td><td><code>username</code>, <code>code</code></td></tr><tr><td><code>code</code></td><td>激活码（卡密直登）</td><td><code>code</code></td></tr></tbody></table></div>
+<p><strong>公共请求参数</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td>machine_id</td><td>string</td><td><strong>是</strong></td><td>机器码，用于设备绑定</td></tr><tr><td>device_name</td><td>string</td><td>否</td><td>设备名称</td></tr><tr><td>os_info</td><td>string</td><td>否</td><td>系统信息</td></tr><tr><td>client_ver</td><td>string</td><td>否</td><td>客户端版本</td></tr><tr><td>device_fp</td><td>object</td><td>否</td><td>设备指纹组件（见 <a href="#214-设备指纹可选">2.14 设备指纹</a>）。不上报时行为与旧版完全一致</td></tr></tbody></table></div>
+<p><strong>各登录方式的字段</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>类型</th><th>password</th><th>username_code</th><th>code</th><th>说明</th></tr></thead><tbody><tr><td>username</td><td>string</td><td>✅</td><td>✅</td><td>—</td><td>用户名</td></tr><tr><td>password</td><td>string</td><td>✅</td><td>—</td><td>—</td><td>密码</td></tr><tr><td>code</td><td>string</td><td>—</td><td>✅</td><td>✅</td><td>激活码，不区分大小写</td></tr></tbody></table></div>
+<p><strong>激活码登录的语义（<code>username_code</code> / <code>code</code> 共用）</strong></p>
+<div class="tbl"><table><thead><tr><th>卡密状态</th><th>行为</th></tr></thead><tbody><tr><td>已绑定账号</td><td>直接登录该账号。<code>username_code</code> 方式下若填写的用户名与绑定账号不一致 → <code>3006</code></td></tr><tr><td>未绑定</td><td><strong>建号并激活</strong>后登录：<code>code</code> 方式自动生成用户名（<code>card_</code> + 卡密派生）；<code>username_code</code> 方式使用用户填写的用户名</td></tr><tr><td>未绑定 + 用户名已被注册</td><td>拒绝 <code>3007</code>（防止持卡人借未绑定的卡密登录进他人账号）</td></tr><tr><td>已作废 / 已过期 / 不存在</td><td><code>3003</code> / <code>3004</code> / <code>3001</code></td></tr></tbody></table></div>
+<blockquote><p>注意：<code>code</code>（卡密直登）方式下注册功能会<strong>自动关闭</strong>（<code>register</code> 返回 <code>1004</code>），<br>因为该方式不依赖账号体系，注册出来的账号没有可用密码。</p></blockquote>
+<p><strong>成功响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"登录成功"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"token"</span></span>: <span class="str">"a1b2c3..."</span>,
+    <span class="key"><span class="str">"expire_at"</span></span>: 1726003600,
+    <span class="key"><span class="str">"ttl"</span></span>: 3600,
+    <span class="key"><span class="str">"login_method"</span></span>: <span class="str">"password"</span>,
+    <span class="key"><span class="str">"account_created"</span></span>: false,
+    <span class="key"><span class="str">"user"</span></span>: {
+      <span class="key"><span class="str">"user_id"</span></span>: 10,
+      <span class="key"><span class="str">"username"</span></span>: <span class="str">"testuser"</span>,
+      <span class="key"><span class="str">"nickname"</span></span>: <span class="str">"testuser"</span>,
+      <span class="key"><span class="str">"vip_expire"</span></span>: 1728592000,
+      <span class="key"><span class="str">"vip_text"</span></span>: <span class="str">"2026-10-11 12:00:00"</span>,
+      <span class="key"><span class="str">"points"</span></span>: 0,
+      <span class="key"><span class="str">"max_devices"</span></span>: 2,
+      <span class="key"><span class="str">"status"</span></span>: 1,
+      <span class="key"><span class="str">"group_id"</span></span>: 1
+    },
+    <span class="key"><span class="str">"vip"</span></span>: { <span class="key"><span class="str">"valid"</span></span>: true, <span class="key"><span class="str">"code"</span></span>: 0, <span class="key"><span class="str">"msg"</span></span>: <span class="str">"ok"</span>, <span class="key"><span class="str">"expire_at"</span></span>: 1728592000, <span class="key"><span class="str">"points"</span></span>: 0 },
+    <span class="key"><span class="str">"device"</span></span>: {
+      <span class="key"><span class="str">"machine_id"</span></span>: <span class="str">"a1b2c3d4"</span>,
+      <span class="key"><span class="str">"auto_bound"</span></span>: true,
+      <span class="key"><span class="str">"max_devices"</span></span>: 2,
+      <span class="key"><span class="str">"bound_count"</span></span>: 1
+    },
+    <span class="key"><span class="str">"grace"</span></span>: {
+      <span class="key"><span class="str">"ticket"</span></span>: <span class="str">"G1.eyJ2IjoxLCJ1IjoxMCwibSI6ImExYjJjM2Q0...&lt;base64url&gt;.&lt;sig-base64url&gt;"</span>,
+      <span class="key"><span class="str">"until"</span></span>: 1726007200,
+      <span class="key"><span class="str">"seconds"</span></span>: 3600,
+      <span class="key"><span class="str">"issued_at"</span></span>: 1726003600,
+      <span class="key"><span class="str">"server_time"</span></span>: 1726003600,
+      <span class="key"><span class="str">"algorithm"</span></span>: <span class="str">"ES256"</span>,
+      <span class="key"><span class="str">"kid"</span></span>: <span class="str">"3f9a1c2b"</span>,
+      <span class="key"><span class="str">"machine_bind"</span></span>: <span class="str">"a1b2c3d4e5f6a7b8"</span>,
+      <span class="key"><span class="str">"public_key"</span></span>: <span class="str">"-----BEGIN PUBLIC KEY-----\nMFkw...\n-----END PUBLIC KEY-----"</span>
+    }
+  }
+}</code></pre></figure>
+<div class="tbl"><table><thead><tr><th>新增字段</th><th>说明</th></tr></thead><tbody><tr><td><code>login_method</code></td><td>本次登录实际生效的方式</td></tr><tr><td><code>account_created</code></td><td>是否由本次登录自动建号（激活码方式首次登录为 <code>true</code>）</td></tr><tr><td><code>grace</code></td><td>离线宽限票据（见 <a href="#216-离线宽限协议">2.16 离线宽限协议</a>）。服务端关闭该能力或账号未激活时为 <code>null</code></td></tr></tbody></table></div>
+<p><strong>设备超限响应（code 4001）</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 4001,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"设备数量已达上限"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"max_devices"</span></span>: 1,
+    <span class="key"><span class="str">"bound_count"</span></span>: 1,
+    <span class="key"><span class="str">"devices"</span></span>: [ { <span class="key"><span class="str">"machine_id"</span></span>: <span class="str">"..."</span>, <span class="key"><span class="str">"device_name"</span></span>: <span class="str">"..."</span>, <span class="key"><span class="str">"last_seen"</span></span>: <span class="str">"..."</span> } ]
+  }
+}</code></pre></figure>
+<hr>
+<h3 id="d3-h13">2.4 heartbeat · 心跳</h3>
+<p>客户端需按 <code>heartbeat_interval</code>（默认 60 秒）定时上报。</p>
+<p><strong>请求参数</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td>token</td><td>string</td><td>是</td><td>登录令牌</td></tr><tr><td>machine_id</td><td>string</td><td>是</td><td>机器码</td></tr></tbody></table></div>
+<p><strong>正常响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"ok"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"online"</span></span>: true,
+    <span class="key"><span class="str">"server_time"</span></span>: 1726000060,
+    <span class="key"><span class="str">"next_interval"</span></span>: 60,
+    <span class="key"><span class="str">"remain"</span></span>: 2591960,
+    <span class="key"><span class="str">"remain_text"</span></span>: <span class="str">"30天"</span>,
+    <span class="key"><span class="str">"vip_expire"</span></span>: 1728592000,
+    <span class="key"><span class="str">"points"</span></span>: 0,
+    <span class="key"><span class="str">"session_ttl"</span></span>: 3600,
+    <span class="key"><span class="str">"force_offline"</span></span>: false,
+    <span class="key"><span class="str">"has_notice"</span></span>: false,
+    <span class="key"><span class="str">"grace"</span></span>: {
+      <span class="key"><span class="str">"ticket"</span></span>: <span class="str">"G1.eyJ2IjoxLCJ1IjoxMCwibSI6ImExYjJjM2Q0...&lt;base64url&gt;.&lt;sig-base64url&gt;"</span>,
+      <span class="key"><span class="str">"until"</span></span>: 1726007260,
+      <span class="key"><span class="str">"seconds"</span></span>: 3600,
+      <span class="key"><span class="str">"issued_at"</span></span>: 1726003660,
+      <span class="key"><span class="str">"server_time"</span></span>: 1726003660,
+      <span class="key"><span class="str">"algorithm"</span></span>: <span class="str">"ES256"</span>,
+      <span class="key"><span class="str">"kid"</span></span>: <span class="str">"3f9a1c2b"</span>,
+      <span class="key"><span class="str">"machine_bind"</span></span>: <span class="str">"a1b2c3d4e5f6a7b8"</span>
+    }
+  }
+}</code></pre></figure>
+<p><strong>离线宽限票据字段</strong></p>
+<div class="tbl"><table><thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td><code>ticket</code></td><td>string</td><td>完整票据，形如 <code>G1.&lt;payload-b64url&gt;.&lt;sig-b64url&gt;</code>；客户端原样缓存</td></tr><tr><td><code>until</code></td><td>int</td><td><strong>宽限截止时间</strong>（Unix 秒），到此时间必须重新联网校验</td></tr><tr><td><code>seconds</code></td><td>int</td><td>本次宽限时长（秒），等于 <code>until - issued_at</code></td></tr><tr><td><code>issued_at</code> / <code>server_time</code></td><td>int</td><td>签发时间 / 服务端当前时间（可用于校正本地时钟）</td></tr><tr><td><code>algorithm</code></td><td>string</td><td>固定 <code>ES256</code></td></tr><tr><td><code>kid</code></td><td>string</td><td>密钥标识，与 <code>init</code> 下发的 <code>kid</code> 对比可判断是否需重新拉公钥</td></tr><tr><td><code>machine_bind</code></td><td>string</td><td><strong>机器码摘要</strong>（<code>sha256(machine_id)</code> 前 16 字节），客户端须用本地机器码核对</td></tr><tr><td><code>public_key</code></td><td>string</td><td>仅 <code>login</code> 附带；<code>heartbeat</code> 不重复下发，客户端用缓存的那份即可</td></tr></tbody></table></div>
+<blockquote><p><code>heartbeat</code> 每次都会<strong>刷新</strong>票据，客户端成功收到即覆盖旧票据；票据本身绑定当前会话令牌，<br>因此一旦被踢下线，旧票据在最迟 <code>until</code> 之后即彻底失效（详见 <a href="#216-离线宽限协议">2.16</a>）。</p></blockquote>
+<p><strong>被踢下线（需立即处理）</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{ <span class="key"><span class="str">"code"</span></span>: 1002, <span class="key"><span class="str">"msg"</span></span>: <span class="str">"账号已在其他设备登录"</span>, <span class="key"><span class="str">"data"</span></span>: { <span class="key"><span class="str">"need_relogin"</span></span>: true } }</code></pre></figure>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{ <span class="key"><span class="str">"code"</span></span>: 1002, <span class="key"><span class="str">"msg"</span></span>: <span class="str">"账号已被强制下线"</span>, <span class="key"><span class="str">"data"</span></span>: { <span class="key"><span class="str">"need_relogin"</span></span>: true } }</code></pre></figure>
+<blockquote><p><code>1002</code> 按会话失效原因区分文案：<code>账号已在其他设备登录</code>＝同账号在其他设备登录顶号；<br><code>账号已被强制下线</code>＝管理员强制下线 / 封禁 / 设备解绑等系统操作；<code>会话已退出</code>＝主动登出。</p></blockquote>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{ <span class="key"><span class="str">"code"</span></span>: 4002, <span class="key"><span class="str">"msg"</span></span>: <span class="str">"当前设备已被解绑"</span>, <span class="key"><span class="str">"data"</span></span>: { <span class="key"><span class="str">"kick"</span></span>: true, <span class="key"><span class="str">"need_relogin"</span></span>: true } }</code></pre></figure>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{ <span class="key"><span class="str">"code"</span></span>: 2004, <span class="key"><span class="str">"msg"</span></span>: <span class="str">"账号已过期"</span>, <span class="key"><span class="str">"data"</span></span>: { <span class="key"><span class="str">"kick"</span></span>: true, <span class="key"><span class="str">"need_activate"</span></span>: true } }</code></pre></figure>
+<blockquote><p>客户端收到带 <code>kick</code> 或 <code>need_relogin</code> 的响应时，应停止业务功能并回到登录界面。</p></blockquote>
+<hr>
+<h3 id="d3-h14">2.5 activate · 激活卡密</h3>
+<p><strong>请求参数</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td>token</td><td>string</td><td>是</td><td>登录令牌</td></tr><tr><td>machine_id</td><td>string</td><td>否</td><td>机器码</td></tr><tr><td>code</td><td>string</td><td>是</td><td>激活码</td></tr></tbody></table></div>
+<p><strong>响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"激活成功：增加时长 30天"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"card_type"</span></span>: 1,
+    <span class="key"><span class="str">"detail"</span></span>: <span class="str">"增加时长 30天"</span>,
+    <span class="key"><span class="str">"user"</span></span>: { <span class="key"><span class="str">"user_id"</span></span>: 10, <span class="key"><span class="str">"vip_expire"</span></span>: 1731196800, <span class="key"><span class="str">"vip_text"</span></span>: <span class="str">"2026-11-10 12:00:00"</span>, <span class="key"><span class="str">"points"</span></span>: 0 }
+  }
+}</code></pre></figure>
+<hr>
+<h3 id="d3-h15">2.6 unbind · 解绑设备</h3>
+<p><strong>请求参数</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td>token</td><td>string</td><td>是</td><td>登录令牌</td></tr><tr><td>machine_id</td><td>string</td><td>否</td><td>目标机器码，不传则解绑当前设备</td></tr><tr><td>password</td><td>string</td><td>否</td><td>账号密码，用于二次验证</td></tr><tr><td>all</td><td>bool</td><td>否</td><td><code>true</code> 则解绑该账号全部设备</td></tr></tbody></table></div>
+<blockquote><p>每账号每日最多解绑 3 次，超出需联系管理员。</p></blockquote>
+<p><strong>响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"设备解绑成功"</span>,
+  <span class="key"><span class="str">"data"</span></span>: { <span class="key"><span class="str">"machine_id"</span></span>: <span class="str">"a1b2c3d4"</span>, <span class="key"><span class="str">"bound_count"</span></span>: 0, <span class="key"><span class="str">"devices"</span></span>: [] }
+}</code></pre></figure>
+<hr>
+<h3 id="d3-h16">2.7 devices · 设备列表</h3>
+<p><strong>请求参数</strong>：<code>token</code></p>
+<p><strong>响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"ok"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"max_devices"</span></span>: 2,
+    <span class="key"><span class="str">"bound_count"</span></span>: 1,
+    <span class="key"><span class="str">"current"</span></span>: <span class="str">"a1b2c3d4"</span>,
+    <span class="key"><span class="str">"devices"</span></span>: [
+      {
+        <span class="key"><span class="str">"id"</span></span>: 5,
+        <span class="key"><span class="str">"machine_id"</span></span>: <span class="str">"a1b2c3d4"</span>,
+        <span class="key"><span class="str">"device_name"</span></span>: <span class="str">"Windows PC"</span>,
+        <span class="key"><span class="str">"os_info"</span></span>: <span class="str">"Windows 10 x64"</span>,
+        <span class="key"><span class="str">"ip"</span></span>: <span class="str">"1.2.3.4"</span>,
+        <span class="key"><span class="str">"status"</span></span>: 1,
+        <span class="key"><span class="str">"status_text"</span></span>: <span class="str">"正常"</span>,
+        <span class="key"><span class="str">"bind_at"</span></span>: <span class="str">"2026-09-01 10:00:00"</span>,
+        <span class="key"><span class="str">"last_seen"</span></span>: <span class="str">"2026-09-10 08:30:00"</span>,
+        <span class="key"><span class="str">"online"</span></span>: true
+      }
+    ]
+  }
+}</code></pre></figure>
+<hr>
+<h3 id="d3-h17">2.8 userinfo · 用户信息</h3>
+<p><strong>请求参数</strong>：<code>token</code></p>
+<p><strong>响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"ok"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"user"</span></span>: { },
+    <span class="key"><span class="str">"group_name"</span></span>: <span class="str">"默认用户组"</span>,
+    <span class="key"><span class="str">"vip"</span></span>: { <span class="key"><span class="str">"valid"</span></span>: true },
+    <span class="key"><span class="str">"remain"</span></span>: 2591960,
+    <span class="key"><span class="str">"remain_text"</span></span>: <span class="str">"30天"</span>,
+    <span class="key"><span class="str">"register_time"</span></span>: <span class="str">"2026-09-01 10:00:00"</span>,
+    <span class="key"><span class="str">"last_login"</span></span>: <span class="str">"2026-09-10 08:00:00"</span>,
+    <span class="key"><span class="str">"device"</span></span>: { <span class="key"><span class="str">"max_devices"</span></span>: 2, <span class="key"><span class="str">"bound_count"</span></span>: 1 }
+  }
+}</code></pre></figure>
+<hr>
+<h3 id="d3-h18">2.9 notice · 公告</h3>
+<p>无需登录，可用 <code>GET</code>。</p>
+<p><strong>请求参数</strong>：<code>id</code>（可选，查单条）</p>
+<blockquote><p>仅下发「客户端公告」：<code>type=2</code> 弹窗公告（客户端弹出窗口展示）、<code>type=3</code> 立即公告（弹出展示，客户端确认后本地记为已读、不再显示）、<code>type=4</code> 列表公告（客户端公告栏展示）。官网门户公告（type=1）只在官网首页展示，不下发给客户端。归属软件为 0 时全部软件通用，否则仅归属软件的客户端可见。</p></blockquote>
+<p><strong>响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"ok"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"list"</span></span>: [
+      {
+        <span class="key"><span class="str">"id"</span></span>: 1,
+        <span class="key"><span class="str">"title"</span></span>: <span class="str">"系统公告"</span>,
+        <span class="key"><span class="str">"content"</span></span>: <span class="str">"内容..."</span>,
+        <span class="key"><span class="str">"type"</span></span>: 4,
+        <span class="key"><span class="str">"type_text"</span></span>: <span class="str">"列表公告"</span>,
+        <span class="key"><span class="str">"created_at_text"</span></span>: <span class="str">"2026-09-10 08:00:00"</span>
+      }
+    ],
+    <span class="key"><span class="str">"total"</span></span>: 1
+  }
+}</code></pre></figure>
+<hr>
+<h3 id="d3-h19">2.10 version · 版本校验</h3>
+<p><strong>请求参数</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td>version</td><td>string</td><td>是</td><td>客户端当前版本</td></tr><tr><td>channel</td><td>string</td><td>否</td><td><code>stable</code> / <code>beta</code>，默认 <code>stable</code></td></tr></tbody></table></div>
+<p><strong>响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"发现新版本"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"current"</span></span>: <span class="str">"1.0.0"</span>,
+    <span class="key"><span class="str">"latest"</span></span>: <span class="str">"1.1.0"</span>,
+    <span class="key"><span class="str">"min"</span></span>: <span class="str">"1.0.0"</span>,
+    <span class="key"><span class="str">"channel"</span></span>: <span class="str">"stable"</span>,
+    <span class="key"><span class="str">"need_update"</span></span>: true,
+    <span class="key"><span class="str">"force_update"</span></span>: false,
+    <span class="key"><span class="str">"download_url"</span></span>: <span class="str">"https://example.com/app.exe"</span>,
+    <span class="key"><span class="str">"file_hash"</span></span>: <span class="str">"sha256..."</span>,
+    <span class="key"><span class="str">"file_size"</span></span>: 10485760,
+    <span class="key"><span class="str">"changelog"</span></span>: <span class="str">"修复若干问题"</span>
+  }
+}</code></pre></figure>
+<p><strong>完整性比对（客户端必做）</strong>：下载更新包完成后，本地计算文件哈希/大小并与响应比对，不一致即丢弃文件并提示重新下载，不得执行：</p>
+<ul class="md-list">
+<li>文件哈希：<code>file_hash</code> 为 32 位 hex（MD5）或 64 位 hex（SHA256，按长度识别算法）
+</li>
+<li>文件大小：<code>file_size</code> 字节（<code>0</code> = 后台未填写，跳过该项比对）
+</li>
+</ul>
+<p>C++ SDK 已内置工具：<code>Bcrypt::fileHashHex(路径, 是否SHA256)</code> 与 <code>Bcrypt::fileSizeBytes(路径)</code>，且 <code>init()</code> 的 <code>version</code> 对象已带出 <code>file_hash</code> / <code>file_size</code>（<code>InitResult</code> 同名字段）。</p>
+<p><strong>客户端完整性自校验（防篡改）</strong>：响应中的 <code>self_file_hash</code> / <code>self_file_size</code> 是<strong>客户端上报版本号</strong>在「版本管理」里登记的哈希与字节数（服务端按 <code>software_id + client_ver + channel</code> 查已发布记录）。客户端启动时计算<strong>自身 exe</strong> 的哈希/大小与之比对，不一致即判定文件被篡改，应弹窗并拒绝运行。该版本未登记、未发布或未填哈希时，两字段为 <code>''</code> / <code>0</code>，客户端跳过校验。SDK 已内置 <code>nebula::verifySelfIntegrity(InitResult&amp;)</code> 一键校验。</p>
+<blockquote><p>⚠️ 发布版本时填写的 <code>file_hash</code> / <code>file_size</code> 必须是<strong>该版本客户端 exe 的真实值</strong>——一旦登记并发布，所有自报该版本号的客户端都会被强制比对，值填错会把正常客户端一并拦截。</p></blockquote>
+<hr>
+<h3 id="d3-h20">2.11 online · 在线人数</h3>
+<p>公开接口，<strong>无需登录</strong>，也无需会话密钥 <code>k</code>，可直接 GET 或明文调用。</p>
+<p><strong>请求参数</strong>：无</p>
+<p><strong>响应</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"ok"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"online"</span></span>: 128,
+    <span class="key"><span class="str">"timeout"</span></span>: 180,
+    <span class="key"><span class="str">"server_time"</span></span>: 1789024346
+  }
+}</code></pre></figure>
+<div class="tbl"><table><thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td>online</td><td>int</td><td>当前在线会话数</td></tr><tr><td>timeout</td><td>int</td><td>在线判定窗口（秒），超过该时长未心跳即视为离线</td></tr><tr><td>server_time</td><td>int</td><td>服务端时间戳</td></tr></tbody></table></div>
+<p><strong>统计口径</strong></p>
+<p>统计的是 <code>nb_sessions</code> 中 <code>status = 1</code> 且 <code>last_active</code> 在心跳超时<br>（<code>policy.heartbeat_timeout</code>，默认 180 秒）内的<strong>会话数</strong>，与后台首页<br>「在线会话」完全一致。</p>
+<blockquote><p>同一账号多设备登录会分别计数。若要「去重用户数」或「在线设备数」，<br>属于另一套口径，需要单独加接口。</p></blockquote>
+<p><strong>轮询建议</strong>：客户端/官网展示用的话 30~60 秒拉一次即可，受 IP 限流保护<br>（客户端 120 次/分，官网 240 次/分）。</p>
+<p><strong>官网入口</strong></p>
+<p>官网侧对应 <code>GET /web/api.php?action=online</code>，返回<strong>明文 JSON</strong>（结构同上，<br>无加密信封），同样无需登录、不校验 CSRF：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{<span class="key"><span class="str">"code"</span></span>:0,<span class="key"><span class="str">"msg"</span></span>:<span class="str">"ok"</span>,<span class="key"><span class="str">"time"</span></span>:1789024346,<span class="key"><span class="str">"data"</span></span>:{<span class="key"><span class="str">"online"</span></span>:128,<span class="key"><span class="str">"timeout"</span></span>:180,<span class="key"><span class="str">"server_time"</span></span>:1789024346}}</code></pre></figure>
+<hr>
+<h3 id="d3-h21">2.12 download · 客户端下载地址（官网）</h3>
+<blockquote><p>该接口<strong>仅在官网侧提供</strong>（<code>GET /web/api.php?action=download</code>）。<br>客户端不需要单独调用它 —— 客户端从 <code>init</code> / <code>version</code> 响应的<br><code>download_url</code> / <code>file_hash</code> / <code>file_size</code> 字段获取同一份信息。</p></blockquote>
+<p>公开接口，<strong>无需登录</strong>、不校验 CSRF、维护模式下照常放行，返回<strong>明文 JSON</strong>。</p>
+<p><strong>请求参数</strong>：无</p>
+<p><strong>响应（已配置下载地址）</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"ok"</span>,
+  <span class="key"><span class="str">"time"</span></span>: 1789024865,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"configured"</span></span>: true,
+    <span class="key"><span class="str">"version"</span></span>: <span class="str">"1.0.0"</span>,
+    <span class="key"><span class="str">"download_url"</span></span>: <span class="str">"https://dl.example.com/nebula/NebulaMenu_1.0.0.zip"</span>,
+    <span class="key"><span class="str">"file_name"</span></span>: <span class="str">"NebulaMenu_1.0.0.zip"</span>,
+    <span class="key"><span class="str">"file_size"</span></span>: 19000000,
+    <span class="key"><span class="str">"file_hash"</span></span>: <span class="str">"68fe07199e140572ed7d7e681109a5edf52d52faa98a9c96c116556aa21d2180"</span>,
+    <span class="key"><span class="str">"changelog"</span></span>: <span class="str">""</span>
+  }
+}</code></pre></figure>
+<div class="tbl"><table><thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td>configured</td><td>bool</td><td>是否已配置<strong>可用</strong>的下载地址</td></tr><tr><td>version</td><td>string</td><td>最新发布版本号</td></tr><tr><td>download_url</td><td>string</td><td>下载地址；未配置（或被安全校验拒绝）时为空串</td></tr><tr><td>file_name</td><td>string</td><td>从地址末段解析出的文件名，供前端另存展示</td></tr><tr><td>file_size</td><td>int</td><td>安装包字节数，<code>0</code> 表示未填写</td></tr><tr><td>file_hash</td><td>string</td><td>安装包 SHA256，供客户端校验完整性</td></tr><tr><td>changelog</td><td>string</td><td>更新说明</td></tr></tbody></table></div>
+<p><strong>数据来源</strong>：<code>nb_versions</code> 表 stable 渠道最新已发布（<code>status = 1</code>）记录；<br>该表无记录时回落 <code>config.php</code> 的 <code>version.update_url</code>。</p>
+<p><strong>安全约束</strong>：只回传 <code>http://</code> / <code>https://</code> 开头的地址。若后台误填<br><code>javascript:</code> 等伪协议，一律按「未配置」处理（<code>configured = false</code>、<br><code>download_url</code> 置空），避免前端直接跳转执行。</p>
+<blockquote><p>下载地址在后台「版本管理」页填写（字段：下载地址 / 文件哈希 / 文件大小）。</p></blockquote>
+<blockquote><p><strong>与其他入口同源</strong>：官网首页展示的「最新版本」与首页在线人数条上的版本号，<br>服务端渲染与前端刷新都取自同一份数据（<code>Version::latest('stable')</code>）。<br>因此官网首页、下载按钮文案、客户端 <code>version</code> 接口三者不会出现版本号不一致的情况。</p></blockquote>
+<hr>
+<h3 id="d3-h22">2.13 logout · 退出</h3>
+<p><strong>请求参数</strong>：<code>token</code></p>
+<hr>
+<h3 id="d3-h23">2.14 设备指纹（可选）</h3>
+<p><code>machine_id</code> 是客户端自己算的字符串，伪造成本极低：改一个字节就是"新设备"。<br><code>device_fp</code> 让客户端再上报<strong>多个硬件组件</strong>的特征串，服务端据此做加权指纹校验，<br>用于识别机器码伪造、模拟器/虚拟机和一机多号。</p>
+<blockquote><p>C++ SDK（<code>sdk/nebula_sdk.hpp</code>，配置区在 <code>sdk/nebula/client/config.hpp</code>）<strong>已内置自动采集</strong>（WMI 硬件序列号取哈希 + 主网卡裸 MAC，<code>device_name</code> 自动取真实电脑主机名），使用 SDK 时无需手动构造本字段。</p></blockquote>
+<p><strong>上报格式</strong>（<code>login</code> 请求中的可选字段，对象或 JSON 字符串均可）：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code><span class="key"><span class="str">"device_fp"</span></span>: {
+  <span class="key"><span class="str">"board"</span></span>: <span class="str">"9f2c…"</span>,        // 主板
+  <span class="key"><span class="str">"cpu"</span></span>:   <span class="str">"1a7b…"</span>,        // CPU
+  <span class="key"><span class="str">"disk"</span></span>:  <span class="str">"c3d4…"</span>,        // 系统盘序列号
+  <span class="key"><span class="str">"bios"</span></span>:  <span class="str">"55ee…"</span>,        // BIOS/UEFI
+  <span class="key"><span class="str">"mac"</span></span>:   <span class="str">"001122334455"</span>, // 主网卡（给裸 MAC 时可用于识别虚拟机网卡）
+  <span class="key"><span class="str">"gpu"</span></span>:   <span class="str">"77aa…"</span>         // 显卡
+}</code></pre></figure>
+<blockquote><p>每个组件填<strong>该硬件的哈希或特征串</strong>（服务端只做等值比较与相似度计算，<br>不关心具体算法）。<code>mac</code> 若直接给 12 位裸 MAC，会额外匹配常见虚拟机网卡 OUI。</p></blockquote>
+<p><strong>组件权重与判定规则</strong></p>
+<p>| 组件         | 权重 | 换掉后是否容忍             || ---------- | -: | ------------------- || <code>board</code> 主板 | 30 | ❌ 核心组件，变化即判定疑似伪造机器码 || <code>cpu</code> CPU  | 25 | ❌ 核心组件，变化即判定疑似伪造机器码 || <code>disk</code> 系统盘 | 20 | ✅ 容忍（升级 SSD 属正常）    || <code>bios</code>     | 15 | ✅ 容忍                || <code>mac</code> 网卡   | 10 | ✅ 容忍（换网卡/虚拟网卡最常见）   || <code>gpu</code> 显卡   | 10 | ✅ 容忍                |</p>
+<ul class="md-list">
+<li>核心组件（<code>board</code> / <code>cpu</code>，可通过 <code>device_fp.core_components</code> 调整）双方都上报时，   只要有一个不一致 → 记 <code>fp_changed</code>。
+</li>
+<li>核心组件缺失时，回落到<strong>加权相似度</strong>与 <code>device_fp.drift_threshold</code> 比较。
+</li>
+</ul>
+<p><strong>风险标记</strong></p>
+<div class="tbl"><table><thead><tr><th>标记</th><th>含义</th><th>触发条件</th></tr></thead><tbody><tr><td><code>vm</code></td><td>疑似模拟器/虚拟机</td><td>设备名/系统信息命中虚拟化关键词，或网卡 OUI 命中 VMware/VirtualBox/QEMU 等</td></tr><tr><td><code>low_entropy</code></td><td>硬件信息过少</td><td>上报组件数少于 <code>device_fp.min_components</code></td></tr><tr><td><code>same_value</code></td><td>组件值雷同</td><td>多个组件值完全相同（批量伪造特征）</td></tr><tr><td><code>fp_changed</code></td><td>机器码疑似伪造</td><td>同一 machine_id 下核心组件发生变化</td></tr><tr><td><code>multi_fp</code></td><td>同账号多机器指纹</td><td>同一账号窗口内出现的不同指纹数超过 <code>max_fp_per_user</code></td></tr><tr><td><code>shared_machine</code></td><td>同一机器多账号</td><td>同一指纹关联的账号数超过 <code>max_user_per_fp</code></td></tr></tbody></table></div>
+<p>命中标记会随 <code>login</code> 响应的 <code>data.device.risk</code> 数组返回，并写入 <code>nb_logs</code><br>（<code>action = device_risk</code>）。<strong>默认仅记录不拦截</strong>；需要硬拦截时在 <code>config/config.php</code> 打开：</p>
+<figure class="code"><figcaption><span>PHP</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code><span class="str">'device_fp'</span> =&gt; [
+    <span class="str">'block_on_drift'</span> =&gt; true,  // 疑似伪造机器码时拒绝登录（返回 4005）
+    <span class="str">'block_vm'</span>       =&gt; true,  // 命中模拟器/虚拟机时拒绝登录（返回 4005）
+],</code></pre></figure>
+<p><code>init</code> 响应的 <code>data.device_fp</code> 会下发组件清单与权重，客户端可据此决定采集哪些项。</p>
+<blockquote><p>未上报 <code>device_fp</code> 的客户端<strong>不受任何影响</strong>：服务端跳过全部指纹逻辑，<br>行为与升级前逐字节一致，因此各对接方可以按自己的节奏升级。</p></blockquote>
+<hr>
+<h3 id="d3-h24">2.15 限流与枚举防护</h3>
+<p>除全局「单 IP 每分钟请求数」外，卡密相关接口另有三层防护：</p>
+<div class="tbl"><table><thead><tr><th>维度</th><th>作用</th><th>配置项</th></tr></thead><tbody><tr><td>单 IP（<code>activate</code> / <code>login</code>）</td><td>防止单个来源高频请求</td><td><code>rate_limit_per_min</code> / <code>login_attempt_per_min</code></td></tr><tr><td><strong>单卡号</strong></td><td>防止同一张卡被反复试探、多账号轮番尝试同一卡</td><td><code>card_try_limit</code>（默认 8 次）</td></tr></tbody></table></div>
+<p><code>card_try_window</code>（默认 600 秒）    || <strong>来源枚举</strong>                   | 防止「每次换一个卡号」的随机枚举       | <code>card_miss_limit</code>（默认 30 次）<br><code>card_miss_window</code>（默认 600 秒） |</p>
+<ul class="md-list">
+<li>单卡限流键内只存卡密的 <strong>SHA-256 摘要</strong>，不落明文，限流表泄露也不会泄露卡密。
+</li>
+<li>枚举计数只累计「卡密不存在」（<code>3001</code>）的失败，不影响正常业务。
+</li>
+<li>生效范围：<code>activate</code>、<code>login</code>（<code>username_code</code> / <code>code</code> 两种激活码方式）、   <code>/agent/</code> 的激活码注册。
+</li>
+<li>超限统一返回 <code>5001</code>。
+</li>
+</ul>
+<hr>
+<h3 id="d3-h25">2.16 离线宽限协议</h3>
+<p><strong>目的</strong>：服务器抖动、网络波动或临时宕机时，已登录的客户端不必立刻掉线，<br>可凭一张<strong>服务端私钥签名的离线宽限票据</strong>在本地验签后继续运行一段时间，<br>避免「服务端一抖，全体用户掉线」引发投诉。</p>
+<h4 id="d3-h26">票据结构</h4>
+<figure class="code"><figcaption><span>CODE</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>G1.&lt;payload-b64url&gt;.&lt;signature-b64url&gt;</code></pre></figure>
+<div class="tbl"><table><thead><tr><th>段</th><th>说明</th></tr></thead><tbody><tr><td><code>G1</code></td><td>固定前缀（<code>ticket_prefix</code>），同时是签名数据的开头</td></tr><tr><td>payload</td><td>载荷 JSON 的 <strong>base64url</strong>（无填充）编码</td></tr><tr><td>signature</td><td>对字符串 <code>G1.&lt;payload-b64url&gt;</code> 做 <strong>ES256（ECDSA P-256 + SHA-256）</strong> 签名，DER 编码后 base64url；服务端运行环境不支持 EC 时自动回落 <strong>RS256（RSA-2048）</strong></td></tr></tbody></table></div>
+<h4 id="d3-h27">载荷字段</h4>
+<div class="tbl"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>v</code></td><td>载荷版本，当前为 <code>1</code></td></tr><tr><td><code>u</code></td><td>用户 ID</td></tr><tr><td><code>m</code></td><td><strong>机器码摘要</strong> = <code>sha256(machine_id)</code> 的十六进制前 16 位；未绑机器码时为空串</td></tr><tr><td><code>k</code></td><td><strong>会话令牌摘要</strong> = <code>sha256(token)</code> 的十六进制前 16 位；票据只对本次登录有效</td></tr><tr><td><code>e</code></td><td>会员到期时间（Unix 秒），<code>-1</code> 表示永久</td></tr><tr><td><code>i</code></td><td>签发时间（Unix 秒）</td></tr><tr><td><code>g</code></td><td><strong>宽限截止时间</strong>（Unix 秒），到点即失效（可容忍 <code>clock_skew</code> 秒偏差）</td></tr><tr><td><code>d</code></td><td>宽限时长（秒）= <code>g - i</code></td></tr><tr><td><code>n</code></td><td>随机数，防止票据字节完全可预测</td></tr></tbody></table></div>
+<blockquote><p>载荷<strong>不含</strong>用户名、密码等任何敏感信息；机器码与令牌只以摘要形式出现，<br>即使票据泄露也无法反推原始值。</p></blockquote>
+<h4 id="d3-h28">客户端本地验签流程</h4>
+<ol class="md-list">
+<li>从 <code>init</code>（或 <code>login</code>）拿到 <code>public_key</code>（PEM）与 <code>ticket_prefix</code>，<strong>缓存到本地</strong>。
+</li>
+<li>每次成功调用 <code>login</code> / <code>heartbeat</code> 后，用响应里的 <code>grace.ticket</code> <strong>覆盖</strong>本地票据。
+</li>
+<li>当 <code>heartbeat</code> 请求<strong>失败</strong>（超时、连接被拒、返回 5xx 且非业务错误）时：
+<ol class="md-list">
+<li>校验 <code>grace</code> 处于开启状态，且本地存在票据；
+</li>
+<li>按 <code>.</code> 切分得到 3 段，第一段必须等于 <code>G1</code>；
+</li>
+<li>用缓存的 <code>public_key</code> 对 <code>G1.&lt;payload-b64url&gt;</code> 做 ES256 验签，失败 → 判定被篡改，回普通模式；
+</li>
+<li>base64url 解码载荷，校验 <code>m == sha256(本地机器码)前16位</code>、<code>k == sha256(当前token)前16位</code>；
+</li>
+<li>用 <strong>服务端时间</strong> 为准（可借 <code>server_time</code> 校正本地时钟），若 <code>now &gt; g + clock_skew</code> → 宽限已到期；
+</li>
+<li>全部通过 → <strong>允许继续离线运行</strong>，直到 <code>until</code>；期间持续重试心跳，一旦恢复立即用新票据刷新。
+</li>
+</ol>
+</li>
+</ol>
+<p><strong>参考判断逻辑（伪代码）</strong></p>
+<figure class="code"><figcaption><span>CODE</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>ok = verify_es256(pubkey, "G1." + payload_b64, sig)
+     &amp;&amp; payload.m == sha16(machine_id)
+     &amp;&amp; payload.k == sha16(token)
+     &amp;&amp; now &lt;= payload.g + clock_skew
+if ok: run_offline_until(payload.g)
+else:  return_to_login()</code></pre></figure>
+<h4 id="d3-h29">安全边界</h4>
+<div class="tbl"><table><thead><tr><th>场景</th><th>结果</th></tr></thead><tbody><tr><td>票据被篡改 / 伪造</td><td>验签失败，本地不采纳</td></tr><tr><td>换机器</td><td><code>m</code> 不匹配，本地不采纳</td></tr><tr><td>换会话（被踢后重新登录，令牌变化）</td><td><code>k</code> 不匹配，旧票据立即失效</td></tr><tr><td>账号到期</td><td>签发时 <code>until</code> 已被账号有效期<strong>钳制</strong>（<code>clamp_to_vip</code>），最迟随会员到期同时失效</td></tr><tr><td>封号 / 强制下线</td><td>宽限<strong>只延长离线运行</strong>，一旦联网即被服务端拒绝；封禁的最终生效延迟上限为 <code>grace.seconds</code></td></tr><tr><td>服务端关闭该能力</td><td><code>grace.enable=false</code> 或 <code>grace.seconds=0</code>，<code>login</code> / <code>heartbeat</code> 的 <code>grace</code> 为 <code>null</code>，客户端按普通模式处理</td></tr></tbody></table></div>
+<h4 id="d3-h30">配置项（<code>config.php</code> → <code>grace</code>）</h4>
+<div class="tbl"><table><thead><tr><th>配置</th><th>默认</th><th>说明</th></tr></thead><tbody><tr><td><code>enable</code></td><td><code>true</code></td><td>总开关</td></tr><tr><td><code>seconds</code></td><td><code>3600</code></td><td>单次宽限时长（秒），建议为心跳间隔的 15~30 倍；<code>0</code> = 关闭</td></tr><tr><td><code>max_seconds</code></td><td><code>7200</code></td><td>硬上限，防止 <code>seconds</code> 配得过大；<code>0</code> = 不限制</td></tr><tr><td><code>clamp_to_vip</code></td><td><code>true</code></td><td>宽限截止是否被账号到期时间钳制（强烈建议保持 <code>true</code>）</td></tr><tr><td><code>clock_skew</code></td><td><code>120</code></td><td>客户端时钟允许偏差（秒）</td></tr><tr><td><code>key_file</code></td><td><code>config/grace_keys.php</code></td><td>私钥文件；删除后自动重新生成（等价于<strong>轮换密钥</strong>，此前所有票据立即失效）</td></tr></tbody></table></div>
+<blockquote><p><strong>密钥轮换</strong>：只要更换了 <code>key_file</code>（或删除让其重新生成），<code>kid</code> 随之改变，<br>客户端下次 <code>init</code> 时比对 <code>kid</code> 不一致即会重新拉取公钥；旧票据在此期间自然全部失效。</p></blockquote>
+<blockquote><p><strong>兼容性</strong>：本协议为<strong>纯增量</strong>能力。客户端完全不处理 <code>grace</code> 字段时，<br>行为与升级前一致（网络失败即掉线）；服务端未启用时也不会下发该字段。</p></blockquote>
+<hr>
+<h3 id="d3-h31">2.17 官网互动接口</h3>
+<blockquote><p>入口：<code>POST /web/api.php?action=&lt;接口名&gt;</code>，<strong>明文 JSON</strong>。<br>认证方式为浏览器会话 Cookie（<code>NBWEBSID</code>），与后台管理会话互不干扰。<br>写接口需带 <code>X-CSRF</code> 请求头（值取自页面注入的 <code>window.__NB_WEB__.csrf</code>）。</p></blockquote>
+<p><strong>接口一览</strong></p>
+<p>| action     | 说明                                   |  登录 | CSRF || ---------- | ------------------------------------ | :-: | :--: || <code>plan</code>     | 价格套餐列表（仅 <code>status=1</code>，按 <code>sort</code> 倒序）     |  —  |   免  || <code>shot</code>     | 客户端截图列表（仅 <code>status=1</code>，只放行 http/https） |  —  |   免  || <code>msg_list</code> | 留言板列表（仅已审核通过的；分页，每页 10 条主楼）          |  —  |   免  || <code>msg_post</code> | 发布留言 / 回复                            |  ✔  |   ✔  || <code>msg_like</code> | 点赞 / 取消点赞（切换语义）                      |  ✔  |   ✔  || <code>fb_types</code> | 反馈类型选项                               |  —  |   免  || <code>fb_list</code>  | 我的反馈列表（仅返回本人）                        |  ✔  |   免  || <code>fb_post</code>  | 提交反馈                                 |  ✔  |   ✔  |</p>
+<p><strong><code>msg_list</code> 响应结构</strong>（主楼 + 两层回复，一次取回避免 N+1）</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{<span class="key"><span class="str">"code"</span></span>:0,<span class="key"><span class="str">"data"</span></span>:{<span class="key"><span class="str">"list"</span></span>:[{<span class="key"><span class="str">"id"</span></span>:12,<span class="key"><span class="str">"username"</span></span>:<span class="str">"星尘"</span>,<span class="key"><span class="str">"content"</span></span>:<span class="str">"…"</span>,<span class="key"><span class="str">"likes"</span></span>:3,
+  <span class="key"><span class="str">"reply_to"</span></span>:<span class="str">""</span>,<span class="key"><span class="str">"mine"</span></span>:false,<span class="key"><span class="str">"liked"</span></span>:false,<span class="key"><span class="str">"created_at"</span></span>:<span class="str">"2026-09-10 20:00:00"</span>,
+  <span class="key"><span class="str">"replies"</span></span>:[{<span class="key"><span class="str">"id"</span></span>:13,<span class="key"><span class="str">"username"</span></span>:<span class="str">"官方客服"</span>,<span class="key"><span class="str">"content"</span></span>:<span class="str">"…"</span>,<span class="key"><span class="str">"reply_to"</span></span>:<span class="str">"星尘"</span>,
+              <span class="key"><span class="str">"likes"</span></span>:0,<span class="key"><span class="str">"mine"</span></span>:false,<span class="key"><span class="str">"liked"</span></span>:false,<span class="key"><span class="str">"created_at"</span></span>:<span class="str">"…"</span>}]}],
+  <span class="key"><span class="str">"total"</span></span>:1,<span class="key"><span class="str">"page"</span></span>:1,<span class="key"><span class="str">"pages"</span></span>:1}}</code></pre></figure>
+<ul class="md-list">
+<li><code>mine</code> / <code>liked</code> 仅在登录时有意义；匿名访问恒为 <code>false</code>
+</li>
+<li>分页作用于<strong>主楼</strong>条数，回复随主楼一并返回
+</li>
+</ul>
+<p><strong><code>msg_post</code> 参数与规则</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>说明</th></tr></thead><tbody><tr><td><code>content</code></td><td>必填，按<strong>字符</strong>计数（<code>mb_strlen</code>），上限 500</td></tr><tr><td><code>parent_id</code></td><td>选填，<code>0</code> 为主楼；回复时必须是<strong>已审核通过</strong>的主楼 ID</td></tr></tbody></table></div>
+<ul class="md-list">
+<li>落库 <code>status = 0</code>（待审核），响应 <code>{"id":12,"pending":true}</code>
+</li>
+<li>只允许两层：<code>parent_id</code> 指向的留言其 <code>parent_id</code> 必须为 <code>0</code>，否则报「只支持两层回复」
+</li>
+<li>限流：单账号 <strong>3 条 / 分钟</strong>
+</li>
+</ul>
+<p><strong><code>msg_like</code> 参数</strong>：<code>id</code>（留言 ID，必须是已审核通过的）</p>
+<ul class="md-list">
+<li>响应 <code>{"liked":true,"likes":4}</code>；重复调用即取消点赞
+</li>
+<li>靠 <code>nb_message_likes(message_id,user_id)</code> 唯一键兜底并发；   取消时用 <code>GREATEST(likes,1)-1</code>，计数永不为负
+</li>
+<li>限流：单账号 <strong>30 次 / 分钟</strong>
+</li>
+</ul>
+<p><strong><code>fb_post</code> 参数与规则</strong></p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>说明</th></tr></thead><tbody><tr><td><code>type</code></td><td><code>1</code> 功能建议 / <code>2</code> 问题反馈 / <code>3</code> 卡密订单 / <code>4</code> 其他；非法值<strong>回落为 4</strong> 而非报错</td></tr><tr><td><code>title</code></td><td>必填，≤ 60 字</td></tr><tr><td><code>content</code></td><td>必填，≤ 2000 字</td></tr><tr><td><code>contact</code></td><td>选填，≤ 100 字，便于客服回访</td></tr></tbody></table></div>
+<ul class="md-list">
+<li>限流：单账号 <strong>5 条 / 小时</strong>
+</li>
+<li>响应附带最新反馈列表，前端可直接重绘
+</li>
+</ul>
+<p><strong><code>fb_list</code> 响应结构</strong>（状态与回复可见性）</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{<span class="key"><span class="str">"code"</span></span>:0,<span class="key"><span class="str">"data"</span></span>:{<span class="key"><span class="str">"list"</span></span>:[{<span class="key"><span class="str">"id"</span></span>:3,<span class="key"><span class="str">"type"</span></span>:2,<span class="key"><span class="str">"type_text"</span></span>:<span class="str">"问题反馈"</span>,
+  <span class="key"><span class="str">"title"</span></span>:<span class="str">"…"</span>,<span class="key"><span class="str">"content"</span></span>:<span class="str">"…"</span>,<span class="key"><span class="str">"contact"</span></span>:<span class="str">""</span>,<span class="key"><span class="str">"status"</span></span>:2,<span class="key"><span class="str">"status_text"</span></span>:<span class="str">"已回复"</span>,
+  <span class="key"><span class="str">"reply"</span></span>:<span class="str">"…"</span>,<span class="key"><span class="str">"reply_admin"</span></span>:<span class="str">"客服A"</span>,<span class="key"><span class="str">"replied_at"</span></span>:<span class="str">"2026-09-10 20:10:00"</span>,
+  <span class="key"><span class="str">"created_at"</span></span>:<span class="str">"2026-09-10 20:00:00"</span>}],<span class="key"><span class="str">"types"</span></span>:{<span class="key"><span class="str">"1"</span></span>:<span class="str">"功能建议"</span>,<span class="key"><span class="str">"2"</span></span>:<span class="str">"问题反馈"</span>,
+  <span class="key"><span class="str">"3"</span></span>:<span class="str">"卡密/订单"</span>,<span class="key"><span class="str">"4"</span></span>:<span class="str">"其他"</span>}}}</code></pre></figure>
+<ul class="md-list">
+<li>状态：<code>0</code> 待处理 / <code>1</code> 处理中 / <code>2</code> 已回复 / <code>3</code> 已关闭
+</li>
+<li><strong>隐私规则</strong>：只有状态为 <code>2</code> 或 <code>3</code> 时才下发 <code>reply</code> / <code>reply_admin</code>，   其余状态返回空串 —— 避免前端显示「空回复框」，也避免回复草稿外泄
+</li>
+</ul>
+<p><strong>审核策略：先审后显示</strong></p>
+<p>留言与回复提交后均为「待审核」，只有后台通过（<code>status = 1</code>）才会出现在 <code>msg_list</code><br>与官网首屏。前端收到 <code>pending:true</code> 后会提示「已提交，通过审核后展示」，<br>避免用户误以为发送失败而重复提交。</p>
+<p><strong>优雅降级</strong>：若站点尚未执行 <code>install/migrate_web_interact.php</code>，<br>上述接口一律返回空列表（<code>list: []</code>），官网区块显示「暂无内容」，<strong>不会整页报错</strong>。<br><code>WebInteract::tableReady()</code> 按请求缓存 <code>SHOW TABLES</code> 结果，避免重复查询。</p>
+<hr>
+<h2 id="d3-h32">三、管理后台接口</h2>
+<p><code>&lt;后台目录&gt;</code> = 你站点上真实的后台目录名：安装向导会把默认的 <code>admin/</code> <strong>随机改名</strong>（消除被扫描的默认路径），实际值见 <code>config/config.php</code> 的 <code>admin.path</code>，下文一律用它代入；文档中出现的 <code>admin</code> 仅为占位示意。</p>
+<p>接口入口：<code>POST /&lt;后台目录&gt;/index.php?action=&lt;接口名&gt;</code><br>页面入口：<code>GET /&lt;后台目录&gt;/home.php</code>（输出管理界面）</p>
+<h3 id="d3-h33">3.1 认证方式</h3>
+<p>登录后返回 <code>token</code>，后续请求通过 <strong>请求头</strong> 传递：</p>
+<figure class="code"><figcaption><span>CODE</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>X-Token: &lt;管理员token&gt;
+X-CSRF:  &lt;CSRF令牌&gt;</code></pre></figure>
+<blockquote><p>管理端默认返回<strong>明文 JSON</strong>，便于前端 JS 处理。如需加密，请求体加 <code>"encrypt": 1</code>。</p></blockquote>
+<h4 id="d3-h34">CSRF 令牌</h4>
+<p>所有<strong>写操作</strong>必须携带 CSRF 令牌（<code>X-CSRF</code> 头或 body 的 <code>csrf</code> 字段）。<br>令牌由页面入口 <code>/&lt;后台目录&gt;/home.php</code> 注入到 <code>window.__NB__.csrf</code>，并绑定当前 PHP session cookie。</p>
+<ul class="md-list">
+<li>只读接口（列表、详情、统计、导出等）<strong>豁免</strong> CSRF 校验
+</li>
+<li>令牌缺失或错误返回 <code>code=1006</code>
+</li>
+</ul>
+<blockquote><p>如果你的客户端不是浏览器（如脚本、自动化工具），需先 <code>GET /&lt;后台目录&gt;/home.php</code><br>并保持 cookie，再从中提取 CSRF 令牌，后续请求同时带上 cookie 和令牌。</p></blockquote>
+<h3 id="d3-h35">3.2 接口清单</h3>
+<div class="tbl"><table><thead><tr><th>action</th><th>说明</th><th>权限</th></tr></thead><tbody><tr><td><code>login</code></td><td>管理员登录</td><td>公开</td></tr><tr><td><code>logout</code></td><td>退出</td><td>登录</td></tr><tr><td><code>profile</code></td><td>获取/修改个人信息、改密码、登录历史</td><td>登录</td></tr><tr><td><code>dashboard</code></td><td>首页统计（用户/卡密/设备/API/趋势）</td><td>登录</td></tr><tr><td><strong>用户管理</strong></td><td></td><td></td></tr><tr><td><code>user_list</code></td><td>用户列表（分页/搜索/筛选/排序）</td><td>登录</td></tr><tr><td><code>user_detail</code></td><td>用户详情（含设备、卡密、日志、会话）</td><td>登录</td></tr><tr><td><code>user_save</code></td><td>新增 / 编辑用户</td><td>操作员+</td></tr><tr><td><code>user_delete</code></td><td>删除用户（需二次密码）</td><td>超管</td></tr><tr><td><code>user_kick</code></td><td>强制下线 / 重置密码 / 解锁 / 清空设备</td><td>操作员+</td></tr><tr><td><code>user_batch_op</code></td><td>批量：封禁/解封/加时长/加点数/下线/删除</td><td>操作员+（删除仅超管）</td></tr><tr><td><code>user_import</code></td><td>从 CSV 批量导入用户</td><td>操作员+</td></tr><tr><td><code>user_export</code></td><td>导出用户（csv/txt）</td><td>登录</td></tr><tr><td><strong>代理商管理</strong></td><td></td><td></td></tr><tr><td><code>agent_list</code></td><td>代理商列表（含发货统计与按卡类型额度；<code>all=1</code> 只取下拉选项）</td><td>登录</td></tr><tr><td><code>agent_detail</code></td><td>代理商详情（档案 + 按类型额度单价 + 统计 + 最近卡密/批次/操作记录）</td><td>登录</td></tr><tr><td><code>agent_save</code></td><td>新增/编辑/删除/启停/按类型充值(<code>op=grant</code>, <code>types</code>)/重置密码(<code>op=reset_password</code>)</td><td>操作员+</td></tr><tr><td><strong>代理商激活码</strong></td><td></td><td></td></tr><tr><td><code>agent_code_list</code></td><td>激活码列表（含发货规格、已用次数、已注册代理；<code>usable=1</code> 只看可用码）</td><td>登录</td></tr><tr><td><code>agent_code_save</code></td><td>生成(<code>op=generate</code>)/编辑(<code>op=update</code>)/启停(<code>op=toggle</code>)/删除(<code>op=delete</code>)</td><td>操作员+</td></tr><tr><td><strong>代理商充值卡密</strong></td><td></td><td></td></tr><tr><td><code>agent_recharge_list</code></td><td>充值卡密列表（余额充值 / 张数额度；<code>kind</code> / <code>status</code> / <code>usable</code> 过滤）</td><td>登录</td></tr><tr><td><code>agent_recharge_save</code></td><td>生成(<code>op=generate</code>)/启停(<code>op=toggle</code>)/删除(<code>op=delete</code>)</td><td>操作员+</td></tr><tr><td><strong>卡密管理</strong></td><td></td><td></td></tr><tr><td><code>card_list</code></td><td>卡密列表</td><td>登录</td></tr><tr><td><code>card_generate</code></td><td>批量生成卡密</td><td>操作员+</td></tr><tr><td><code>card_detail</code></td><td>卡密详情（绑定设备、使用记录）</td><td>登录</td></tr><tr><td><code>card_update</code></td><td>编辑未使用的卡密</td><td>操作员+</td></tr><tr><td><code>card_export</code></td><td>导出卡密（txt/csv）</td><td>登录</td></tr><tr><td><code>card_void</code></td><td>作废卡密（单张/按批次）</td><td>操作员+</td></tr><tr><td><code>card_batch_op</code></td><td>批量作废 / 批量延长有效期 / 删除批次</td><td>操作员+</td></tr><tr><td><code>card_batch_list</code></td><td>卡密批次列表</td><td>登录</td></tr><tr><td><strong>发卡商城</strong></td><td></td><td></td></tr><tr><td><code>shop_goods_list</code></td><td>发卡商品列表（含分类、上架状态、库存口径四元组）</td><td>登录</td></tr><tr><td><code>shop_goods_save</code></td><td>商品新增 / 编辑（必选分类，价格与卡规格精确匹配库存）</td><td>操作员+</td></tr><tr><td><code>shop_goods_delete</code></td><td>删除商品（单个 <code>id</code> 或批量 <code>ids</code> 数组 / 逗号分隔）</td><td>操作员+</td></tr><tr><td><code>shop_goods_toggle</code></td><td>商品上架 / 下架</td><td>操作员+</td></tr><tr><td><code>shop_goods_import</code></td><td>商品批量导入</td><td>操作员+</td></tr><tr><td><code>shop_goods_options</code></td><td>商品表单选项（分类列表、卡类型 / 时长 / 设备数可选值）</td><td>登录</td></tr><tr><td><code>shop_goods_upload</code></td><td>商品图片上传（仅图片含 gif，≤5MB，<code>getimagesize</code> 校验）</td><td>操作员+</td></tr><tr><td><code>shop_cards_list</code></td><td>发卡卡密库存列表</td><td>登录</td></tr><tr><td><code>shop_card_delete</code></td><td>删除发卡卡密</td><td>操作员+</td></tr><tr><td><code>shop_order_list</code></td><td>发卡订单列表（状态过滤）</td><td>登录</td></tr><tr><td><code>shop_order_op</code></td><td>订单操作：人工收款确认发货 / 关闭订单</td><td>操作员+</td></tr><tr><td><code>shop_setting_save</code></td><td>发卡网设置（模式 built/external、易支付参数、站点地址 <code>shop_site_url</code>、装修项、分类、标签标题等）</td><td>仅超管</td></tr><tr><td><strong>文件管理</strong></td><td></td><td></td></tr><tr><td><code>files_integrity</code></td><td>文件完整性：<code>op=build</code> 重建 sha256 基准（存 <code>data/file_baseline.json</code>）/ <code>op=check</code> 比对出改动、新增、缺失三类</td><td>仅超管</td></tr><tr><td><code>files_scan</code></td><td>Webshell 挂马扫描（14 条特征评分，≥20 分判定可疑）</td><td>仅超管</td></tr><tr><td><code>file_view</code></td><td>查看文件内容（前 64KB）</td><td>仅超管</td></tr><tr><td><code>file_delete</code></td><td>删除文件：单个 <code>id</code> 或批量 <code>files</code> 数组（≤200，Deleter 密码一次确认，运行必需文件硬保护）</td><td>仅超管</td></tr><tr><td><strong>设备与会话</strong></td><td></td><td></td></tr><tr><td><code>device_list</code></td><td>设备列表</td><td>登录</td></tr><tr><td><code>device_unbind</code></td><td>解绑设备 / 批量解绑 / 按用户 / 清理离线</td><td>操作员+</td></tr><tr><td><code>device_ban</code></td><td>拉黑机器码（可设时长）</td><td>操作员+</td></tr><tr><td><code>session_list</code></td><td>在线会话</td><td>登录</td></tr><tr><td><code>session_kick</code></td><td>踢出会话（单个/批量/按用户）</td><td>操作员+</td></tr><tr><td><strong>运营</strong></td><td></td><td></td></tr><tr><td><code>notice_list</code></td><td>公告列表</td><td>登录</td></tr><tr><td><code>notice_save</code></td><td>公告增删改</td><td>操作员+</td></tr><tr><td><code>version_list</code></td><td>版本列表</td><td>登录</td></tr><tr><td><code>version_save</code></td><td>版本增删改</td><td>操作员+</td></tr><tr><td><code>group_list</code></td><td>用户组列表</td><td>登录</td></tr><tr><td><code>group_save</code></td><td>用户组增删改</td><td>操作员+</td></tr><tr><td><strong>官网运营（互动模块）</strong></td><td></td><td></td></tr><tr><td><code>message_list</code></td><td>官网留言板列表（<code>status</code> / <code>kw</code> 过滤，返回待审计数）</td><td>登录</td></tr><tr><td><code>message_op</code></td><td>留言审核：<code>pass</code> / <code>reject</code>（可带理由）/ <code>delete</code>（级联清理回复与点赞）/ <code>batch</code>（批量通过/驳回/删除，单次上限 200）</td><td>操作员+</td></tr><tr><td><code>feedback_list</code></td><td>用户反馈列表（<code>status</code> / <code>type</code> / <code>kw</code> 过滤，返回各状态计数）</td><td>登录</td></tr><tr><td><code>feedback_reply</code></td><td>反馈处理：<code>reply</code>（置为已回复，记录回复人与时间）/ <code>close</code> / <code>reopen</code> / <code>delete</code> / <code>batch_close</code></td><td>操作员+</td></tr><tr><td><code>plan_list</code></td><td>价格套餐列表</td><td>登录</td></tr><tr><td><code>plan_save</code></td><td>套餐增删改：<code>save</code> / <code>delete</code> / <code>toggle</code>（<code>price</code> 为字符串，支持「面议」）</td><td>操作员+</td></tr><tr><td><code>screenshot_list</code></td><td>客户端截图列表</td><td>登录</td></tr><tr><td><code>screenshot_save</code></td><td>截图增删改：<code>save</code> / <code>delete</code> / <code>toggle</code>；<code>url</code> 强制 http/https，拒绝 <code>javascript:</code> / <code>data:</code></td><td>操作员+</td></tr><tr><td><strong>数据大屏与分析</strong></td><td></td><td></td></tr><tr><td><code>bigscreen</code></td><td>数据大屏：实时在线、今日 / 累计概览、在线曲线、代理销量排行、卡密类型分布、运行时状态；<code>op=data</code>（默认）返回数据，<code>op=flush_cache</code> 清空缓存键（操作员+）</td><td>登录</td></tr><tr><td><code>analytics</code></td><td>留存复购：D1/D3/D7 队列留存、用户与代理复购率、DAU/WAU/MAU 活跃分层、充值趋势</td><td>登录</td></tr><tr><td><strong>日志与设置</strong></td><td></td><td></td></tr><tr><td><code>log_list</code></td><td>业务日志查询</td><td>登录</td></tr><tr><td><code>audit_list</code></td><td>审计日志（谁改了什么）</td><td>登录</td></tr><tr><td><code>audit_detail</code></td><td>审计详情（字段级变更明细）</td><td>登录</td></tr><tr><td><code>stat_overview</code></td><td>API 调用统计</td><td>登录</td></tr><tr><td><code>setting_get</code></td><td>读取设置（含 <code>login_methods_options</code> 登录方式、<code>agent_modes_options</code> 代理商控量模式可选项、<code>effective</code> 策略项当前生效值与来源）</td><td>登录</td></tr><tr><td><code>setting_save</code></td><td>保存设置（白名单含 <code>login_methods</code> / <code>single_login</code> / <code>geo_block</code> / <code>heartbeat_interval</code> / <code>heartbeat_timeout</code> / <code>unbind_per_day</code> / <code>rate_limit_per_min</code> / <code>agent_enable</code> / <code>agent_unit_price</code> / <code>agent_entry_key</code> / <code>contact</code> / <code>web_message_board</code> / <code>ip_blacklist</code> 等；<code>ip_blacklist</code> 归安全档，逐行 <code>inet_pton</code> 校验，支持单 IP 与 CIDR 段，非法行整单拒绝）</td><td>操作员+</td></tr></tbody></table></div>
+<h4 id="d3-h36">登录方式配置项 <code>login_methods</code></h4>
+<div class="tbl"><table><thead><tr><th>取值</th><th>含义</th><th>客户端/官网登录字段</th></tr></thead><tbody><tr><td><code>password</code></td><td>用户名 + 密码（默认）</td><td><code>username</code> + <code>password</code></td></tr><tr><td><code>username_code</code></td><td>用户名 + 激活码</td><td><code>username</code> + <code>code</code></td></tr><tr><td><code>code</code></td><td>激活码（卡密直登）</td><td><code>code</code></td></tr></tbody></table></div>
+<ul class="md-list">
+<li>三选一，<strong>互斥</strong>；同时作用于客户端 <code>/api/login</code> 与官网 <code>/web/api.php?action=login</code>。
+</li>
+<li>出厂默认写在 <code>config/config.php</code> 的 <code>policy.login_methods</code>，后台保存后以数据库 <code>nb_settings</code> 为准。
+</li>
+<li>客户端通过 <code>init</code> 的 <code>data.login</code> 获知当前方式；切换后客户端需重新 <code>init</code>。
+</li>
+<li><code>code</code> 方式下 <code>register</code> 自动关闭（返回 <code>1004</code>）。
+</li>
+</ul>
+<h4 id="d3-h37">策略项取值优先级（<code>lib/Policy.php</code>）</h4>
+<p>以下策略项由 <code>Policy</code> 统一取值，<strong>数据库优先、配置文件回退</strong>：</p>
+<div class="tbl"><table><thead><tr><th>设置键</th><th>说明</th><th>取值接口</th><th>出厂默认</th></tr></thead><tbody><tr><td><code>single_login</code></td><td>同账号单点登录（后登录踢掉先登录）</td><td><code>Policy::singleLogin()</code></td><td><code>false</code></td></tr><tr><td><code>geo_block</code></td><td>异地登录拦截（已绑定设备换 IP 即拒绝，返回 <code>4006</code>）</td><td><code>Policy::geoBlock()</code></td><td><code>false</code></td></tr><tr><td><code>heartbeat_interval</code></td><td>心跳间隔（秒），经 <code>init</code> / <code>heartbeat</code> 下发给客户端</td><td><code>Policy::heartbeatInterval()</code></td><td><code>60</code></td></tr><tr><td><code>heartbeat_timeout</code></td><td>离线判定（秒），后台在线状态、清理僵尸设备共用</td><td><code>Policy::heartbeatTimeout()</code></td><td><code>180</code></td></tr><tr><td><code>unbind_per_day</code></td><td>单账号每日解绑次数上限，<code>0</code> = 不限制</td><td><code>Policy::unbindPerDay()</code></td><td><code>3</code></td></tr><tr><td><code>rate_limit_per_min</code></td><td>单 IP 每分钟最大请求数</td><td><code>Policy::rateLimitPerMin()</code></td><td><code>120</code></td></tr><tr><td><code>session_ttl</code></td><td>登录态有效期（秒）</td><td><code>Policy::sessionTtl()</code></td><td><code>3600</code></td></tr><tr><td><code>default_max_devices</code></td><td>单卡默认最大设备数</td><td><code>Policy::defaultMaxDevices()</code></td><td><code>1</code></td></tr></tbody></table></div>
+<p><strong>判定规则</strong>（<code>Setting::isSet()</code> 只查数据库，语义明确）：</p>
+<ul class="md-list">
+<li>数据库中<strong>不存在</strong>该键 → 使用 <code>config/config.php</code> 里的出厂值（<strong>未保存过的站点行为与升级前一致</strong>）
+</li>
+<li>数据库中<strong>已存在</strong>该键 → 一律以库中值为准（即使值是 <code>0</code> / 空串也算「已配置」）
+</li>
+</ul>
+<p><code>setting_get</code> 返回的 <code>data.effective</code> 会逐项给出 <code>config</code> / <code>db</code> / <code>effective</code> / <code>source</code><br>四个字段，后台「系统设置 → 安全设置」下方&amp;#x7684;<strong>「当前生效值」面板</strong>据此展示，<br>可一眼确认改动是否已落到运行时。</p>
+<blockquote><p>补边界：<code>heartbeat_interval</code> / <code>heartbeat_timeout</code> / <code>rate_limit_per_min</code> 为 <code>0</code> 或非数字时<br>回落默认值；<code>unbind_per_day</code> 为负时归零（不限制）。</p></blockquote>
+<h4 id="d3-h38"><code>bigscreen</code> — 数据大屏</h4>
+<p><strong>请求</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"op"</span></span>: <span class="str">"data"</span>,     // data（默认）| flush_cache
+  <span class="key"><span class="str">"days"</span></span>: 7,        // 趋势曲线天数（默认 7）
+  <span class="key"><span class="str">"hours"</span></span>: 24       // 在线曲线小时数（默认 24）
+}</code></pre></figure>
+<p><code>op=flush_cache</code> 会清空业务缓存键（心跳缓冲与统计缓冲除外），返回 <code>{ "count": &lt;清空的键数&gt; }</code>。</p>
+<p><strong>响应 <code>data</code> 主要字段</strong></p>
+<div class="tbl"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>realtime</code></td><td>实时在线数、在线设备数、在线用户数、<code>timeout</code>（离线判定秒数）</td></tr><tr><td><code>today</code></td><td>今日新增用户 / 激活 / 登录 / API 调用与失败 / 充值 / 新增代理</td></tr><tr><td><code>total</code></td><td>累计用户、有效用户、卡密（未用/已用）、代理、在线设备</td></tr><tr><td><code>online_curve</code></td><td>在线曲线（来源 <code>nb_online_stats</code> 快照），元素含 <code>t</code> / <code>label</code> / <code>online</code> / <code>devices</code></td></tr><tr><td><code>curves</code></td><td>趋势曲线：激活数 / 新增用户 / API 调用与失败，元素含 <code>date</code> / <code>label</code> 及各计数</td></tr><tr><td><code>agent_rank</code></td><td>代理销量排行：<code>agent_id</code> / <code>name</code> / <code>generated</code> / <code>used</code> / <code>unused</code> / <code>voided</code></td></tr><tr><td><code>type_dist</code></td><td>卡密类型分布：<code>type</code> / <code>name</code> / <code>total</code> / <code>used</code></td></tr><tr><td><code>recent_logs</code></td><td>最近 12 条业务日志</td></tr><tr><td><code>runtime</code></td><td>运行状态：<code>cache</code>（驱动/命中）、<code>heartbeat</code>（缓冲积压/落库统计）、<code>stat_buffer</code>（统计缓冲条数）、<code>cache_files</code>（文件缓存占用）</td></tr></tbody></table></div>
+<blockquote><p><code>runtime</code> 是排查缓存 / 聚合问题的第一现场：心跳「缓冲不落库」属正常（等 cron 或阈值触发），<br>若长时间持续增长则说明 cron 未运行。</p></blockquote>
+<h4 id="d3-h39"><code>analytics</code> — 留存复购</h4>
+<p><strong>请求</strong></p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{ <span class="key"><span class="str">"days"</span></span>: 30, <span class="key"><span class="str">"cohort_days"</span></span>: 7 }</code></pre></figure>
+<p><strong>响应主要字段</strong></p>
+<div class="tbl"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>retention.list[]</code></td><td>队列留存，元素含 <code>date</code> / <code>label</code> / <code>total</code> / <code>age</code> / <code>d1</code> / <code>d3</code> / <code>d7</code>（队列未满 N 天时该列为 <code>null</code>）</td></tr><tr><td><code>retention.summary</code></td><td>汇总留存率 <code>d1</code> / <code>d3</code> / <code>d7</code>（%）与纳入统计的队列数 <code>cohorts</code></td></tr><tr><td><code>repurchase.user</code></td><td>用户复购：<code>buyers</code>（激活过卡的用户）/ <code>repeat</code>（≥2 张）/ <code>rate</code>(%) / <code>once</code> / <code>two_to_five</code> / <code>six_plus</code> / <code>three_plus</code></td></tr><tr><td><code>repurchase.agent</code></td><td>代理复购：<code>agents</code>（兑换过充值卡的代理）/ <code>repeat</code>（≥2 次）/ <code>rate</code>(%) / <code>once</code> / <code>five_plus</code></td></tr><tr><td><code>tier</code></td><td>活跃分层：<code>dau</code> / <code>wau</code> / <code>mau</code> / <code>inactive</code>（活跃口径 = 有登录记录的去重用户数）</td></tr><tr><td><code>dau</code></td><td>每日活跃（<code>date</code> / <code>label</code> / <code>users</code> / <code>logins</code>）</td></tr><tr><td><code>recharge_trend</code></td><td>每日充值次数（<code>date</code> / <code>label</code> / <code>count</code>）</td></tr></tbody></table></div>
+<blockquote><p><code>retention</code> / <code>repurchase</code> / <code>tier</code> 的口径说明随响应一并返回（<code>meta</code> 字段），便于前端展示提示。</p></blockquote>
+<h3 id="d3-h40">3.3 角色权限</h3>
+<div class="tbl"><table><thead><tr><th>role</th><th>名称</th><th>权限</th></tr></thead><tbody><tr><td>1</td><td>超级管理员</td><td>全部（含删除用户、查看审计）</td></tr><tr><td>2</td><td>操作员</td><td>除删除用户、查看审计外的写操作</td></tr><tr><td>3</td><td>只读</td><td>仅查询类接口</td></tr></tbody></table></div>
+<blockquote><p>权限在<strong>接口层</strong>校验（<code>AdminAuth::READONLY_ACTIONS</code>），不依赖前端隐藏按钮。<br>即使直接构造请求，只读角色也无法执行写操作。</p></blockquote>
+<h3 id="d3-h41">3.3.1 批量操作接口说明</h3>
+<h4 id="d3-h42"><code>user_batch_op</code> — 用户批量操作</h4>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"op"</span></span>: <span class="str">"status | add_days | add_points | kick | delete"</span>,
+  <span class="key"><span class="str">"ids"</span></span>: [1, 2, 3],
+  <span class="key"><span class="str">"value"</span></span>: 0,          // status 时: 0封禁 1正常 2冻结
+                       // add_days 时: 天数（可为负）
+                       // add_points 时: 点数（可为负，结果不小于0）
+  <span class="key"><span class="str">"password"</span></span>: <span class="str">"xxx"</span>    // 仅 op=delete 需要，二次密码确认
+}</code></pre></figure>
+<p>单次最多 500 个用户。<code>delete</code> 仅超管可用，且需密码确认。</p>
+<h4 id="d3-h43"><code>user_import</code> — 用户批量导入</h4>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"content"</span></span>: <span class="str">"用户名,密码,昵称,邮箱,会员天数,点数,设备上限\nuser1,pass123456,昵称,,30,100,2"</span>,
+  <span class="key"><span class="str">"dup"</span></span>: <span class="str">"skip"</span>,       // skip=跳过已存在  update=更新已存在
+  <span class="key"><span class="str">"default_days"</span></span>: 0    // CSV 未指定天数时的默认值
+}</code></pre></figure>
+<p>返回：<code>{ ok, update, skip, fail, errors[] }</code></p>
+<h4 id="d3-h44"><code>card_batch_op</code> — 卡密批量操作</h4>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{ <span class="key"><span class="str">"op"</span></span>: <span class="str">"void | extend | delete_batch"</span>, <span class="key"><span class="str">"ids"</span></span>: [1,2,3], <span class="key"><span class="str">"days"</span></span>: 30, <span class="key"><span class="str">"batch_id"</span></span>: 5 }</code></pre></figure>
+<ul class="md-list">
+<li><code>void</code>：批量作废（仅影响未使用的卡密）
+</li>
+<li><code>extend</code>：批量延长卡密自身有效期（永久卡不受影响）
+</li>
+<li><code>delete_batch</code>：删除批次记录（未使用的卡密一并删除，已使用的保留）
+</li>
+</ul>
+<h4 id="d3-h45"><code>device_ban</code> — 拉黑机器码</h4>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{ <span class="key"><span class="str">"device_ids"</span></span>: [1,2], <span class="key"><span class="str">"reason"</span></span>: <span class="str">"异常刷接口"</span>, <span class="key"><span class="str">"days"</span></span>: 7 }</code></pre></figure>
+<p><code>days=0</code> 表示永久。拉黑同时会解绑设备并踢下线。</p>
+<h3 id="d3-h46">3.3.2 审计日志</h3>
+<p><code>audit_list</code> 参数：</p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>说明</th></tr></thead><tbody><tr><td><code>keyword</code></td><td>搜索操作人/目标/摘要/IP</td></tr><tr><td><code>action</code></td><td>按动作筛选</td></tr><tr><td><code>admin_id</code></td><td>按操作人筛选</td></tr><tr><td><code>date_from</code> / <code>date_to</code></td><td>日期范围（YYYY-MM-DD）</td></tr></tbody></table></div>
+<p><code>audit_detail</code> 返回字段级变更：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"audit"</span></span>: { <span class="key"><span class="str">"admin_name"</span></span>: <span class="str">"admin"</span>, <span class="key"><span class="str">"action_text"</span></span>: <span class="str">"编辑用户"</span>, <span class="key"><span class="str">"created_at"</span></span>: <span class="str">"..."</span> },
+  <span class="key"><span class="str">"changes"</span></span>: [
+    { <span class="key"><span class="str">"field"</span></span>: <span class="str">"points"</span>, <span class="key"><span class="str">"label"</span></span>: <span class="str">"点数"</span>, <span class="key"><span class="str">"old"</span></span>: <span class="str">"10"</span>, <span class="key"><span class="str">"new"</span></span>: <span class="str">"110"</span> },
+    { <span class="key"><span class="str">"field"</span></span>: <span class="str">"vip_expire"</span>, <span class="key"><span class="str">"label"</span></span>: <span class="str">"会员到期"</span>, <span class="key"><span class="str">"old"</span></span>: <span class="str">"未激活"</span>, <span class="key"><span class="str">"new"</span></span>: <span class="str">"2026-12-31 00:00:00"</span> }
+  ]
+}</code></pre></figure>
+<p>密码类字段只记录「已设置/已修改」，不记录明文或哈希。</p>
+<h3 id="d3-h47">3.4 示例：管理员登录</h3>
+<figure class="code"><figcaption><span>BASH</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>curl -X POST <span class="str">"http://127.0.0.1/&lt;后台目录&gt;/index.php?action=login"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"username":"admin","password":"admin888"}'</span></code></pre></figure>
+<p>响应：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"登录成功"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"token"</span></span>: <span class="str">"9f8e7d6c..."</span>,
+    <span class="key"><span class="str">"expire_at"</span></span>: 1726007200,
+    <span class="key"><span class="str">"admin"</span></span>: { <span class="key"><span class="str">"id"</span></span>: 1, <span class="key"><span class="str">"username"</span></span>: <span class="str">"admin"</span>, <span class="key"><span class="str">"nickname"</span></span>: <span class="str">"admin"</span>, <span class="key"><span class="str">"role"</span></span>: 1, <span class="key"><span class="str">"role_text"</span></span>: <span class="str">"超级管理员"</span> }
+  }
+}</code></pre></figure>
+<h3 id="d3-h48">3.5 示例：生成卡密</h3>
+<figure class="code"><figcaption><span>BASH</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>curl -X POST <span class="str">"http://127.0.0.1/&lt;后台目录&gt;/index.php?action=card_generate"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"X-Token: 9f8e7d6c..."</span> \
+  -d '{
+    <span class="str">"count"</span>: 100,
+    <span class="str">"type"</span>: 1,
+    <span class="str">"duration"</span>: 2592000,
+    <span class="str">"max_devices"</span>: 2,
+    <span class="str">"prefix"</span>: <span class="str">"VIP"</span>,
+    <span class="str">"name"</span>: <span class="str">"国庆活动批次"</span>,
+    <span class="str">"expire_days"</span>: 0
+  }'</code></pre></figure>
+<p>参数说明：</p>
+<div class="tbl"><table><thead><tr><th>参数</th><th>说明</th></tr></thead><tbody><tr><td>count</td><td>生成数量，1-10000</td></tr><tr><td>type</td><td>1时长卡 2点数卡 3次数卡 4永久卡</td></tr><tr><td>duration</td><td>时长卡=秒数；点数/次数卡=数值；永久卡忽略</td></tr><tr><td>max_devices</td><td>激活后设备上限，1-99</td></tr><tr><td>group_id</td><td>激活后进入的用户组 ID，0=不换组（保持注册时的默认用户组）</td></tr><tr><td>prefix</td><td>卡密前缀，仅字母数字</td></tr><tr><td>expire_days</td><td>卡密本身有效期（天），0=永久有效</td></tr><tr><td>name</td><td>批次备注名</td></tr></tbody></table></div>
+<p>响应（只返回前 50 条预览）：</p>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"code"</span></span>: 0,
+  <span class="key"><span class="str">"msg"</span></span>: <span class="str">"成功生成 100 张卡密"</span>,
+  <span class="key"><span class="str">"data"</span></span>: {
+    <span class="key"><span class="str">"batch_id"</span></span>: 3,
+    <span class="key"><span class="str">"count"</span></span>: 100,
+    <span class="key"><span class="str">"codes"</span></span>: [<span class="str">"VIP-AB12-CD34-EF56-GH78"</span>, <span class="str">"..."</span>],
+    <span class="key"><span class="str">"preview_count"</span></span>: 50,
+    <span class="key"><span class="str">"type"</span></span>: 1,
+    <span class="key"><span class="str">"duration"</span></span>: 2592000,
+    <span class="key"><span class="str">"expire_at"</span></span>: 0
+  }
+}</code></pre></figure>
+<blockquote><p>完整卡密请通过 <code>card_export</code> 导出。</p></blockquote>
+<hr>
+<h2 id="d3-h49">四、代理商后台接口（<code>/agent/</code>）</h2>
+<p>代理商（分销）拥有<strong>完全独立</strong>的后台，与主管理后台互不可见：</p>
+<div class="tbl"><table><thead><tr><th>项目</th><th>主管理后台</th><th>代理商后台</th></tr></thead><tbody><tr><td>页面入口</td><td><code>/admin/</code>（安装时强制改名）</td><td><code>/agent/</code></td></tr><tr><td>接口入口</td><td><code>/admin/index.php?action=</code></td><td><code>/agent/api.php?action=</code></td></tr><tr><td>账号表</td><td><code>nb_admins</code></td><td><code>nb_agents</code></td></tr><tr><td>会话表</td><td><code>nb_admin_sessions</code></td><td><code>nb_agent_sessions</code></td></tr><tr><td>会话 Cookie</td><td><code>PHPSESSID</code></td><td><code>NBAGSID</code></td></tr><tr><td>登录字段</td><td><code>username</code> + <code>password</code></td><td><code>username</code> + <code>password</code></td></tr></tbody></table></div>
+<h3 id="d3-h50">4.1 认证方式</h3>
+<p>与主后台一致：登录拿 <code>token</code>，后续请求带 <code>X-Token</code>，写操作再带 <code>X-CSRF</code>。<br>CSRF 令牌由页面入口 <code>/agent/</code> 注入到 <code>window.__NBAG__.csrf</code>（绑定 <code>NBAGSID</code> 会话）。</p>
+<h3 id="d3-h51">4.2 接口清单</h3>
+<div class="tbl"><table><thead><tr><th>action</th><th>说明</th><th>CSRF</th></tr></thead><tbody><tr><td><code>login</code></td><td>代理登录，返回 <code>token</code> 与代理资料</td><td>豁免</td></tr><tr><td><code>register</code></td><td><strong>凭激活码自助注册</strong>（<code>code</code> / <code>username</code> / <code>password</code> / <code>password2</code> / <code>contact</code>）</td><td>豁免（另加独立限流）</td></tr><tr><td><code>logout</code></td><td>退出并作废当前 token</td><td>需要</td></tr><tr><td><code>profile</code></td><td>我的资料 + 各卡类型额度/单价 + 余额 + 发货统计</td><td>豁免</td></tr><tr><td><code>dashboard</code></td><td>概览（资料 + 统计 + 最近 10 条操作记录）</td><td>豁免</td></tr><tr><td><code>card_generate</code></td><td>生成卡密（按<strong>该卡类型</strong>的额度/单价扣减）</td><td>需要</td></tr><tr><td><code>card_list</code></td><td>我生成的卡密（按 <code>agent_id</code> 强制过滤）</td><td>豁免</td></tr><tr><td><code>card_export</code></td><td>导出我名下的卡密（txt/csv）</td><td>需要</td></tr><tr><td><code>card_void</code></td><td>作废我名下<strong>未使用</strong>的卡密</td><td>需要</td></tr><tr><td><code>batch_list</code></td><td>我的批次</td><td>豁免</td></tr><tr><td><code>recharge</code></td><td>兑换充值卡密（余额充值 / 张数额度），<code>code</code> 为卡密</td><td>需要</td></tr><tr><td><code>password</code></td><td>修改自己的登录密码</td><td>需要</td></tr></tbody></table></div>
+<h3 id="d3-h52">4.3 代理商注册（激活码）</h3>
+<p>代理商有两种来源：<strong>主管理员在后台创建</strong>，或<strong>凭「代理商激活码」自助注册</strong>。</p>
+<ul class="md-list">
+<li>主后台「业务管理 → 代理商激活码」生成激活码，码上写死了这些规格：   <strong>每种卡类型激活后进入的用户组</strong>（可按类型分别指定）、<strong>设备上限</strong>、是否允许作废、控量模式、 <strong>代理生成卡密的固定前缀</strong>、<strong>注册后赠予余额</strong>、<strong>每种卡类型的额度/单价</strong>、可用注册次数（<code>max_uses</code>，1 = 一次性）、有效期
+</li>
+<li>注册接口把上述规格一次性复制到 <code>nb_agents</code> 与 <code>nb_agent_types</code>，   <strong>代理商登录后无法自改</strong> —— 因此「卡密激活后进入哪个用户组」始终由主管理员决定
+</li>
+<li>用户组取值优先级：<strong>该卡类型的 <code>group_id</code>（<code>nb_agent_types.group_id</code>）→ 代理兜底组（<code>nb_agents.group_id</code>）→ <code>0</code>（不换组）</strong>
+</li>
+<li><strong>卡密前缀</strong>：激活码 / 代理档案上的 <code>card_prefix</code> 非空时，代理生成卡密一律强制使用此前缀   （<code>card_generate</code> 忽略代理提交的同名字段）；为空则不限制，仍由代理在 <code>/agent/</code> 自行填写
+</li>
+<li><strong>注册后赠予余额</strong>（<code>nb_agent_codes.init_balance</code>，单位：分）：仅控量模式为 <strong>2（余额计费）</strong> 时生效，   注册时写入 <code>nb_agents.balance</code>，代理到手即可发货；其它模式一律写 0
+</li>
+<li>注册成功后 <code>nb_agents.reg_code</code> 记录所用激活码，便于对账；主后台激活码列表直接显示「该码注册了哪些代理」
+</li>
+<li>同一激活码并发注册用<strong>带条件的 UPDATE</strong> 消费次数（<code>used_count &lt; max_uses</code>），不会超发；   注册过程任一步失败会把次数退回
+</li>
+<li>失败码：<code>2004</code> 账号已被占用、<code>2005</code> 激活码无效/已停用、<code>2006</code> 可用次数已用完、<code>2007</code> 激活码已过期、   <code>6003</code> 后台已关闭自助注册
+</li>
+<li>限流：同一 IP 10 分钟最多 5 次注册尝试
+</li>
+</ul>
+<h3 id="d3-h53">4.4 代理商充值卡密（续费 / 加量）</h3>
+<p>与「注册激活码」分工不同：<strong>激活码用于开户</strong>，<strong>充值卡密用于给已有代理续费 / 加量</strong>。<br>主后台「业务管理 → 代理商激活码 → 充值卡密」页签批量生成，代理商在 <code>/agent/</code> → 「充值卡密」自助兑换。</p>
+<div class="tbl"><table><thead><tr><th>kind</th><th>名称</th><th>兑换效果</th><th>适用模式</th></tr></thead><tbody><tr><td>1</td><td>余额充值</td><td><code>nb_agents.balance += amount</code>（分）</td><td>2 余额计费</td></tr><tr><td>2</td><td>张数额度</td><td>对<strong>一种或多种</strong>卡类型分别 <code>nb_agent_types.quota_total += quota</code>（<code>quota = -1</code> 表示设为不限量）</td><td>1 张数额度</td></tr></tbody></table></div>
+<ul class="md-list">
+<li>表 <code>nb_agent_recharge_codes</code>：<code>code</code> / <code>kind</code> / <code>amount</code>（分）/ <code>card_type</code> / <code>quota</code> /   <strong><code>quota_map</code>（多卡类型张数 JSON，如 <code>{"1":10,"2":-1}</code>）</strong> / <code>status</code> / <code>max_uses</code> / <code>used_count</code> / <code>expire_at</code> / <code>last_agent_id</code> / <code>last_used_at</code>
+</li>
+<li><strong>多卡类型张数</strong>：<code>kind=2</code> 时优先读 <code>quota_map</code>，为空则回退旧字段 <code>card_type</code> + <code>quota</code>（单类型，兼容存量卡密）；   单类型卡密生成时也会顺带回写 <code>card_type</code> / <code>quota</code>。取值规则：<code>0</code> = 该类型不充值（不入库）， <code>-1</code> = 该类型设为「不限量」，小于 <code>-1</code> 收敛为 <code>-1</code>，非法卡类型直接丢弃；至少要有一种类型有效，否则拒绝生成
+</li>
+<li>生成参数：<code>count</code>（≤200）、<code>prefix</code>（默认 <code>RCG</code>，形如 <code>RCG-XXXX-XXXX</code>）、<code>kind</code>、   <code>amount_yuan</code>（kind=1）、<strong><code>quota_map</code>（kind=2，多类型）</strong> 或 <code>card_type</code> + <code>quota</code>（kind=2，单类型旧写法）、 <code>max_uses</code>（&gt;1 可当通用充值码）、<code>expire_days</code>（0 = 永久）、<code>remark</code>
+</li>
+<li>兑换：<code>AgentRecharge::redeem()</code> 在<strong>同一事务</strong>内先带条件 UPDATE 扣次数   （<code>status=1 AND used_count &lt; max_uses</code>，防并发重复兑换），再按 <code>quota_map</code> 逐项入账， 最后写代理日志（<code>action=recharge</code>，明细形如「时长卡 +10 张、点数卡 设为不限量」）
+</li>
+<li>已是「不限量」的类型再充值仍保持不限量（<code>IF(quota_total &lt; 0, -1, ...)</code>）
+</li>
+<li>已兑换过的卡密<strong>不可删除</strong>，只能停用（保留追溯）；停用 / 过期 / 次数用尽的卡密兑换时会被拒绝
+</li>
+<li>代理端在「充值卡密」页可看到当前余额与各类型额度，兑换成功后即时刷新
+</li>
+<li>升级脚本：<code>php install/migrate_agent_recharge.php</code>（建表）+ <code>php install/migrate_recharge_quota_map.php</code>（多类型，均可重复执行）
+</li>
+</ul>
+<h3 id="d3-h54">4.5 控量模式（<code>nb_agents.charge_mode</code>）与按卡类型计费</h3>
+<p><strong>额度与单价按卡类型分别配置</strong>（<code>nb_agent_types</code>：<code>agent_id + card_type</code> 唯一），<br><code>nb_agents.quota_total / unit_price</code> 为历史字段，自 v1.1 起不再参与计费。</p>
+<p>| 值 | 名称   | 生成时的扣减规则                                                               || - | ---- | ---------------------------------------------------------------------- || 1 | 张数额度 | 扣该卡类型的 <code>quota_used</code>；该类型 <code>quota_total = -1</code> 表示不限，<code>enabled = 0</code> 表示不开放此类型 || 2 | 余额计费 | 扣 <code>balance</code>（分）：<strong>该卡类型的单价</strong> × 张数；类型单价为 0 时回落到「系统设置 → 代理商默认单价」           || 3 | 不限量  | 不扣减，仅记录归属与日志（仍要求该类型已开放）                                                |</p>
+<ul class="md-list">
+<li>额度/余额的扣减使用<strong>带条件的 UPDATE</strong> 保证并发安全；生成失败（如卡密去重后为 0 张）会自动补偿退回
+</li>
+<li>代理<strong>不能</strong>自定义「设备上限」「激活用户组（按卡类型）」「卡密固定前缀」与「各类型额度/单价」——统一取代理档案（或激活码预设），   避免越权发放高权限卡密
+</li>
+<li>余额计费下 <code>Agent::typeList()</code> 会为每种卡类型给出 <strong><code>can_make</code> / <code>can_make_text</code></strong>   （= <code>balance ÷ 该类型单价</code>，不足一张按 0 计），代理端「发货规格」据此显示每种卡还能生成多少张
+</li>
+<li>主后台「编辑代理商」与「生成激活码」表单都提供按卡类型的<strong>额度/单价/激活用户组</strong>矩阵；   充值走 <code>agent_save</code> 的 <code>op=grant</code>，提交 <code>types: {"4": 2, "1": 1}</code> 表示给永久卡 +2 张、时长卡 +1 张
+</li>
+</ul>
+<h3 id="d3-h55">4.6 生成卡密请求示例</h3>
+<figure class="code"><figcaption><span>JSON</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>{
+  <span class="key"><span class="str">"count"</span></span>: 10,
+  <span class="key"><span class="str">"type"</span></span>: 1,
+  <span class="key"><span class="str">"duration"</span></span>: 30,
+  <span class="key"><span class="str">"prefix"</span></span>: <span class="str">"VIP"</span>,
+  <span class="key"><span class="str">"expire_days"</span></span>: 0,
+  <span class="key"><span class="str">"name"</span></span>: <span class="str">"双十一批次"</span>,
+  <span class="key"><span class="str">"remark"</span></span>: <span class="str">""</span>
+}</code></pre></figure>
+<ul class="md-list">
+<li><code>type</code>：1 时长卡 / 2 点数卡 / 3 次数卡 / 4 永久卡（必须为该代理<strong>已开放</strong>的类型）
+</li>
+<li><code>duration</code>：时长卡填<strong>天数</strong>（服务端换算为秒），其他类型填原始数值，永久卡可传 0
+</li>
+<li>单次最多 500 张；生成限流：每分钟 10 次、每天 100 次
+</li>
+</ul>
+<p>响应中的 <code>data.codes</code> 只返回前 50 条预览，<code>data.cost</code> 会说明本次扣的是哪个类型的额度或多少钱。</p>
+<h3 id="d3-h56">4.7 归属性</h3>
+<p>代理生成的卡密写入 <code>nb_cards.agent_id</code>，批次写入 <code>nb_card_batches.agent_id</code>：</p>
+<ul class="md-list">
+<li>主后台「卡密管理」可用 <code>agent_id</code> 筛选来源（<code>''</code> 全部 / <code>0</code> 官方直发 / <code>&gt;0</code> 指定代理）
+</li>
+<li><code>card_export</code> 同样支持 <code>agent_id</code> 参数
+</li>
+<li>主后台删除代理商时，若其名下有卡密会被拒绝（避免归属变成野指针），需改为「禁用」
+</li>
+<li>删除激活码时，若该码已被注册使用同样会被拒绝，需改为「停用」
+</li>
+</ul>
+<h3 id="d3-h57">4.8 相关系统设置</h3>
+<div class="tbl"><table><thead><tr><th>设置项</th><th>说明</th></tr></thead><tbody><tr><td><code>agent_enable</code></td><td>是否开放代理商后台（关闭后 <code>/agent/</code> 与接口全部拒绝）</td></tr><tr><td><code>agent_register_enable</code></td><td>是否开放代理商<strong>自助注册</strong>（关闭后只能由管理员在后台创建账号）</td></tr><tr><td><code>agent_unit_price</code></td><td>代理商默认单价（元/张），某卡类型未单独定价时使用；为 0 时「余额计费」模式拒绝生成该类型</td></tr><tr><td><code>agent_entry_key</code></td><td>可选入口密钥，填写后需先访问 <code>/agent/?k=密钥</code>，否则返回仿真 404</td></tr></tbody></table></div>
+<hr>
+<h2 id="d3-h58">五、发卡网前台接口（<code>/shop/</code>）</h2>
+<p>发卡网前台为独立入口，无需后台会话。接口入口 <code>/shop/api.php?action=</code>，<br>买家会话为独立 Cookie（HttpOnly + SameSite=Lax）；登录方式跟随后台 <code>login_methods</code><br>配置，登录/注册/找回均带图形验证码与 IP 限流。</p>
+<div class="tbl"><table><thead><tr><th>action</th><th>说明</th><th>认证</th></tr></thead><tbody><tr><td><code>info</code></td><td>商店信息：商品、分类、装修（标题/横幅/主题色/公告）、登录方式</td><td>公开</td></tr><tr><td><code>order</code></td><td>创建订单：卡规格四元组精确匹配库存，内置（返回支付参数）或人工收款模式</td><td>公开（游客可下单）</td></tr><tr><td><code>auth</code></td><td>登录 / 注册 / 卡密直登（<code>loginBy</code> 自动建号激活）</td><td>公开</td></tr><tr><td><code>captcha</code></td><td>图形验证码</td><td>公开</td></tr><tr><td><code>reclaim_lookup</code></td><td>找回密码第一步：凭激活码查询账号（限流每小时 5 次）</td><td>公开</td></tr><tr><td><code>reclaim_save</code></td><td>找回密码第二步：验证码校验通过后重置密码</td><td>公开</td></tr><tr><td><code>account</code></td><td>我的账号：购买的卡密、会员时长</td><td>登录</td></tr><tr><td><code>activate</code></td><td>激活卡密（委托绑定到当前账号）</td><td>登录</td></tr><tr><td><code>query</code></td><td>订单查询：凭不可枚举订单号（miss 封禁 40 次）或「凭证+密码」</td><td>公开</td></tr></tbody></table></div>
+<p>支付回调 <code>/shop/notify.php</code>（易支付 POST）：MD5 验签 + 金额比对 + 幂等，<br>自动发货走事务 <code>FOR UPDATE</code> 取未使用卡密，缺货自动转人工。</p>
+<hr>
+<h2 id="d3-h59">六、安全说明</h2>
+<ol class="md-list">
+<li><strong>固定 IV 的取舍</strong>：为便于客户端实现，IV 由密钥派生而非随机。这降低了语义安全性，但配合 HMAC 签名 + 时间戳 + nonce 防重放，已能抵御常见的抓包篡改与重放攻击。若需更高强度，可改为随机 IV 前置到密文（需同步修改客户端）。
+</li>
+<li><strong>签名保护范围</strong>：签名覆盖 <code>data</code> 与时间戳、nonce，任何篡改都会导致校验失败。
+</li>
+<li><strong>时间同步</strong>：客户端需保证系统时间准确，与服务端时差超过 <code>time_window</code> 会被拒绝（默认 300 秒）。
+</li>
+<li><strong>限流策略</strong>：
+<ul class="md-list">
+<li>单 IP 每分钟 120 次通用接口调用
+</li>
+<li>单 IP 每分钟 10 次登录尝试
+</li>
+<li>单 IP 每分钟 20 次激活尝试
+</li>
+<li>单账号每日 3 次设备解绑
+</li>
+</ul>
+</li>
+<li><strong>密码存储</strong>：bcrypt（cost 10），兼容历史 md5 哈希自动升级。   管理员密码要求至少 8 位且含字母和数字；改密后该账号所有旧会话立即失效。
+</li>
+<li><strong>管理端防护</strong>：
+<ul class="md-list">
+<li><strong>CSRF</strong>：写操作校验令牌（<code>X-CSRF</code>），只读接口豁免
+</li>
+<li><strong>入口密钥</strong>：可配置 <code>admin.entry_key</code>，访问后台需带 <code>?k=密钥</code>，错误时返回 404 不暴露后台
+</li>
+<li><strong>IP 白名单</strong>：可限制后台访问来源 IP
+</li>
+<li><strong>二次密码确认</strong>：删除类敏感操作需重新输入管理密码
+</li>
+<li><strong>登录防爆破</strong>：连续失败 N 次锁定账号（默认 5 次 / 15 分钟），失败尝试记录来源 IP
+</li>
+<li><strong>审计追溯</strong>：所有写操作记录操作人、IP、UA、时间及字段级变更前后值
+</li>
+<li><strong>会话隔离</strong>：管理端令牌存独立表（<code>nb_admin_sessions</code>），与用户会话互不影响
+</li>
+<li><strong>代理商隔离</strong>：代理商使用 <code>nb_agents</code> + <code>nb_agent_sessions</code> + <code>NBAGSID</code> 会话，   仅能操作 <code>agent_id</code> 归属自己的卡密（作废、导出均做强校验），且无法自定义设备上限、用户组与各类型额度单价
+</li>
+<li><strong>激活码即开户凭证</strong>：代理自助注册必须持有主管理员生成的激活码，   注册次数用条件 UPDATE 消费（不会超发），已注册过的码禁止删除（保留追溯）
+</li>
+<li><strong>密钥不落地</strong>：AES 密钥只存在服务端配置，前端页面仅注入随机化的会话标识
+</li>
+</ul>
+</li>
+<li><strong>跨域</strong>：默认关闭（<code>cors_origins</code> 为空数组）。需要跨域时填具体域名，<strong>不要用 <code>*</code></strong>，   因为管理端使用凭据（cookie + token），通配来源会导致凭据泄露。
+</li>
+<li><strong>前端源码保护</strong>：
+<ul class="md-list">
+<li>界面逻辑按模块拆分到 <code>admin/assets/js/</code>，不内联在页面里
+</li>
+<li>接口地址、会话 key、CSRF 令牌由 PHP 动态注入，不硬编码在静态 JS 中
+</li>
+<li>敏感配置（密钥、盐值）从不下发到前端
+</li>
+</ul>
+</li>
+<li><strong>生产环境建议</strong>：
+<ul class="md-list">
+<li>使用 HTTPS，避免密钥在传输中暴露
+</li>
+<li>将 <code>enforce_crypto</code> 保持为 <code>true</code>
+</li>
+<li>修改后台目录名（<code>mv admin manage_xxxx</code>）
+</li>
+<li>配置后台入口密钥（<code>admin.entry_key</code>）
+</li>
+<li>开启管理端 IP 白名单
+</li>
+<li>关闭 <code>debug</code> 与 <code>log.record_raw</code>
+</li>
+<li>删除 <code>install</code> 目录
+</li>
+</ul>
+</li>
+<li><strong>离线宽限票据</strong>：
+<ul class="md-list">
+<li>用 <strong>ECDSA P-256（ES256）</strong> 非对称签名，服务端只持有<strong>私钥</strong>，客户端只拿到<strong>公钥</strong>——   公钥泄露无法伪造票据，与「对称密钥下发到客户端」的方案有本质区别。
+</li>
+<li>私钥落盘在 <code>config/grace_keys.php</code>，位于部署模板已 deny 的 <code>config/</code> 目录内；   切勿把该文件泄露给客户端或提交到公开仓库。
+</li>
+<li>票面绑定 <code>user_id + 机器码摘要 + 会话令牌摘要 + 会员到期</code>，换机器 / 换会话 / 篡改任一字段均验签失败。
+</li>
+<li>宽限只延长<strong>离线</strong>运行时间，联网后立即以服务端判定为准，不会成为「永久绕过封号」的后门。
+</li>
+<li>需要<strong>立即使所有已下发票据失效</strong>时：删除 <code>config/grace_keys.php</code>（服务端会自动重新生成密钥），   或把 <code>grace.seconds</code> 设为 <code>0</code> 关闭该能力。
+</li>
+</ul>
+</li>
+<li><strong>缓存与聚合</strong>：
+<ul class="md-list">
+<li>缓存只存<strong>派生数据与计数</strong>（在线缓冲、心跳缓冲、统计缓冲、热点配置），不缓存明文密码等敏感字段。
+</li>
+<li>Redis 未设密码时只监听内网 / 本机（<code>127.0.0.1</code>），切勿把无密码 Redis 暴露到公网。
+</li>
+<li>文件缓存落在 <code>logs/cache</code>，依赖部署模板对 <code>logs/</code> 目录的整目录 deny；   若自行改动缓存目录，务必同步补充 deny 规则。
+</li>
+<li>心跳缓冲 / 统计缓冲<strong>不落业务数据</strong>，即使缓存整体丢失，也只会造成少量在线时长统计偏差，   不影响登录、激活、计费等核心链路（每个请求的判定仍实时读库）。
+</li>
+</ul>
+</li>
+</ol>
+</div>
+</article>
+<article class="doc" id="doc-d5" data-doc="d5">
+<div class="doc-body">
+<h1 id="d5-h0">Nebula Python SDK 接入文档</h1>
+<blockquote><p>📚 本文属 Nebula 文档中心，相关文档：<a class="md-link" data-goto="d1" href="#d1-h0">C++ SDK 接入</a> · <a class="md-link" data-goto="d3" href="#d3-h0">API 接口</a></p></blockquote>
+<blockquote><p>适用对象：Python SDK（定向分发获取，可附已编译的 <code>Nebula.exe</code> 示例程序）<br>SDK 组成：<code>nebula/</code> 协议层（无 UI 依赖，可单独引用）+ <code>nebula/ui/</code> Pygame 桌面登录界面</p></blockquote>
+<hr>
+<h2 id="d5-h1">1. 概述</h2>
+<p>Nebula Python SDK 与 C++ 版<strong>协议同规格</strong>，内置：</p>
+<ul class="md-list">
+<li><strong>通信协议（Nebula 3.1）</strong>：ECDH P-256 会话握手 + AES-256-GCM 加密信封 + seq 单调防重放，与 C++ SDK 同规格——客户端<strong>零静态对称机密</strong>，会话失效自动重握手
+</li>
+<li><strong>响应防伪造</strong>：响应 ES256|RS256 非对称验签——<strong>未配置公钥时 SDK 拒绝连接</strong>（防伪造服务器设计）
+</li>
+<li><strong>完整流程</strong>：init → login（password / username_code / code 三种方式按后台下发自动适配）→ heartbeat → logout
+</li>
+<li><strong>内置能力</strong>：完整性自校验、自动更新（下载 → hash+size 强校验 → 替换 → 重启）、弹窗/立即公告、版本/维护/被踢提示、功能密钥 NF1 数据包
+</li>
+<li><strong>内置界面</strong>：440×420 无边框登录窗（自绘标题栏、系统级拖拽）+ 800×500 主窗（心跳接管，被踢/顶号自动回登录），接入方零 UI 代码
+</li>
+</ul>
+<h2 id="d5-h2">2. 环境要求</h2>
+<ul class="md-list">
+<li><strong>Python 3.10 ~ 3.13</strong>（⚠ Python 3.14 暂不可用：pygame 尚无对应预编译包，pip 会回退源码编译并因 <code>distutils.msvccompiler</code> 被移除而失败）
+</li>
+<li><strong>依赖</strong>：<code>pip install pygame cryptography</code>（界面层 pygame ≥ 2.6，SDK 层 cryptography ≥ 42）
+</li>
+</ul>
+<h2 id="d5-h3">3. 五分钟接入</h2>
+<p><strong>① 配置</strong> <code>nebula/config.py</code>（唯一需要修改的文件）：<code>kApiUrl</code> / <code>kAppKey</code> / <code>kRespSignPubKey</code> / <code>kTlsCertSha256</code>，均可在后台「软件管理」与「系统设置 → 安全」复制。<strong>协议 3.1 起客户端不再持有 AES_KEY / SIGN_SALT</strong>，通信密钥由 ECDH 握手临时协商。</p>
+<p><strong>② 运行</strong>：<code>python main.py</code> —— 启动即后台 init（不卡界面），登录界面按服务器下发的登录方式自动切换；登录成功进入主窗并接管心跳，被踢/顶号自动回登录界面。</p>
+<blockquote><p>不想跑 Python 环境？包内附已编译的 <code>Nebula.exe</code>（PyInstaller 单文件），解压双击即可体验。测试卡密见本页顶部下载区。</p></blockquote>
+<h2 id="d5-h4">4. 目录结构</h2>
+<figure class="code"><figcaption><span>TEXT</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>sdk-py/
+├── main.py                    # 示例入口：登录窗 → 主窗 循环
+├── nebula/
+│   ├── config.py              # 接入方配置（唯一需要修改的文件）
+│   ├── crypto.py              # ECDH P-256 / HKDF / AES-256-GCM / ES256 验签
+│   ├── envelope.py            # 3.1 会话：握手 / GCM 信封 / seq 防重放 / 自动重握手
+│   ├── client.py              # init / login / heartbeat / logout + 机器码
+│   │                          #   + 自校验 / 自动更新 / 公告 / 内置提示
+│   ├── device_fp.py           # 设备指纹（自动上报，无需接入方处理）
+│   ├── feature.py             # 功能密钥数据包 NF1（seal / open_pack）
+│   └── ui/                    # 登录窗 / 主窗 / 主题 / 绘图
+├── docs/                      # 界面截图
+├── test_smoke.py              # 联调自测（15 项断言）
+└── test_ui_headless.py        # 界面 headless 测试</code></pre></figure>
+<h2 id="d5-h5">5. 独立使用 SDK（不带界面）</h2>
+<figure class="code"><figcaption><span>PY</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>from nebula import create_default_client
+
+client = create_default_client()
+ir = client.init()                      <span class="cmt"># InitResult：ok / site_name / login_spec / version ...</span>
+if ir.ok:
+    lr = client.login(<span class="str">"用户名"</span>, <span class="str">"密码"</span>)   <span class="cmt"># 按后台登录方式组装字段（卡密直登时 secret 即卡密）</span>
+    if lr.ok:
+        <span class="cmt"># LoginResult：token / feature_key / user(vip_text, points, max_devices) ...</span>
+        client.start_heartbeat(lr.token, lambda hb: print(hb.remain_text))
+        <span class="cmt"># ... 业务逻辑 ...</span>
+        client.logout(lr.token)</code></pre></figure>
+<ul class="md-list">
+<li><code>HeartbeatInfo</code> 回调字段：<code>remain_text</code> / <code>vip_expire</code> / <code>kick</code>（后台踢出）/ <code>force_offline</code>（顶号）/ <code>need_relogin</code>（会话失效）——出现异常状态时 SDK 内置界面会自动回登录，独立使用时请自行处理
+</li>
+<li><code>login_spec.method</code>：<code>password</code> / <code>username_code</code> / <code>code</code>，决定 login 两个参数的含义
+</li>
+</ul>
+<h2 id="d5-h6">6. 内置提示与自定义 UI</h2>
+<p>版本过期 / 发现新版本 / 服务器维护 / 被踢下线 / 自校验失败等提示默认用系统 <code>MessageBoxW</code> 弹出（标题 = 软件名 + 场景后缀）。一行接管：</p>
+<figure class="code"><figcaption><span>PY</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>client.set_ui_handler(lambda kind, msg: log(msg))
+<span class="cmt"># kind 取值：popup / flash / version / update / maintain / kick / integrity</span></code></pre></figure>
+<h2 id="d5-h7">7. 公告</h2>
+<figure class="code"><figcaption><span>PY</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>client.popup_notices()    <span class="cmt"># 弹窗公告（type=2，每次登录提示）</span>
+client.flash_notices()    <span class="cmt"># 立即公告（type=3，看过即不再显示）</span>
+<span class="cmt"># 已读记录存 %APPDATA%\NebulaSDK\notices_&lt;app_key&gt;.txt，30 天自动清理</span></code></pre></figure>
+<h2 id="d5-h8">8. 完整性自校验与自动更新</h2>
+<figure class="code"><figcaption><span>PY</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>client.auto_update_optional = False   <span class="cmt"># 可选更新也自动安装（默认 False 只提示）</span>
+client.allow_insecure_update = False  <span class="cmt"># 仅接受 https 更新地址（默认 False）</span>
+
+if not client.enforce_self_integrity():   <span class="cmt"># 启动自校验（失败已弹窗）</span>
+    return
+up = client.auto_update()             <span class="cmt"># 检测→下载→校验→替换→退出重启</span>
+if up.state == UpdateState.Applied:   <span class="cmt"># 即将重启，直接 return</span>
+    return
+client.version_alert()                <span class="cmt"># 版本提示（强制更新返回 False）</span></code></pre></figure>
+<ul class="md-list">
+<li><strong>仅接受 https 更新地址</strong>；下载后 hash（SHA256/MD5 自动识别）+ size 双校验，不匹配即丢弃
+</li>
+<li>替换采用 cmd 替换脚本：等待旧进程退出 → move → 重启 → 清理自身；打包态校验/替换目标即 exe 本身
+</li>
+<li>⚠ <strong>发版前必须在后台「版本管理」重新登记新 exe 的哈希与大小</strong>，否则自校验会拦下自己
+</li>
+</ul>
+<h2 id="d5-h9">9. 功能密钥 NF1</h2>
+<p>格式 <code>NF1.&lt;b64(iv+AES-256-CBC)&gt;.&lt;HMAC&gt;</code>，encrypt-then-MAC、先验签后解密，与服务端互通。密钥仅登录成功后随 <code>lr.feature_key</code> 下发（init 免验证接口不下发）。</p>
+<figure class="code"><figcaption><span>PY</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>from nebula import feature
+
+<span class="cmt"># 开发期制作（也可用服务端工具生成）</span>
+pack = feature.seal(<span class="str">"核心逻辑数据"</span>.encode(), <span class="str">"你的功能密钥"</span>)
+
+<span class="cmt"># 运行期：登录成功拿到 lr.feature_key → 解密随程序分发的核心数据</span>
+data, err = feature.open_pack(open(<span class="str">"core.dat"</span>, <span class="str">"rb"</span>).read(), lr.feature_key)
+if err:
+    ...   <span class="cmt"># 密钥不对 / 数据被改，直接拒绝运行</span></code></pre></figure>
+<blockquote><p>防破解建议：核心数据 NF1 加密随程序分发，patch 掉登录判定也拿不到密钥，密文数据永远解不开。</p></blockquote>
+<h2 id="d5-h10">10. 打包与测试</h2>
+<p>打包成 exe（无控制台窗口）：</p>
+<figure class="code"><figcaption><span>SH</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>python -m pip install pyinstaller
+python -m PyInstaller --noconfirm --clean --onefile --windowed --name Nebula main.py
+<span class="cmt"># 产物 dist/Nebula.exe；credentials.ini 自动生成在 exe 同目录，升级覆盖不丢凭证</span></code></pre></figure>
+<p>测试：</p>
+<figure class="code"><figcaption><span>SH</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>python test_smoke.py          <span class="cmt"># SDK 联调：init/登录正负向/功能密钥三态/心跳/登出</span>
+python test_ui_headless.py    <span class="cmt"># 界面主循环 headless 测试</span>
+python tools/screenshot.py    <span class="cmt"># 重新生成界面截图</span></code></pre></figure>
+<h2 id="d5-h11">11. 防护差异与自行加固</h2>
+<p><strong>Python 版不具备 C++ 版的壳保护（VMProtect / Themida 标记）与原生级防篡改加固</strong>，仅保留协议层安全（加密信封 + 响应验签 + 功能密钥）；且 PyInstaller 打包的程序易被反编译提取 <code>.pyc</code>。对防护强度要求高的软件建议选用 C++ SDK，或自行叠加：</p>
+<ul class="md-list">
+<li><strong>Nuitka</strong> 编译为原生代码（显著提高反编译门槛，优于纯 PyInstaller 分发）
+</li>
+<li><strong>PyArmor</strong> 脚本加密混淆
+</li>
+<li>核心算法写成 <strong>C/C++ 扩展</strong>（<code>.pyd</code>），可再过壳
+</li>
+<li><strong>关键判定移至服务端</strong>，客户端只收结果不做本地判定
+</li>
+<li>用足 SDK 已内置能力：完整性自校验（后台登记 <code>file_hash</code>）+ 功能密钥 NF1（核心数据封包分发）
+</li>
+</ul>
+<p>安全注意：<code>nebula/config.py</code> 含通信密钥，<strong>勿随源码公开分发</strong>（公开 demo 使用占位值）；<code>credentials.ini</code> 明文保存账号密码，介意可去掉保存逻辑。</p>
+</div>
+</article>
+<article class="doc" id="doc-d4" data-doc="d4">
+<div class="doc-body">
+<h1 id="d4-h0">Nebula C# SDK 接入文档</h1>
+<blockquote><p>📚 本文属 Nebula 文档中心，相关文档：<a class="md-link" data-goto="d1" href="#d1-h0">C++ SDK 接入</a> · <a class="md-link" data-goto="d3" href="#d3-h0">API 接口</a> · <a class="md-link" data-goto="d5" href="#d5-h0">Python SDK 接入</a></p></blockquote>
+<blockquote><p>适用对象：C# SDK（.NET 10 / WinForms，Windows x64）<br>SDK 组成：<code>NebulaClient.cs</code>（主类）+ <code>core/</code>（通信/安全）+ <code>protect/</code>（运行时防护/混淆/壳标记）</p></blockquote>
+<hr>
+<h2 id="d4-h1">1. 概述</h2>
+<p>Nebula C# SDK 与 C++ 版<strong>协议同规格</strong>，内置：</p>
+<ul class="md-list">
+<li><strong>通信协议（Nebula 3.1）</strong>：ECDH P-256 会话握手 + AES-256-GCM 加密信封 + seq 单调防重放，客户端<strong>零静态对称机密</strong>，会话失效自动重握手
+</li>
+<li><strong>响应防伪造</strong>：响应 ES256|RS256 非对称验签——<strong>未配置公钥时 SDK 拒绝连接</strong>（防伪造服务器设计）
+</li>
+<li><strong>完整流程</strong>：init → login（password / username_code / code 三种方式按后台下发自动适配）→ heartbeat → logout
+</li>
+<li><strong>内置能力</strong>：完整性自校验、自动更新、弹窗/立即公告、离线宽限票据、功能密钥 NF1、运行时防护（反调试/反 VM·沙箱/代码补丁自检）、字符串混淆、壳标记
+</li>
+</ul>
+<hr>
+<h2 id="d4-h2">2. 快速开始</h2>
+<h3 id="d4-h3">2.1 最简接入</h3>
+<figure class="code"><figcaption><span>C#</span><button class="copy-btn" type="button">复制</button></figcaption><pre><code>using Nebula.Sdk;
+
+// ① 用 SdkConfig 常量创建客户端
+var client = NebulaFactory.CreateDefaultClient(
+    machineId: "",            // 留空自动生成（建议持久化后传入）
+    osInfo: "Windows",
+    clientVersion: "1.0.0");
+
+// ② 初始化
+var init = client.Init();
+if (!init.Ok) { /* 初始化失败处理 */ }
+
+// ③ 登录
+var login = client.Login("用户名", "密码");
+if (login.Ok) {
+    client.StartHeartbeat(login.Token, (code, msg, hb) => {/* 心跳回调 */});
+}</code></pre></figure>
+<h3 id="d4-h4">2.2 前置条件</h3>
+<ul class="md-list">
+<li>在 <code>SdkConfig.cs</code> 填入后台获取的 4 项配置（见 §3）
+</li>
+<li>项目引用 <code>System.Management</code> NuGet 包（反 VM 的 WMI 查询依赖）
+</li>
+<li>目标框架 <code>net10.0-windows</code>（WinForms + Windows 专用 API）
+</li>
+</ul>
+<hr>
+<h2 id="d4-h5">3. 配置（SdkConfig.cs）</h2>
+<p><code>SdkConfig.cs</code> 是接入方<strong>唯一需要修改</strong>的文件，常量来自后台「软件管理」：</p>
+<table class="md-table"><thead><tr><th>字段</th><th>必填</th><th>说明</th></tr></thead><tbody>
+<tr><td><code>ApiUrl</code></td><td>✅</td><td>API 地址，以 <code>/api/index.php</code> 结尾</td></tr>
+<tr><td><code>AppKey</code></td><td>✅</td><td>软件标识，每个软件独立</td></tr>
+<tr><td><code>RespSignPubKey</code></td><td>✅</td><td>响应签名公钥（PEM），验签服务端响应</td></tr>
+<tr><td><code>TlsCertSha256</code></td><td>❌</td><td>TLS 证书指纹（64 位 hex），HTTPS 防中间人</td></tr>
+<tr><td><code>ProtectStrictPolicy</code></td><td>❌</td><td>防护严格模式（false=宽松/默认，true=严格）</td></tr>
+<tr><td><code>DebugLog</code></td><td>❌</td><td>调试日志（发布置 false）</td></tr>
+</tbody></table>
+<p>⚠ <code>RespSignPubKey</code> 为空时所有请求返回配置错误、拒绝连接；生产务必配 <code>TlsCertSha256</code>；勿把含真实公钥/域名的配置提交到公开仓库。</p>
+<hr>
+<h2 id="d4-h6">4. 核心接口</h2>
+<ul class="md-list">
+<li><strong>Init</strong>：拉取配置 / 公告 / 版本；设置登录方式
+</li>
+<li><strong>Login</strong>：3600 三方式自动适配；登录成功返回 token / expire / user / VIP / 设备绑定 / 离线宽限票据 / 功能密钥 NF1
+</li>
+<li><strong>Heartbeat</strong>：实时下发剩余时长、踢下线指令；离线宽限期间本地解票据
+</li>
+<li><strong>Logout</strong>：服务端销毁会话；<strong>需携带 machine_id</strong>（2026-10 起强制设备绑定）
+</li>
+<li><strong>Devices / UnbindDevice / Userinfo</strong>：设备管理、用户信息（均携带 machine_id）
+</li>
+<li><strong>自动更新</strong>：检查 → 下载 → hash+size 强校验 → 替换 → 重启
+</li>
+</ul>
+<hr>
+<h2 id="d4-h7">5. 运行时安全防护</h2>
+<p><code>RuntimeProtection</code> 提供反调试、反虚拟机/沙箱、代码补丁自检；<code>Obfuscate</code> 提供字符串混淆 / 间接调用 / 不透明谓词。三档等级（0 关闭 / 1 基础 / 2 标准 / 3 严格）：</p>
+<ul class="md-list">
+<li><strong>反调试</strong>：IsDebuggerPresent / PEB.BeingDebugged / NtQueryInformationProcess / 硬件断点 Dr0-Dr7 / 调试堆标志
+</li>
+<li><strong>反 VM/沙箱</strong>：虚拟机/沙箱进程与模块特征、WMI 环境识别
+</li>
+<li><strong>代码补丁自检</strong>：GuardCode 登记关键函数，运行时比对
+</li>
+</ul>
+<blockquote><p>检测一次：<code>var report = RuntimeProtection.Scan();</code>；上报到服务端：<code>client.ReportRuntimeEvent(login.Token, report);</code>（网络失败自动入队、随心跳补发）。</p></blockquote>
+<blockquote><p>服务端开启 <code>require_runtime_guard</code> 强制策略时，登录须带 <code>capabilities:{"runtime_guard":true}</code>（本 SDK 已自动上报）；客户端自报 <code>risk_level/risk_score</code> 仅作 telemetry，处置等级由服务端二次定级。</p></blockquote>
+<h2 id="d4-h8">6. 壳保护集成（VMProtect / Themida）</h2>
+<p><code>NebulaShell</code> 提供壳标记（ShellEnable 时运行时探测已装壳 SDK）；标记只是「告诉壳保护这里」，真正加壳仍需用 VMProtect / Themida 对<strong>编译产物</strong>处理。加密体系：<code>SecureBuffer</code>（擦除型敏感内存）+ 字符串混淆 + 已验证核心区标记。</p>
+<h2 id="d4-h9">7. 防护差异与建议</h2>
+<ul class="md-list">
+<li>C# 经 JIT 编译，比 C++ 更易被 dnSpy/ILSpy 反编译 —— 建议：<strong>关键逻辑用 <code>SecureString</code> 擦除内存</strong>，核心算法走 <strong>C++/Native 扩展</strong>，或用 <strong>Nuitka 型 BeforeFieldInit/加壳器（如 .NET Reactor / ConfuserEx）</strong> 保护程序集
+</li>
+<li><strong>关键判定移至服务端</strong>，客户端只收结果不做本地判定
+</li>
+<li>用足内置：完整性自校验（后台登记 self_file_hash）+ 功能密钥 NF1（核心数据封包分发）
+</li>
+</ul>
+</div>
+</article>
+
+  </main>
+</div>
+
+<button class="back-top" id="backTop" aria-label="返回顶部">
+  <svg class="icon"><use href="#i-up"/></svg>
+</button>
+
+<script src="assets/js/docs.js?v=20260929b"></script>
+</body>
+</html>
