@@ -13,8 +13,7 @@
  * 幂等：可重复执行，已应用过则直接提示跳过。
  */
 
-require_once __DIR__ . '/version.php';
-require_once __DIR__ . '/lib/DB.php';
+require_once __DIR__ . '/lib/bootstrap.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -26,12 +25,7 @@ if (!$isCli && !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], tr
     exit;
 }
 
-$configFile = __DIR__ . '/config/config.php';
-if (!is_file($configFile)) {
-    echo json_encode(['ok' => false, 'msg' => '未安装（缺少 config/config.php）']);
-    exit;
-}
-DB::init(require $configFile);
+// DB 由 lib/bootstrap.php 初始化（直接读 config 会导致键不匹配）
 
 $t = DB::t('licenses');
 $log = [];
