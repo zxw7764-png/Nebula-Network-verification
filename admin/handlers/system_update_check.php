@@ -25,7 +25,9 @@ if ($updateServer === '') {
 // 构造请求参数（与 update-system api/version.php 的参数一致）
 // v2.66.0 起携带本站授权码 + 部署域名：更新服务器开启「更新门禁」时，
 // 无有效授权将拿不到下载地址（license_required=true）。
-$params = http_build_query([
+// v2.66.4.11 起授权码走 POST body（不再拼查询字符串——查询串可能进
+// 访问日志/代理日志，且跟随重定向时存在把授权码带去外域的风险）。
+$postFields = http_build_query([
     'product' => 'nebula-verification',
     'version' => $currentVersion,
     'build'   => 0,
@@ -34,7 +36,8 @@ $params = http_build_query([
     'domain'      => strtolower((string) ($_SERVER['HTTP_HOST'] ?? '')),
 ]);
 
-$url = rtrim($updateServer, '/') . '/api/version.php?' . $params;
+$url = rtrim($updateServer, '/') . '/api/version.php';
+$expectedHost = strtolower((string) parse_url($url, PHP_URL_HOST));
 
 // 带缓存（6 小时）
 $cacheKey = 'system_update_check_' . $currentVersion; // 按版本隔离：升级后旧缓存自动失效
@@ -56,14 +59,24 @@ curl_setopt_array($ch, [
     CURLOPT_TIMEOUT        => 15,
     CURLOPT_SSL_VERIFYPEER => true,
     CURLOPT_SSL_VERIFYHOST => 2,
+    CURLOPT_POST           => true,
+    CURLOPT_POSTFIELDS     => $postFields,
     CURLOPT_FOLLOWLOCATION => true,
     CURLOPT_MAXREDIRS      => 3,
+    CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,   // 重定向只允许 HTTPS
     CURLOPT_USERAGENT      => 'Nebula/' . $currentVersion,
 ]);
 $body = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$finalUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
 $err = curl_error($ch);
 curl_close($ch);
+
+// 重定向主机锁定：最终响应主机必须仍是配置的更新服务器，防止授权码被带去外域
+$finalHost = strtolower((string) parse_url($finalUrl, PHP_URL_HOST));
+if ($expectedHost !== '' && $finalHost !== '' && $finalHost !== $expectedHost) {
+    Response::error(1001, '更新服务器响应被重定向到异常主机（' . $finalHost . '），已中止');
+}
 
 if ($body === false || $httpCode >= 400) {
     Response::error(1001, '无法连接版本更新服务：' . ($err ?: 'HTTP ' . $httpCode));
