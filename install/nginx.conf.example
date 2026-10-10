@@ -68,6 +68,16 @@ server {
         return 404;
     }
 
+    # 禁止访问隐藏目录/文件（.git / .svn / .env 等）
+    #   —— 防止把含 .git 的仓库目录直接部署到 Web 根目录时源码与历史被拉取；
+    #      仅打包分发（不含 .git）时此规则同样生效，属纵深防御
+    location ~ /\.(?!well-known) {
+        deny all;
+        access_log off;
+        log_not_found off;
+        return 404;
+    }
+
     # ------------------------------------------------------------
     # 客户端 API 美化路由
     #   /api/login  ->  /api/index.php?action=login
