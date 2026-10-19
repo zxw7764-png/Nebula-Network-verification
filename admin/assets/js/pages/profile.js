@@ -38,7 +38,7 @@ async function render() {
                 <label>原密码</label><input id="pOld" type="password" autocomplete="current-password">
             </div>
             <div class="field" style="max-width:400px">
-                <label>新密码</label><input id="pNew" type="password" autocomplete="new-password" placeholder="至少8位，含字母和数字">
+                <label>新密码</label><input id="pNew" type="password" autocomplete="new-password" placeholder="10-64 位，含字母数字，且须有大写或符号">
             </div>
             <div class="field" style="max-width:400px">
                 <label>确认新密码</label><input id="pNew2" type="password" autocomplete="new-password">
@@ -112,10 +112,16 @@ async function changePwd() {
     const newP2 = document.getElementById('pNew2').value;
     if (!oldP || !newP) return toast('请填写完整', 'warn');
     if (newP !== newP2) return toast('两次输入的新密码不一致', 'warn');
-    if (newP.length < 8) return toast('新密码至少 8 位', 'warn');
-    if (!/[a-zA-Z]/.test(newP) || !/\d/.test(newP)) return toast('新密码需同时包含字母和数字', 'warn');
-    const weak = ['admin888', 'admin123', 'password', 'passw0rd', '12345678', 'qwerty123', 'abcd1234', 'a1234567'];
+    if (newP.length < 10) return toast('管理员密码至少 10 位', 'warn');
+    if (newP.length > 64) return toast('密码最长 64 位', 'warn');
+    if (!/[a-zA-Z]/.test(newP) || !/\d/.test(newP)) return toast('密码需同时包含字母和数字', 'warn');
+    if (!/[A-Z]/.test(newP) && !/[^A-Za-z0-9]/.test(newP)) return toast('管理员密码需额外包含大写字母或符号', 'warn');
+    const weak = ['admin888', 'admin123', 'administrator', 'password', 'passw0rd', '12345678', '123456789',
+        '1234567890', '87654321', '11111111', 'qwerty123', 'qwertyuiop', 'abcd1234', 'a1234567', 'abc12345',
+        '1qaz2wsx', 'iloveyou', 'woaini1314', 'aa123456', 'qq123456', 'zxcvbnm1', 'asdfghj1', 'aa111111',
+        '123456a', 'a123456'];
     if (weak.includes(newP.toLowerCase())) return toast('密码过于简单，请更换', 'warn');
+    if (/^(.)\1+$/.test(newP)) return toast('密码过于简单，请更换', 'warn');
 
     const res = await api('profile', { op: 'change_password', old_password: oldP, new_password: newP });
     if (res.code === 0) {

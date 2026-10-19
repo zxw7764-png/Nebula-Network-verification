@@ -136,8 +136,8 @@ if ($op === 'grant') {
 if ($op === 'reset_password') {
     $id   = Util::int($input, 'id', 0);
     $pass = (string) Util::get($input, 'password', '');
-    if (strlen($pass) < 8) {
-        Response::error(1001, '新密码至少 8 位');
+    if (($pwIssue = Util::passwordIssue($pass)) !== null) {
+        Response::error(1001, $pwIssue);
     }
     $agent = Agent::find($id);
     if (!$agent) {
@@ -244,8 +244,8 @@ if ($id > 0) {
 // 新增：必须给初始密码
 // ------------------------------------------------------------------
 $pass = (string) Util::get($input, 'password', '');
-if (strlen($pass) < 8) {
-    Response::error(1001, '初始密码至少 8 位');
+if (($pwIssue = Util::passwordIssue($pass)) !== null) {
+    Response::error(1001, $pwIssue);
 }
 
 // 软件归属（仅新增时可指定；创建后不可更换，避免名下卡密/额度跨软件错位）

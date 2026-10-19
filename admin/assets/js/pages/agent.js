@@ -11,6 +11,26 @@ let lastList = [];
 
 register('agent_list', render);
 
+// 代理密码强度预检 —— 与后端 Util::passwordIssue()（普通档）规则保持一致，
+// 只为即时反馈；后端始终是最终防线。规则：8-64 位、须含字母与数字、
+// 拒绝常见弱口令与全同字符。
+const WEAK_PASS = new Set([
+    'admin888', 'admin123', 'administrator', 'password', 'passw0rd',
+    '12345678', '123456789', '1234567890', '87654321', '11111111',
+    'qwerty123', 'qwertyuiop', 'abcd1234', 'a1234567', 'abc12345',
+    '1qaz2wsx', 'iloveyou', 'woaini1314', 'aa123456', 'qq123456',
+    'zxcvbnm1', 'asdfghj1', 'aa111111', '123456a', 'a123456',
+]);
+function passIssue(p) {
+    const s = String(p || '');
+    if (s.length < 8) return '密码至少 8 位';
+    if (s.length > 64) return '密码最长 64 位';
+    if (!/[A-Za-z]/.test(s) || !/[0-9]/.test(s)) return '密码需同时包含字母和数字';
+    if (WEAK_PASS.has(s.toLowerCase())) return '密码过于简单，请更换';
+    if (/^(.)\1+$/.test(s)) return '密码过于简单，请更换';
+    return null;
+}
+
 function modeTag(mode) {
     const map = { 1: ['张数额度', 'blue'], 2: ['余额计费', 'purple'], 3: ['不限量', 'gray'] };
     const m = map[mode] || ['未知', 'gray'];
@@ -319,7 +339,7 @@ async function agentEdit(a, modes, cardTypes) {
         <div class="field"><label>联系方式</label><input id="agContact" value="${esc(a.contact || '')}" placeholder="QQ / 微信 / 邮箱"></div>
         <div class="field"><label>${isNew ? '初始密码 *' : '状态'}</label>
             ${isNew
-                ? '<input id="agPass" type="text" placeholder="至少 8 位" autocomplete="new-password">'
+                ? '<input id="agPass" type="text" placeholder="8-64 位，须含字母和数字" autocomplete="new-password">'
                 : `<select id="agStatus">
                        <option value="1" ${a.status === 1 ? 'selected' : ''}>正常</option>
                        <option value="0" ${a.status === 0 ? 'selected' : ''}>禁用</option>
@@ -398,6 +418,8 @@ async function agentEdit(a, modes, cardTypes) {
             };
             if (isNew) {
                 payload.password = document.getElementById('agPass').value;
+                const pwBad = passIssue(payload.password);
+                if (pwBad) return toast(pwBad, 'warn');
                 const swEl = document.getElementById('agSoftware');
                 if (swEl) payload.software_id = parseInt(swEl.value, 10) || 0;
             } else {
@@ -464,13 +486,14 @@ function agentGrant(a) {
 function agentResetPass(a) {
     openModal('重置代理密码 · ' + a.username, `
         <div class="field"><label>新密码 *</label>
-            <input id="rpPass" type="text" placeholder="至少 8 位">
+            <input id="rpPass" type="text" placeholder="8-64 位，须含字母和数字">
             <div class="hint">重置后该代理的所有登录会话将立即失效</div>
         </div>`,
         [{ text: '取消', cls: 'ghost', act: closeModal },
          { text: '重置', cls: 'danger', act: async () => {
              const p = document.getElementById('rpPass').value;
-             if (p.length < 8) return toast('密码至少 8 位', 'warn');
+             const pwBad = passIssue(p);
+             if (pwBad) return toast(pwBad, 'warn');
              const res = await api('agent_save', { op: 'reset_password', id: a.id, password: p });
              if (res.code === 0) { toast('密码已重置'); closeModal(); }
          }}]);

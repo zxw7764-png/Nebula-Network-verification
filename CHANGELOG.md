@@ -4,6 +4,16 @@
 版本号遵循语义化版本（`主.次.修订`）。每次发版请在本文件顶部追加条目，并同步
 `lib/bootstrap.php` 的 `NB_VERSION`；发布到版本更新系统时，把对应条目整理为 `release_notes`。
 
+## [2.66.4.12] - 2026-10-19
+
+### 安全（密码强度校验口径统一 · 修复两处漏网入口）
+
+- **后端漏网入口修复**：代理管理两处密码校验（新增代理初始密码、重置代理密码）仍是裸 `strlen($pass) < 8`，未走统一策略 —— `aaaaaaaa` 这类全同字符弱口令可被直接设置。现改为 `Util::passwordIssue()`，错误原因直接透传中文提示。至此全项目 8 处密码校验入口 100% 统一；
+- **后台前端预检与后端对齐**（`admin/assets/js/pages/agent.js`）：新增 `passIssue()` 镜像后端普通档规则（8-64 位、须含字母和数字、弱口令黑名单、全同字符拦截），新增代理与重置密码两条链路提交前预检；此前前端仅卡长度 `p.length < 8`，`aaaaaaaa` 前端放行、提交后才被后端拒绝（提示不同步）；
+- **个人中心改密前端预检收紧**（`admin/assets/js/pages/profile.js`）：后端此处走**管理员严格档**（≥10 位 + 须额外含大写字母或符号），前端却只卡 `length < 8`，已补齐完整规则与占位提示文案；
+- **一致性验证**：从两个 JS 文件直接抽取实际代码与后端 `Util::passwordIssue` 逐条比对，24 条密码 × 2 档 = 48 项判定与文案完全一致；
+- README 版本号同步至本版（`lib/bootstrap.php` 为单一版本源）。
+
 ## [2.66.4.11] - 2026-10-10
 
 ### 安全（更新授权门禁加固 · 采纳静态审计建议）
@@ -12,7 +22,7 @@
 - **门禁异常 fail-closed**：`api/version.php` 授权服务异常/DB 不可用时不再退回公开下载地址 —— 新增 `storage/license_gate.on` 粘性标志，门禁曾开启而状态不可读时直接拒绝下发 `download_url`（`License::gateEnabled()` 重构）；
 - **授权码改 POST 传输**：后台 `system_update_check` 不再把 license_key 拼查询字符串，重定向仅允许 HTTPS 且锁定最终主机必须为配置的更新服务器；`api/version.php` 同步支持 POST 读取；
 - **配置写入校验**：后台 `license_manage` 与安装器的 config.php 写入失败时明确报错（授权已在服务器绑定，需手动补写 license_key 或解绑重试），不再谎报激活成功；
-- **试用授权域名唯一约束**：`licenses.domain` 改可 NULL + 唯一索引 `uk_domain`（NULL=未绑定），并发「先查后插」不再可能为同一域名重复领取；`install/schema.sql` 已更新，存量库执行 `update-system/migrate_uk_domain.php`（幂等，CLI 或本机访问）；
+- **试用授权域名唯一约束**：`licenses.domain` 改可 NULL + 唯一索引 `uk_domain`（NULL=未绑定），并发「先查后插」不再可能为同一域名重复领取；`update-system/install/schema.sql` 已更新，存量库执行 `update-system/migrate_uk_domain.php`（幂等，CLI 或本机访问）；
 - update-system 版本 1.2.2 → 1.2.3。
 
 ## [2.66.4.10] - 2026-10-10
@@ -22,7 +32,7 @@
 - **login 能力检查前移**：`require_runtime_guard` 强制策略的客户端能力检查从「创建会话 + 设备校验/绑定之后」前移到所有写入操作之前 —— 能力不符的登录被 7002 拒绝时不再残留会话记录、不再刷写设备 IP 或占用绑定名额（审计发现，原 186/213 行时序问题）；
 - **nginx 配置示例**：`install/nginx.conf.example` 补充隐藏目录拒绝规则（`.git`/`.svn`/`.env`，放行 `/.well-known`），防止仓库目录直接部署时源码泄露（纵深防御）；
 - **RateLimit 文档化 fail-open 语义**：类注释明确「存储异常时放行」的取舍，提示运维对限流存储做健康监控；
-- README 版本号同步为 2.66.4.8 → 本版 2.66.4.10（`lib/bootstrap.php` 单一版本源）。
+- README 版本号以 `lib/bootstrap.php` 的 `NB_VERSION` 为单一版本源同步。
 
 ## [2.66.4.9] - 2026-10-10
 
