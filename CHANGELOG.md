@@ -4,6 +4,34 @@
 版本号遵循语义化版本（`主.次.修订`）。每次发版请在本文件顶部追加条目，并同步
 `lib/bootstrap.php` 的 `NB_VERSION`；发布到版本更新系统时，把对应条目整理为 `release_notes`。
 
+## [未发布] - 2026-10-21
+
+### SDK 3.1.2（模块守卫误报修复 · 弱环境线索不再触发拦截 · 安全提示按动作区分）
+
+- **修复：Windows 系统懒加载 DLL 被判「模块注入」**（`module_guard.hpp`）。`buildModuleBaseline()` 在首个 HTTP 请求**之前**建立基线，而 WinHTTP 一联网就会让系统懒加载 `nsi.dll`（NSP）与 `dhcpcsvc.dll`（DHCP），`init` 之后的复检必然把它们当成「新增模块」（各 10 分），再被服务端 `MODULE_INJECTION`（60/HIGH）放大成高危事件 —— 现象就是「程序正常启动却被判注入 / 被策略拦下」。现改为：
+  - `ModuleInfo` 新增 `path`（`GetModuleFileNameW`）与 `system_image` 字段；
+  - 新增 `isSystemImagePath()`：位于 `%SystemRoot%` 之下的模块直接并入基线，**不产生事件**；
+  - 新增 `isLazyLoadSystemModule()` 白名单（`nsi` / `dhcpcsvc` / `dnsapi` / `winhttp` / `uxtheme` / `textshaping` / `twinapi.appcore` 等 40+ 个系统组件），路径取不到时兜底；
+  - 事件 `reason` 附带模块路径，后台研判时能直接看出加载来源；
+- **修复：`ModuleAdded` 无条件映射成 `MODULE_INJECTION`**（`client.hpp mapReportToEventType`）。语义上「新增」≠「注入」：
+  - 已知注入框架（`frida-agent` / `scylla` / `lordpe` …）改用独立标记 `Flag::InjectionFramework`（新增 bit 24），仍映射 `MODULE_INJECTION`，`aggregateSeverity` 直接判 `High`；
+  - 普通第三方新增模块改映射 `ABNORMAL_MODULE`（服务端 30/MEDIUM），且仅在累计分 ≥ 40 时上报，10 分弱线索不再产生事件；
+- **修复：虚拟机 / 弱环境线索单独把处置级别推到 `MEDIUM`**（`runtime.hpp resolveSeverity`）。新增 `Report::env_weak_score`，`addHit` 按 `Kind::Vm` / `Kind::EnvWeak` 分别累计；定级改用 `score - vm_score - env_weak_score`。这些线索只描述机器形态（Hyper-V、虚拟网卡 OUI、驱动残留、低配、开机过短），不是侵入证据，服务端也没有对应事件类型 —— 此前一台开了 Hyper-V 的开发机每次启动都是 100+ 分 → `MEDIUM` → 被后台「中危动作」直接吊销会话，与事实完全不符。分数仍完整保留在 `report.score` 与事件详情里供后台研判；
+- **错误码**：新增 `UnexpectedModule(2006)`、`Environment(3003)`；`securityErrorCode` 兜底由 `CodeTamper(2002)` 改为 `Environment(3003)`，VM 线索单列 `3002`，避免弱线索被读成「程序被改过」；
+- **弹窗正文按生效动作分档**（`securityPopupMessage(code, action)`）：`RevokeSession(4)` →「本次会话已被安全策略吊销，请重启程序后重新登录」；`Terminate(3)` →「程序已被安全策略终止」；`Degrade(2)` →「程序功能已被安全策略限制（降级）」。此前无论哪种动作正文都固定是「程序无法继续运行」，用户无法区分「策略拦截」与「程序崩溃/网络故障」；
+- **新增 `protect::securityActionLabel(action)`**：处置动作中文标签（仅记录/上报/降级/终止程序/吊销会话），接入方状态栏、日志、自绘 UI 可直接复用；
+- **加载壳 `stub` 拦截提示**：「按策略中止」路径的状态栏文案改为「正文首行 + 处置动作」，完整弹窗文案（含错误码）逐行写入 `loader.log`；
+- 同步 `sdk-cpp`、`login/登录/sdk/` 两份 C++ 副本与 `SDK.md` / `SDK_PROTECTION.md`（新增 13.0.3 模块守卫判定表）；三语言 SDK 版本号统一 `3.1.2`（Python / C# 无模块守卫，行为不变）；
+- **验证**：MSVC 14.51 编译通过；冒烟测试 `test_module_fix` 在加载 `nsi.dll` + `dhcpcsvc.dll` 后 `scanModules()` 返回 **0 个事件**，纯 VM 线索（105 分）判定为 `Info`（动作「仅记录」），注入框架仍为 `High`。
+
+### SDK（安全提示按「处置动作」区分 · 错误码不再一律 2002）
+
+- **弹窗正文按生效动作分档**（`protect::securityPopupMessage(code, action)`）：`RevokeSession(4)` →「本次会话已被安全策略吊销，请重启程序后重新登录」；`Terminate(3)` →「程序已被安全策略终止」；`Degrade(2)` →「程序功能已被安全策略限制（降级）」。此前无论服务端下发哪种动作，正文都固定是「程序无法继续运行」，用户无法区分「策略拦截」与「程序崩溃/网络故障」——把中危动作设成 `REVOKE_SESSION` 时尤其误导；
+- **新增 `protect::securityActionLabel(action)`**：处置动作中文标签（仅记录/上报/降级/终止程序/吊销会话），接入方状态栏、日志、自绘 UI 可直接复用，不必自造第二套措辞；
+- **错误码分类修正**（`securityErrorCode`）：兜底由 `CodeTamper(2002)` 改为新增的 `Environment(3003)`；虚拟机线索单列 `VirtualMachine(3002)`、运行期新增模块单列 `UnexpectedModule(2006)`。此前「虚拟网卡 OUI + 懒加载系统 DLL」这类弱线索会显示成 `NBL-RT-2002 代码篡改`，看起来像程序被改过；
+- **加载壳 `stub` 拦截提示**：「按策略中止」路径的状态栏文案改为「正文首行 + 处置动作」，完整弹窗文案（含错误码）逐行写入 `loader.log`，排障时不用再猜是哪一档动作触发的；
+- 同步 `sdk-cpp`、`login/登录/sdk/` 两份 C++ 副本与 `SDK.md`。
+
 ## [2.66.4.12] - 2026-10-19
 
 ### 安全（密码强度校验口径统一 · 修复两处漏网入口）
