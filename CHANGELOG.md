@@ -6,6 +6,11 @@
 
 ## [未发布] - 2026-10-21
 
+### SDK 3.1.3（init 列表公告解析修复）
+
+- **修复：init 下发的列表公告永远解析为空**（`client.hpp parseNoticeList` / C# `NebulaClient.ParseNoticeList`）。init 响应的公告键是 `data.notices`，notice 接口才是 `data.list`，早先统一按 `list` 解析导致 init 公告恒为空 —— 客户端登录窗/SDK UI 只能显示「暂无公告」。现 `parseNoticeList` 增加键名参数：init 传 `"notices"`，notice 接口（弹窗/立即公告）保持默认 `"list"`；Python 端本来就按 `notices` 读取，行为不变仅同步版本号。
+- 三语言 SDK 版本号统一 `3.1.3`（`NEBULA_SDK_VERSION` / `SdkVersion` / `sdk_version`），并同步 `sdk-cpp` → `login/登录/sdk/` 副本。
+- 发布：tag `sdk-3.1.3`（Nebula-SDK-CPP/CSharp/Python-3.1.3.zip）。
 ### SDK 3.1.2（模块守卫误报修复 · 弱环境线索不再触发拦截 · 安全提示按动作区分）
 
 - **修复：Windows 系统懒加载 DLL 被判「模块注入」**（`module_guard.hpp`）。`buildModuleBaseline()` 在首个 HTTP 请求**之前**建立基线，而 WinHTTP 一联网就会让系统懒加载 `nsi.dll`（NSP）与 `dhcpcsvc.dll`（DHCP），`init` 之后的复检必然把它们当成「新增模块」（各 10 分），再被服务端 `MODULE_INJECTION`（60/HIGH）放大成高危事件 —— 现象就是「程序正常启动却被判注入 / 被策略拦下」。现改为：
