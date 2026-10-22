@@ -418,7 +418,8 @@ sequenceDiagram
 3. **发布**：把更新包路径与 SHA-256 填入 `update-system/releases/<版本>/manifest.json`，
    执行 `php update-system/deploy_add_version.php`（或 update-system 后台「版本发布」）写入更新库。
    **生产环境直接用远程 API 上传**（远程版本服务器 `https://mmbr.serv00.net`，update-system 部署在**根目录**）：
-   `curl -u xiaomihu:zxweq967423 -F "update_file=@update_<版本>.zip" https://mmbr.serv00.net/api/upload.php`
+   `curl -u <发布账号>:<密码> -F "update_file=@update_<版本>.zip" https://mmbr.serv00.net/api/upload.php`
+   （账号密码属内部凭据，见 `.catpaw/skills/nebula-development/SKILL.md`，不写入公开文档）
    接口会自动解析包内 manifest、落盘 `releases/<版本>/update.zip` 并写入版本库（见 `.catpaw/skills/nebula-development/SKILL.md`）
 - 增量更新包（可选）：`php deploy/make_release.php diff <旧目录> <新目录> --out=FILE.zip`
   → 收录「新增 + 变更」文件，生成 `MANIFEST.txt`（新文件 md5 清单）与 `DELETED.txt`（应删除清单）
