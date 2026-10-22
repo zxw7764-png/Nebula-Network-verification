@@ -7,6 +7,8 @@
 
 官方提供 C++ / Python / C# 三套协议同规格的 SDK（**可在仓库发行处 Releases 下载**），易语言等其他语言依据接口文档直接对接。
 
+> 🌐 **官方网站**：<https://nebula.baigee.fun> ｜ 📚 **在线开发文档**：<https://nebula.baigee.fun/docs.html>
+
 ## 📚 详细文档
 
 本文档只做索引与速览，**完整说明请进入详细文档**：
@@ -27,5 +29,6 @@
 - **安装**：上传到 Web 根目录 → 访问 `install/install.php` 向导 → 完成后立即删除 `install` 目录
 - **客户端对接**：SDK 在仓库发行处（Releases）下载，或按 [docs/API.md](docs/API.md) 手写协议（ECDH 握手 → GCM 信封）
 - **管理后台**：浏览器访问 `admin/index.php`（部署后建议改名后台目录）
+- **官网与在线文档**：<https://nebula.baigee.fun>（开发文档中心：C++ / C# / Python SDK 接入、HTTP 接口协议、客户端加固指南、加密客户端生成器）
 
 > 界面模板与官网内容运营入口在管理后台「官网运营」，开发规范见 [docs/TEMPLATE.md](docs/TEMPLATE.md)。
