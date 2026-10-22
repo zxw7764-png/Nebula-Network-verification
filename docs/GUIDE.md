@@ -715,71 +715,14 @@ nonce 被重复使用。确保每次请求生成新的随机 nonce（≥8 位）
 
 生成 10000 张约需数秒，属正常（每张都要做唯一性检查）。如需更快可增大卡密长度或减少段数。
 
-## 发布新版本 / 更新包上架
+## 发布新版本 / 更新包上架（内部流程）
 
-版本发布链路：**改代码 → bump 版本号 → 写 CHANGELOG → 打包 → 上传远程版本服务器 → 推仓库 → SDK Release**。
+版本发布（bump 版本号 → CHANGELOG → 打包 → 上传远程版本服务器 → 推仓库 → SDK Release）属于**内部运维流程**，
+完整规则（版本节奏、更新包打包、服务器上传、Release 标题与附件固定规范等）统一维护在开发扩展文档
+`.catpaw/skills/nebula-development/SKILL.md`（唯一权威，含凭据，不随公开文档分发）。
 
-> **版本节奏约定（2.65.35 起；2.66.5 起修订段数）**：
-> **大版本（新功能 / 协议 / 安全架构级）= 三段号** `X.Y.Z`（如 2.66.0、2.67.0）；
-> **小版本（bug / 安全补丁 / 小优化）= 四段号** `X.Y.Z.0`（如 2.66.4.1、2.67.0.1）。
-> 小版本永不抬高 `min_version`（站点只弹普通更新提示）；只有「协议 / 信封 / 密钥派生」类大版本才抬 `min_version` 触发强制更。
-> 更新系统 `api/upload.php` 与主项目版本比较逻辑均已支持四段号。
-> 完整决策表见 `.catpaw/skills/nebula-development/SKILL.md` §2.5。
-
-> ⚠️ **发版前必检**：① 本次版本号必须**高于** `https://mmbr.serv00.net/api/version.php` 返回的 `latest_version`
->（远程不允许重复发布同一版本，上传即 400）；② `git log` 与 `CHANGELOG.md` 顶部逐条核对（提交/版本号/build 对齐）。
-> CI 自动发版已内置版本预检，不满足直接失败。
-
-### 1. 版本号与更新日志
-
-- 修改 `lib/bootstrap.php` 的 `NB_VERSION`（+1），确保仓库空白包与本地开发站两份同步。
-- 在 `CHANGELOG.md` 顶部追加对应条目（格式见现有条目）。
-
-### 2. 制作更新包
-
-```bash
-python D:/phpstudy_pro/WWW/update-system/pack.py 2.65.34 \
-    "D:/phpstudy_pro/WWW/yanzheng" \
-    "D:/phpstudy_pro/WWW/update_2.65.34.zip"
-```
-
-自动生成 `manifest.json`（product=`nebula-verification`）并排除 `config/`、`storage/`、`install/install.php` 与
-`*.lock`/`*.log`；产物含 SHA-256 校验值。
-
-### 3. 上传远程版本更新服务器（API）
-
-> ⚠️ 上传目标是**远程服务器 `https://mmbr.serv00.net`**（update-system 部署在根目录），不是本地。
-> 发布用专用账号（超级管理员）：`xiaomihu` / `zxweq967423`。
-
-```bash
-curl -u xiaomihu:zxweq967423 \
-     -F "update_file=@D:/phpstudy_pro/WWW/update_2.65.34.zip" \
-     -F "release_notes=版本说明（可选，建议后台补填）" \
-     https://mmbr.serv00.net/api/upload.php
-```
-
-- 成功返回 `{"code":0,"msg":"版本 X 已发布","data":{"download_url":"https://mmbr.serv00.net/releases/<v>/update.zip"}}`；
-- 版本号已存在会拒绝重复发布；`manifest.json` 的 product 与服务器不一致也拒绝；
-- 验证：`curl "https://mmbr.serv00.net/api/version.php?product=nebula-verification&version=当前版本&channel=stable"` 应返回新版本信息。
-
-### 4. SDK 发行版（Release）
-
-- 四端 SDK 以 Release zip 分发（同一 tag 下挂全部附件）：
-  - `Nebula-DLL-SDK-v2.66.4.zip` —— 纯 DLL 黑盒 SDK（x86/x64 dll + lib + `NebulaSDK.h` + 使用文档），面向易语言/Delphi 等零密码学实现场景；
-  - `Nebula-CPP-SDK-2.66.4.zip` / `Nebula-CSharp-SDK-2.66.4.zip` / `Nebula-Python-SDK-2.66.4.zip` —— 三语言源码 SDK；
-- 发布到 GitHub（Release 附件）与 Gitee（`attach_files` 接口上传附件）双平台，tag 形如 `v2.66.4-dll-sdk-release`（当前最新）；
-- DLL 版与三端能力对齐：runtime_policy 策略缓存、`Nebula_SecurityCheck` 有限自检+策略处置、`Nebula_ReportRuntimeEvent` 事件上报（失败入队随心跳补发）、可选自动心跳 `Nebula_SetAutoHeartbeat`；
-- 详见 `.catpaw/skills/nebula-development/SKILL.md` 的发布规则（唯一权威）。
-
-### 5. Release 标题与附件规范（固定格式）
-
-- **Release 标题固定为**：`Nebula网络验证sdk V{SDK版本} 及加密客户端生成器`（如 `Nebula网络验证sdk V3.1.3 及加密客户端生成器`），每次发版**只更新其中的 SDK 版本号**，其余文字不变；
-- **附件固定四件套 + 主包**（同一 Release 下挂全部）：
-  - `Nebula-SDK-CPP-{v}.zip` / `Nebula-SDK-CSharp-{v}.zip` / `Nebula-SDK-Python-{v}.zip` —— 三语言 SDK 源码；
-  - `NebulaSealClient-docs.zip` —— 完整说明文档（SEALER 生成器说明 / API 协议 / 架构设计 / 完整指南 / 使用说明）；
-  - `NebulaSealClient.zip` —— 加密客户端生成器主程序（NebulaSealClient.exe + stub/stub64 + vmp 模板）；
-- **平台分工**：GitHub 与 Gitee 双端同步发布；`NebulaSealClient.zip` 超 Gitee 附件 100MB 上限时，Gitee 端正文写明并指向 GitHub Release 下载链接；
-- **API 坑**：Gitee `PATCH /releases/{id}` 必须同时带 `tag_name` / `name` / `body` 三字段，只传 `name` 会报 `body is missing`。
+本指南面向使用者，只描述「从哪里拿到新版本」：正式站点在后台「系统更新」一键升级；
+SDK 与加密客户端生成器在仓库 Releases 页下载，附件清单见该页 Release 说明。
 
 ## 许可
 
