@@ -771,6 +771,16 @@ curl -u xiaomihu:zxweq967423 \
 - DLL 版与三端能力对齐：runtime_policy 策略缓存、`Nebula_SecurityCheck` 有限自检+策略处置、`Nebula_ReportRuntimeEvent` 事件上报（失败入队随心跳补发）、可选自动心跳 `Nebula_SetAutoHeartbeat`；
 - 详见 `.catpaw/skills/nebula-development/SKILL.md` 的发布规则（唯一权威）。
 
+### 5. Release 标题与附件规范（固定格式）
+
+- **Release 标题固定为**：`Nebula网络验证sdk V{SDK版本} 及加密客户端生成器`（如 `Nebula网络验证sdk V3.1.3 及加密客户端生成器`），每次发版**只更新其中的 SDK 版本号**，其余文字不变；
+- **附件固定四件套 + 主包**（同一 Release 下挂全部）：
+  - `Nebula-SDK-CPP-{v}.zip` / `Nebula-SDK-CSharp-{v}.zip` / `Nebula-SDK-Python-{v}.zip` —— 三语言 SDK 源码；
+  - `NebulaSealClient-docs.zip` —— 完整说明文档（SEALER 生成器说明 / API 协议 / 架构设计 / 完整指南 / 使用说明）；
+  - `NebulaSealClient.zip` —— 加密客户端生成器主程序（NebulaSealClient.exe + stub/stub64 + vmp 模板）；
+- **平台分工**：GitHub 与 Gitee 双端同步发布；`NebulaSealClient.zip` 超 Gitee 附件 100MB 上限时，Gitee 端正文写明并指向 GitHub Release 下载链接；
+- **API 坑**：Gitee `PATCH /releases/{id}` 必须同时带 `tag_name` / `name` / `body` 三字段，只传 `name` 会报 `body is missing`。
+
 ## 许可
 
 本项目仅供学习与自用，请勿用于非法用途。使用本系统进行软件授权时，请确保符合当地法律法规。
