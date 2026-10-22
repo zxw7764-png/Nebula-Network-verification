@@ -49,7 +49,7 @@ jobs:
         id: check
         run: |
           V="${{ steps.ver.outputs.version }}"
-          LATEST=$(curl -s "https://mmbr.serv00.net/api/version.php?product=nebula-verification&version=0.0.0&channel=stable" \
+          LATEST=$(curl -s "https://nebula.baigee.fun/api/version.php?product=nebula-verification&version=0.0.0&channel=stable" \
             | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('latest_version') or '')")
           if [ -z "$LATEST" ]; then
             echo "警告: 无法读取远程 latest（网络异常？），继续尝试（若版本重复上传会被拒）"
@@ -93,7 +93,7 @@ PY
           RSP=$(curl -s -u "${UU}:${UP}" \
                 -F "update_file=@/tmp/update_${V}.zip" \
                 -F "release_notes=CI 自动发版 v${V}" \
-                "https://mmbr.serv00.net/api/upload.php")
+                "https://nebula.baigee.fun/api/upload.php")
           echo "上传响应: $RSP"
           echo "$RSP" | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get('code')==0 else 1)"
 
@@ -104,7 +104,7 @@ PY
         run: |
           gh release create "v${V}" "/tmp/update_${V}.zip" \
             --title "Nebula v${V}" \
-            --notes "CI 自动发版（更新包已上传远程版本服务器：https://mmbr.serv00.net/releases/${V}/update.zip）" \
+            --notes "CI 自动发版（更新包已上传远程版本服务器：https://nebula.baigee.fun/releases/${V}/update.zip）" \
             -R "${{ github.repository }}"
 
       - name: 创建 Gitee Release 并上传更新包
@@ -118,7 +118,7 @@ PY
           fi
           GITEE_REPO="xinia/online-verification"
           RSP=$(curl -s -X POST -H "Content-Type: application/json" \
-            -d "$(python3 -c "import json; print(json.dumps({'tag_name':'v${V}','name':'Nebula v${V}','body':'CI 自动发版（更新包：https://mmbr.serv00.net/releases/${V}/update.zip）','target_commitish':'master'}))")" \
+            -d "$(python3 -c "import json; print(json.dumps({'tag_name':'v${V}','name':'Nebula v${V}','body':'CI 自动发版（更新包：https://nebula.baigee.fun/releases/${V}/update.zip）','target_commitish':'master'}))")" \
             "https://gitee.com/api/v5/repos/${GITEE_REPO}/releases?access_token=${GITEE_TOKEN}")
           RID=$(echo "$RSP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id') or '')")
           if [ -z "$RID" ]; then
