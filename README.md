@@ -18,6 +18,7 @@
 | [docs/API_RAW_EXAMPLES.md](docs/API_RAW_EXAMPLES.md) | 请求 / 响应原始报文示例（手写协议对接逐字节参照） |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构设计文档（分层架构 / 请求生命周期 / 安全设计对照） |
 | [docs/TEMPLATE.md](docs/TEMPLATE.md) | 界面模板开发文档（目录规范 / 小游戏 / 布局与自定义区块） |
+| [docs/SEALER.md](docs/SEALER.md) | 加密客户端生成器说明（NebulaSealClient / 加载壳 / VMProtect 壳加固） |
 | [CHANGELOG.md](CHANGELOG.md) | 版本更新日志 |
 
 ## ⚡ 速览

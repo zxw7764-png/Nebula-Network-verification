@@ -44,6 +44,10 @@ Thumbs.db
 # 打包工作目录与产物
 _pkg/
 *.zip
+# 例外：加密客户端生成器发行包
+!releases/NebulaSealClient.zip
+# 例外：已入库的 SDK 发行包（历史保留）
+!releases/Nebula-DLL-SDK-v2.66.4.zip
 
 # SDK 编译产物
 sdk/build/out/

@@ -16,6 +16,7 @@
 | sdk-py/README.md（随 SDK 分发包提供）                    | Python SDK 接入文档（协议同规格 / 内置 Pygame 登录界面 / 完整性自校验 / 自动更新 / 功能密钥 NF1）      |
 | sdk-c#/NebulaSDK.md（随 SDK 分发包提供）                    | C# SDK 接入文档（.NET 10 / WinForms；登录 / 心跳 / 离线宽限 / 功能密钥 NF1 / 运行时防护与字符串混淆） |
 | [docs/TEMPLATE.md](TEMPLATE.md)                   | 界面模板开发文档（目录规范 / 小游戏 / 交互音效 / 布局与自定义区块）                                  |
+| [docs/SEALER.md](SEALER.md) | 加密客户端生成器说明（NebulaSealClient / 加载壳 / VMProtect 壳加固） |
 
 > 界面模板使用与后台可视化编辑（换肤 / 布局与自定义区块 / 小游戏参数）的操作入口在管理后台  
 > 「官网运营 → 界面模板 / 官网内容 / 小游戏与排行榜」，开发规范见 docs/TEMPLATE.md。
@@ -52,6 +53,7 @@
 | 🏢 多租户     | 软件归属代理商（owner_agent_id），管理员可绑定为租户管理员（agent_id）——总后台仅可见归属软件及其用户/卡密/设备数据，越权写操作直接拒绝，默认拒绝式隔离                                   |
 | 🩺 安全审计    | 每日自动巡检（cron）：暴力破解嫌疑（同 IP）、撞库嫌疑（同账号）、密钥重置追踪、代理商卡密突增，异常写报告文件并记日志                                                             |
 | 📦 在线更新    | 对接 update-system 版本服务器，后台一键自动下载、校验、备份并安装更新包；支持强制更新封锁                                                                       |
+| 📦 加密客户端生成器 | `sealer/` 一键把 exe 打包为 Nebula 加载壳，载荷 AES-256-GCM 加密，配置内嵌镜像 + VMProtect 压缩；详见 [docs/SEALER.md](SEALER.md) |
 
 ---
 

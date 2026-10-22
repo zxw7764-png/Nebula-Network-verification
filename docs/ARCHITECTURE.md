@@ -1,7 +1,7 @@
 # Nebula 网络验证系统 · 架构设计文档
 
 > 📚 本文属 Nebula 文档中心，主索引见 [README.md](../README.md)，完整指南见 [GUIDE.md](GUIDE.md)；
-> 其他文档：[API 接口](API.md) · [报文示例](API_RAW_EXAMPLES.md) · [界面模板](TEMPLATE.md) ·
+> 其他文档：[API 接口](API.md) · [报文示例](API_RAW_EXAMPLES.md) · [界面模板](TEMPLATE.md) · [加密客户端生成器](SEALER.md) ·
 > [C++ SDK 接入] · [C++ SDK 加固] · [Python SDK]（三套 SDK 文档随仓库发行处（Releases）sdk.zip / sdk-py.zip 提供）
 
 本文档描述 Nebula 网络验证系统的整体架构、请求生命周期、关键链路时序与安全设计，
@@ -37,6 +37,7 @@ flowchart TD
         C1["C++ SDK（sdk/nebula/）"]
         C2["Python SDK（sdk-py/）"]
         C3["手写协议对接"]
+        C4["加密客户端生成器（sealer/）"]
     end
 
     subgraph ENTRY["入口层（每个入口独立鉴权）"]
@@ -70,6 +71,7 @@ flowchart TD
     C1 --> E1
     C2 --> E1
     C3 --> E1
+    C4 --> E1
     E1 --> K0
     E2 --> K0
     E3 --> K0
@@ -389,6 +391,18 @@ sequenceDiagram
 | 文件完整性 | `lib/FileGuard.php` | 全站 sha256 基准比对 + Webshell 特征扫描 |
 | 健康检查 | `lib/Health.php` | 环境与依赖自检 |
 | 运行时防护 | `lib/RuntimePolicy.php`、`lib/RuntimeGuard.php`、`lib/RuntimeRiskEngine.php`、`lib/RuntimeEventService.php` | 策略匹配下发（软件级 > 全局 > 内置默认）、心跳遥测合并、事件风险评估与自动处置 |
+
+### 9.2 加密客户端生成器（`sealer/`）
+
+`sealer/` 是随仓库分发的离线打包工具，把客户自有的 Windows 程序（exe）封装为 **Nebula 加载壳**：
+
+- **打包流程**：选目标 exe → 选加载壳（32/64 位）→ 填写后台地址 / 软件标识 / 响应公钥 / 证书指纹 / 功能密钥 → 一键生成成品；
+- **载荷加密**：原始 exe 以 AES-256-GCM 加密后追加在成品尾部，登录成功且拿到功能密钥后才解密启动；
+- **配置内嵌**：验证配置（`api_url`、`app_key`、TLS 指纹、响应公钥、安全策略）写在加载壳镜像的 `.rdata` 配置槽；勾选「自动加壳」时先由 VMProtect 压缩，成品静态扫不到这些字符串；
+- **图标处理**：加壳前用 Win32 `UpdateResource` 把图标写入加载壳 PE 资源段，支持跟随目标程序、自选 `.ico` 或保持默认；
+- **安全策略**：默认跟随服务端；自定义策略用 HMAC-SHA256 签名保护，被篡改时回落服务端策略。
+
+详细操作与 FAQ 见 [docs/SEALER.md](SEALER.md)。
 
 ### 9.3 发布与迁移
 
