@@ -146,8 +146,7 @@ function swEdit(s) {
     <div class="field" style="margin-bottom:10px"><label>功能密钥（仅登录成功后下发给客户端）</label>
         <div style="display:flex;gap:6px">
             <input id="swFeatureKey" value="${esc(s.feature_key || '')}" placeholder="留空 = 未启用" style="flex:1">
-            <button type="button" class="btn ghost" style="padding:4px 14px;flex-shrink:0"
-                onclick="document.getElementById('swFeatureKey').value=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('')">生成随机</button>
+            <button type="button" class="btn ghost" id="swFeatureKeyGen" style="padding:4px 14px;flex-shrink:0">生成随机</button>
         </div>
         <small class="muted">接入方用它加密核心数据包随程序分发（SDK nebula::feature::seal / open）；登录失败或被踢后数据保持密文</small>
     </div>
@@ -253,6 +252,17 @@ function swEdit(s) {
             else toast(res.msg || '保存失败', 'err');
         }},
     ]);
+
+    // CSP 的 script-src 不含 unsafe-inline，内联 onclick 会被拦截，改为事件绑定
+    const genBtn = document.getElementById('swFeatureKeyGen');
+    if (genBtn) {
+        genBtn.addEventListener('click', () => {
+            const buf = new Uint8Array(16);
+            crypto.getRandomValues(buf);
+            document.getElementById('swFeatureKey').value =
+                Array.from(buf, b => b.toString(16).padStart(2, '0')).join('');
+        });
+    }
 }
 
 function swDel(s) {

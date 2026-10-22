@@ -6,11 +6,23 @@
 
 ## [未发布] - 2026-10-21
 
+### 后台 CSP 合规（内联事件属性全部清掉）
+
+- **问题**：软件管理 →「功能密钥」右侧的「生成随机」点击无反应。控制台报 `Executing inline event handler violates the following Content Security Policy directive 'script-src 'self' 'nonce-…' 'unsafe-eval''`（`JSEventHandlerForContentAttribute`，栈 `openModal @ ui.js:28` ← `swEdit @ software.js:224`）。根因是按钮写成了内联 `onclick="…"`，而后台 CSP 的 `script-src` 只放行 `self` + nonce + `unsafe-eval`，**没有 `unsafe-inline`** —— 内联事件属性一律被拦截；`openModal` 用 `innerHTML` 注入时就会触发该拦截。
+- **修法**：**不放开 `unsafe-inline`**（那等于拆掉 CSP 对抗 XSS 的主防线），改为按钮带 `id="swFeatureKeyGen"`，在 `openModal()` 之后用 `addEventListener` 绑定；随机源走 `crypto.getRandomValues(new Uint8Array(16))` → 32 位小写十六进制。
+- **同类问题一并清理**（全站扫描后剩下的内联事件属性与 `javascript:` 伪协议，共 4 处）：
+  - `pages/system_update.js`：授权码输入框的 `oninput="this.value=…"` 改为事件绑定（统一小写、只保留 `[0-9a-f]`）；
+  - `pages/device.js`：硬件指纹单元格 `<a href="javascript:;">` 改为 `<span data-fp>` —— `javascript:` 导航同样受 `script-src` 管辖，点了就报违规；
+  - `pages/agent_code.js`：代理注册数 `<a href="javascript:;">` 改为 `<span data-act="detail">`，顺带修好这个**原本没绑定任何点击处理**的死链接，现在可直接打开该激活码的详情。
+- **核验**：`grep` 全后台 `assets/js`，内联事件属性 0 处、`javascript:` 伪协议 0 处；4 个文件 `node --check` 通过；密钥生成实测 32 位十六进制、200 次无重复。
+- **`NB_VERSION` 2.66.4.12 → 2.66.4.13**：只改后台 JS 也必须 +1，否则浏览器按 `?v=` 命中旧模块缓存。
+
 ### SDK 3.1.3（init 列表公告解析修复）
 
 - **修复：init 下发的列表公告永远解析为空**（`client.hpp parseNoticeList` / C# `NebulaClient.ParseNoticeList`）。init 响应的公告键是 `data.notices`，notice 接口才是 `data.list`，早先统一按 `list` 解析导致 init 公告恒为空 —— 客户端登录窗/SDK UI 只能显示「暂无公告」。现 `parseNoticeList` 增加键名参数：init 传 `"notices"`，notice 接口（弹窗/立即公告）保持默认 `"list"`；Python 端本来就按 `notices` 读取，行为不变仅同步版本号。
 - 三语言 SDK 版本号统一 `3.1.3`（`NEBULA_SDK_VERSION` / `SdkVersion` / `sdk_version`），并同步 `sdk-cpp` → `login/登录/sdk/` 副本。
 - 发布：tag `sdk-3.1.3`（Nebula-SDK-CPP/CSharp/Python-3.1.3.zip）。
+
 ### SDK 3.1.2（模块守卫误报修复 · 弱环境线索不再触发拦截 · 安全提示按动作区分）
 
 - **修复：Windows 系统懒加载 DLL 被判「模块注入」**（`module_guard.hpp`）。`buildModuleBaseline()` 在首个 HTTP 请求**之前**建立基线，而 WinHTTP 一联网就会让系统懒加载 `nsi.dll`（NSP）与 `dhcpcsvc.dll`（DHCP），`init` 之后的复检必然把它们当成「新增模块」（各 10 分），再被服务端 `MODULE_INJECTION`（60/HIGH）放大成高危事件 —— 现象就是「程序正常启动却被判注入 / 被策略拦下」。现改为：

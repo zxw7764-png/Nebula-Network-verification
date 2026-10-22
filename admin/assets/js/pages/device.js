@@ -35,10 +35,10 @@ function fpCell(x) {
     const view = x.fp_components_view || [];
     const names = view.map(c => c.label).join('·');
     const pct = x.fp_max_score > 0 ? Math.round((x.fp_score || 0) * 100 / x.fp_max_score) : 0;
-    return `<a href="javascript:;" data-fp="${x.id}"
+    return `<span data-fp="${x.id}"
         title="点击查看硬件明细：${esc(names)}（权重完整度 ${pct}%）"
-        style="color:#2563eb;text-decoration:none;white-space:nowrap">${x.fp_count}项
-        <span style="color:#6b7280;font-size:12px;margin-left:4px">${esc(names)}</span></a>`;
+        style="color:#2563eb;cursor:pointer;white-space:nowrap">${x.fp_count}项
+        <span style="color:#6b7280;font-size:12px;margin-left:4px">${esc(names)}</span></span>`;
 }
 
 async function render() {

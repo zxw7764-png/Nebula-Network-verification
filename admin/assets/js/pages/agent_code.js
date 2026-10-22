@@ -112,7 +112,7 @@ async function renderCodes(c, st) {
             <td>${statusTag(x.status, { 1: ['可用', 'green'], 0: ['已停用', 'gray'] })}</td>
             <td>
                 ${x.reg_count > 0
-                    ? `<a href="javascript:;" data-agents="${x.id}" style="color:var(--primary-strong)">${x.reg_count} 个</a>`
+                    ? `<span data-act="detail" data-id="${x.id}" style="color:var(--primary-strong);cursor:pointer">${x.reg_count} 个</span>`
                     : '<span style="color:#9ca3af">0</span>'}
             </td>
             <td style="white-space:nowrap">

@@ -243,12 +243,20 @@ async function renderLicenseCard() {
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <input id="licKeyInput" class="mono" placeholder="32 位授权码" maxlength="32"
-                       oninput="this.value=this.value.toLowerCase().replace(/[^0-9a-f]/g,'')"
+                       autocomplete="off" spellcheck="false"
                        style="flex:1;min-width:220px;background:var(--bg-alt);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text)">
                 <button class="btn success sm" id="licActivateBtn">激活 / 重新激活</button>
             </div>
         </div>
     </div>`;
+
+    // CSP 的 script-src 不含 unsafe-inline，内联 oninput 会被拦截，改为事件绑定
+    const licInput = document.getElementById('licKeyInput');
+    if (licInput) {
+        licInput.addEventListener('input', () => {
+            licInput.value = licInput.value.toLowerCase().replace(/[^0-9a-f]/g, '');
+        });
+    }
 
     document.getElementById('licActivateBtn').addEventListener('click', async (ev) => {
         const btn = ev.currentTarget;
